@@ -1,0 +1,18 @@
+target/
+*.log
+*.png
+script_test/
+*.exe
+web/
+
+# android 打包产物
+target/apk/
+*.apk
+jniLibs/
+
+# 交付产物不入库（2026-10-29：本地分发用，按需归档到他处）
+pygamest-dev-0.1.3-*.tar.gz
+pygamest-dev-0.1.3-*.zip
+
+# export SDK 交付产物（dist/android/<abi>/*.so，按需归档）
+dist/

@@ -1,0 +1,144 @@
+//! 移动宿主（**Android / iOS 共用**——dialog 载荷契约，2026-10-26 定约）。
+//!
+//! 三平台一个交互设计：与 web 宿主映射同构——
+//! - 调试形态：系统文件选择器（starfish-dialog，robius 实现）选 .py →
+//!   读取 → `-c` 形态运行（与 web `load_code` 同构）；
+//! - 出货形态：模板工程嵌 bundle 启动即跑（随 pack 仓）。
+//!
+//! 平台差异全部由家族设施承载：窗口/事件 = starfish-we android/ios
+//! 后端；文件选择 = starfish-dialog（robius-file-picker）；io 基准 =
+//! starfish 自动注入 app 私有目录（资源就近解析）。宿主层零平台分支。
+//!
+//! 参数：移动端无命令行 → `sys.argv = [选取文件名]`（-c 语义同型）。
+//! 鸿蒙：前提 = starfish-we 新增 harmony 窗口/事件后端（基础设施工程）；
+//! 本模块的载荷契约对其零障碍（未来 cfg 门直接扩）。
+
+use crate::host::{Host, RunRequest};
+
+/// dialog 选定后的载荷宿主（-c 形态）
+pub struct MobileHost {
+    /// 选取文件名（sys.argv[0] / 日志定位）
+    pub name: String,
+    /// 源码全文
+    pub code: String,
+    /// 模块根（Some = 装载脚本模块表——"main 所在目录 = sys.path[0]"
+    /// 同语义，modules/ 等子目录按自然路径 import；None = 单文件零注入。
+    /// caller 取 io 基准目录/载荷所在目录传入）
+    pub module_root: Option<String>,
+}
+
+impl Host for MobileHost {
+    fn name(&self) -> &'static str {
+        "pygamest-dev"
+    }
+
+    /// 移动端无命令行 → sys.argv = [选取文件名]
+    fn args(&self) -> Vec<String> {
+        vec![self.name.clone()]
+    }
+
+    async fn acquire(&self) -> Result<RunRequest, String> {
+        Ok(RunRequest {
+            name: self.name.clone(),
+            code: self.code.clone(),
+            module_root: self.module_root.clone(),
+            embedded_scripts: None,
+            payload: None,
+        })
+    }
+}
+
+/// 嵌入形态载荷运行（**导出壳统一收口**——JNI/wasm-bindgen 等语言边界
+/// 只做参数搬运，生命周期全在本接口）：自起 16MB 栈引擎线程（RP genesis
+/// 需要；不占宿主 UI 线程）→ reset stop → runtime::run → 兜底清理
+///（display/mixer 槽位是引擎线程的 thread_local，必须本线程清——音频
+/// 设备流 Drop 即停，漏了会"退脚本后声音还在"）→ 释放表面引用
+///（防 present-after-release；槽位已空 = no-op）。
+///
+/// 进程一次契约：一轮只跑一个程序；切换 = 宿主先 stop（帧边界收口）
+/// 再重进。module_root 传 io 基准目录（None = 单文件契约）。
+pub fn run_embedded_on_new_thread(name: String, code: String, module_root: Option<String>) {
+    std::thread::Builder::new()
+        .stack_size(16 * 1024 * 1024)
+        .spawn(move || {
+            starfish_debug::log_info!("[pygamest-dev] 引擎线程启动");
+            starfish_std::run_control::reset();
+            let host = MobileHost { name, code, module_root };
+            let exit = starfish_std::app::block_on(async move {
+                crate::runtime::run(&host).await
+            });
+            if exit != 0 {
+                starfish_debug::log_info!(&format!(
+                    "[pygamest-dev] 运行结束（退出码 {exit}）"
+                ));
+            }
+            starfish_pygame::display::quit();
+            starfish_pygame::mixer::quit();
+            starfish_debug::log_info!(
+                "[pygamest-dev] 引擎线程收尾（display/mixer 已清）",
+            );
+            starfish_we::embedded::release_surface();
+        })
+        .expect("spawn engine thread");
+}
+
+/// 嵌入式停止请求（宿主 app 的 stop 接口置位；帧边界检查退出——
+/// 线程无法强杀，取消标志 = 唯一安全的"杀死"方式）
+static STOP_REQUESTED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+/// 宿主 app 请求停止当前运行（帧边界生效）
+pub fn request_stop() {
+    STOP_REQUESTED.store(true, std::sync::atomic::Ordering::SeqCst);
+}
+
+pub(crate) fn stop_requested() -> bool {
+    STOP_REQUESTED.load(std::sync::atomic::Ordering::SeqCst)
+}
+
+pub(crate) fn reset_stop() {
+    STOP_REQUESTED.store(false, std::sync::atomic::Ordering::SeqCst);
+}
+
+/// dialog 选文件 → 读取 → 运行（`python <文件>` 的移动映射）。
+///
+/// 返回进程退出码：0 = 正常结束（含用户取消）；2 = dialog/读取失败；
+/// 1 = 脚本运行错误（traceback 已由 runtime 打印）。
+pub async fn pick_and_run() -> i32 {
+    let picked = match starfish_dialog::pick_file(
+        Some("选择 pygame 脚本"),
+        &[("Python 脚本", &["py"])],
+    )
+    .await
+    {
+        Ok(p) => p,
+        Err(e) => {
+            starfish_debug::log_error!(&format!("[pygamest-dev] dialog 失败: {e}"));
+            return 2;
+        }
+    };
+    let Some(pf) = picked else {
+        starfish_debug::log_info!("[pygamest-dev] 用户取消选择");
+        return 0;
+    };
+    let name = pf.name().to_string();
+    let bytes = match pf.read() {
+        Ok(b) => b,
+        Err(e) => {
+            starfish_debug::log_error!(&format!("[pygamest-dev] 读取失败 {name}: {e}"));
+            return 2;
+        }
+    };
+    if std::str::from_utf8(&bytes).is_err() {
+        starfish_debug::log_info!(&format!("[pygamest-dev] {name} 非 UTF-8"));
+        return 2;
+    }
+    let code = String::from_utf8_lossy(&bytes).into_owned();
+    starfish_debug::log_info!(&format!("[pygamest-dev] 载荷 = {name}（dialog，{} B）", bytes.len()));
+    let host = MobileHost {
+        name,
+        code,
+        // SAF 选取文件无稳定磁盘目录（可虚拟化）——dialog 形态保持单文件
+        module_root: None,
+    };
+    crate::runtime::run(&host).await
+}
