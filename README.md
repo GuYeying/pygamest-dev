@@ -60,9 +60,22 @@ Windows MSVC 构建自动抬主线程栈（build.rs，RP 引导需要）。
 
 - 入口严格 `async def main()`（跨平台统一——Web rAF 模型的硬约束）；
 - 帧桥 `pygame.next_frame()`（待网络 awaitable 同机制扩展）；
-- 与 pygame-runner（分发载体，玩家单元）分工：本仓 = 开发解释器
-  （python.exe 形态），那仓 = 游戏门分发。
+- 与 [pygamest-runtime](https://github.com/GuYeying/pygamest-runtime)
+  （分发载体，玩家单元）分工：本仓 = 开发解释器（python.exe 形态），
+  那仓 = 入口加密嵌入 + 散文件清单的成品分发。
 
 ## 协议
 
 MIT OR Apache-2.0 双协议（见 LICENSE-MIT / LICENSE-APACHE）。
+
+
+## 生态仓库矩阵
+
+| 仓库 | 角色 |
+|---|---|
+| [starfish](https://github.com/GuYeying/starfish) | 引擎本体（纯 Rust 跨平台库，零 Python 资产） |
+| [pygamest](https://github.com/GuYeying/pygamest) | Python 绑定层（RustPython 内嵌 + 原生 pygame 面） |
+| [pygamest-dev](https://github.com/GuYeying/pygamest-dev) | 开发解释器（本仓，python.exe 形态） |
+| [pygamest-runtime](https://github.com/GuYeying/pygamest-runtime) | 游戏运行时（玩家单元，入口加密嵌入 + 散文件清单） |
+| [egui-starfish-we](https://github.com/GuYeying/egui-starfish-we) | egui × starfish-we 适配（vendored egui-winit fork） |
+| [rapier-starfish-debug](https://github.com/GuYeying/rapier-starfish-debug) | Rapier 物理适配 + 通用 debug 渲染 |
