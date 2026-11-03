@@ -7,6 +7,9 @@
 //!
 //! 平台差异只允许存在于 [`crate::host::Host::acquire`]（拿载荷）与
 //! 平台 main 的收尾（退出码语义）里，不得下沉到本模块。
+// RP 嵌入 API 经 pygamest re-export（vendored path 在 pygamest 仓内）
+use pygamest::rustpython_vm as rustpython_vm;
+
 
 use crate::host::{Host, RunRequest};
 use pygamest::rpy;

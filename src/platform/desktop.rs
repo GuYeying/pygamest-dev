@@ -3,6 +3,9 @@
 //!
 //! 载荷获取 = std::fs 同步读；模块根 = 脚本父目录（运行时切 cwd——
 //! python sys.path[0] 同语义）。
+// RP 嵌入 API 经 pygamest re-export（vendored path 在 pygamest 仓内）
+use pygamest::rustpython_vm as rustpython_vm;
+
 
 use crate::host::RunRequest;
 use pygamest::rpy;
