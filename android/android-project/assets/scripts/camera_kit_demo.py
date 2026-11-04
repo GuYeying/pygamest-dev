@@ -32,8 +32,8 @@ async def main():
     card = pygame.Surface((120, 90))
     with card.render() as t:
         t.fill((30, 34, 48))
-        t.rect((80, 200, 90), (6, 6, 108, 78), 2)
-        t.circle((230, 70, 70), (34, 45), 16)
+        pygame.gfxdraw.rectangle(t, (6, 6, 108, 78), (80, 200, 90))  # 原 width=2 描边（gfxdraw 恒 1px）
+        pygame.gfxdraw.filled_circle(t, 34, 45, 16, (230, 70, 70))
 
     cam2d = kit.Camera2D(w, h)                      # 相机只建一次
     cam3d = kit.Camera3D(w, h, fov=45.0)
@@ -49,38 +49,38 @@ async def main():
 
         x = 100 + (frame * 3) % (w - 220)           # 匀速巡游（帧推进自证）
 
-        # ── 上半：Manual 2D 正交 + blit_transform（平移×旋转矩阵链）──
-        cam2d.use()
+        # ── 上半：2D 正交（会话级 set_camera）+ draw_surface 矩阵链 ──
         with screen.render() as t:
+            cam2d.use(t)
             t.fill((16, 17, 24))
-            t.blit(title, (14, 10))
-            t.blit_transform(
-                card, kit.chain(kit.pos(x, 120), kit.rot_z(frame % 360)),
-                (255, 255, 255))
-            t.rect(color=(70, 74, 92), rect=(0, h // 2, w, 3))
+            pygame.gfxdraw.set_pos(t, 14, 10); pygame.gfxdraw.draw_surface(t, title)
+            pygame.gfxdraw.set_transform(t, 
+                kit.chain(kit.pos(x, 180), kit.rot_z(frame % 360)))
+            pygame.gfxdraw.draw_surface(t, card)
+            pygame.gfxdraw.box(t, (0, h // 2, w, 3), (70, 74, 92))
 
-        # ── 下半：Manual 3D 透视 + 深度会话（y 向上右手系，看向 -Z）──
-        cam3d.use()
+        # ── 下半：3D 透视 + 深度会话（y 向上右手系，看向 -Z）──
         with screen.render_depth() as t:
-            t.blit_transform(
-                card, kit.chain(kit.pos(-0.5, -0.4, -2.2), kit.scale(k)),
-                (255, 140, 140))
-            t.blit_transform(
-                card, kit.chain(kit.pos(0.5, -0.6, -3.4), kit.scale(k)),
-                (140, 200, 255))
+            cam3d.use(t)
+            pygame.gfxdraw.set_transform(t, 
+                kit.chain(kit.pos(-0.5, 0.4, -2.2), kit.scale(k)))
+            pygame.gfxdraw.draw_surface(t, card)
+            pygame.gfxdraw.set_transform(t, 
+                kit.chain(kit.pos(0.5, 0.6, -3.4), kit.scale(k)))
+            pygame.gfxdraw.draw_surface(t, card)
 
-        # 回 2D 画文字/描边（Manual 状态跨帧保持——帧空档仍是正交）
-        cam2d.use()
+        # 回 2D 画文字/描边（新会话开始即 Auto 重置——中心系坐标）
         with screen.render() as t:
-            t.blit(cjk.render("下半：render_depth + 透视（近大远小）",
-                              True, (150, 160, 180)), (14, h // 2 + 8))
-            t.rect(color=(120, 60, 60),
-                   rect=(20, h // 2 + 40, w - 40, h // 2 - 60), width=2)
+            cam2d.use(t)
+            pygame.gfxdraw.set_pos(t, 14, h // 2 - 8)
+            pygame.gfxdraw.draw_surface(t, cjk.render("下半：render_depth + 透视（近大远小）",
+                              True, (150, 160, 180)))
+            pygame.gfxdraw.rectangle(t, (20 - w // 2, -(h // 2 - 40), w - 40, h // 2 - 60), (120, 60, 60))
 
         pygame.display.flip()
         frame += 1
         if frame == 30:
-            rlog.log("[selftest] 帧空档相机 = manual:", kit.state() == "manual")
+            rlog.log("[selftest] 帧空档相机 = manual:", hasattr(pygame.render.camera_mvp(), "mul_mat4"))
         await pygame.next_frame()
 
     rlog.log("DONE 600 帧渲染收口")

@@ -18,7 +18,7 @@ demo 链路（无 NativeActivity，自有 Java UI 的嵌入式 .so 参考宿主�
   5. aapt2 link（-A assets 打进资源表）
   6. 组装 base + classes.dex + .so（.so 恒 DEFLATED、条目恒正斜杠）
   7. zipalign 4 + apksigner（debug.keystore）
-产物：target/apk/pygamestdev_demo.apk（包名 pygame.rsdev）
+产物：target/apk/pygamestdev_demo.apk（包名 pygamestdev）
 """
 
 import argparse
@@ -44,7 +44,7 @@ OUT_DIR = CRATE / "target" / "apk"
 WORK = CRATE / "target" / "apk_demo_build"
 FINAL_NAME = "pygamestdev_demo.apk"
 SO_NAME = "libandroid_host.so"
-PKG = "pygame.rsdev"
+PKG = "pygamestdev"
 ACTIVITY = f"{PKG}/.MainActivity"
 # 全量脚本源（pygamest 家族两个 examples 目录；递归 games/ 形态暂不收）
 SCRIPT_SOURCES = [

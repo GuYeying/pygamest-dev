@@ -1,4 +1,4 @@
-package pygame.rsdev;
+package pygamestdev;
 
 import android.app.ListActivity;
 import android.content.Intent;

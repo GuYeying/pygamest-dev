@@ -1,4 +1,4 @@
-package pygame.rsdev;
+package pygamestdev;
 
 import android.view.Surface;
 

@@ -27,11 +27,11 @@ async def main():
                 pos = (e.x, e.y)
         with screen.render() as r:
             r.fill((0, 0, 255))
-            r.rect((255, 255, 0), (0, 0, sw, sh), 6)
+            pygame.gfxdraw.rectangle(r, (0, 0, sw, sh), (255, 255, 0))  # 原 width=6 描边（gfxdraw 恒 1px）
             for cx, cy in ((8, 8), (sw - 8, 8), (8, sh - 8), (sw - 8, sh - 8)):
-                r.circle((255, 255, 255), (cx, cy), 8)
+                pygame.gfxdraw.filled_circle(r, cx, cy, 8, (255, 255, 255))
             if pos:
-                r.circle((255, 0, 0), pos, 20)
+                pygame.gfxdraw.filled_circle(r, pos[0], pos[1], 20, (255, 0, 0))
         pygame.display.flip()
         frame += 1
         if frame == 1 or frame % 120 == 0:

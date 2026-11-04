@@ -45,8 +45,8 @@ async def main():
     body = pygame.Surface((280, 240))
     with body.render() as br:
         br.fill((255, 180, 80, 255))                     # 橙色身体（不透明主体）
-        br.circle((40, 30, 30), (90, 90), 18)            # 眼
-        br.circle((40, 30, 30), (190, 90), 18)
+        pygame.gfxdraw.filled_circle(br, 90, 90, 18, (40, 30, 30))            # 眼
+        pygame.gfxdraw.filled_circle(br, 190, 90, 18, (40, 30, 30))
     body.set_alpha(255)                                  # 主体不透明（桌宠形态：背景全透、本体实心）
 
     # AA 文字边缘探针：黄色大字（若出现 fill 色描边 = colorkey 类缺陷）
@@ -81,11 +81,11 @@ async def main():
         panel_a = int(90 + 60 * tri(1800, _t))
 
         with screen.render() as r:
-            r.blit(body, (60, 120))                        # 桌宠本体（不透明）
-            r.blit(title, (60, 40))                        # AA 文字边缘探针
-            r.blit(hint, (60, 100))
-            r.rect((255, 255, 255, max(0, panel_a)), (460, 60, 200, 120))  # 局部半透明面板
-            r.circle((120, 255, 160), (420, 180),
-                     max(6, int(30 * tri(1400, _t))))
+            pygame.gfxdraw.set_pos(r, 60, 120); pygame.gfxdraw.draw_surface(r, body)                        # 桌宠本体（不透明）
+            pygame.gfxdraw.set_pos(r, 60, 40); pygame.gfxdraw.draw_surface(r, title)                        # AA 文字边缘探针
+            pygame.gfxdraw.set_pos(r, 60, 100); pygame.gfxdraw.draw_surface(r, hint)
+            pygame.gfxdraw.box(r, (-140, 90, 200, 120), (255, 255, 255, max(0, panel_a)))  # 局部半透明面板（x-400, y=300-60-120 → 顶 90）
+            pygame.gfxdraw.filled_circle(r, 20, 120,
+                     max(6, int(30 * tri(1400, _t))), (120, 255, 160))
         pygame.display.flip()
         await pygame.next_frame()

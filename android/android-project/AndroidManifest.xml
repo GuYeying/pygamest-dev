@@ -3,10 +3,10 @@
   pygame-rs-dev 原生 UI demo app（嵌入式 .so 交付形态的参考宿主）：
   普通 Activity（非 NativeActivity）+ PygameRsDev JNI 门面——
   演示原生 Android 开发者如何把 pygame 运行时嵌进自己的 app。
-  包名 pygame.rsdev 与 .so 的 JNI 符号（Java_pygame_rsdev_*）严格对齐。
+  包名 pygamestdev 与 .so 的 JNI 符号（Java_pygamestdev_*）严格对齐。
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="pygame.rsdev"
+    package="pygamestdev"
     android:versionCode="__VERSION_CODE__"
     android:versionName="__VERSION_NAME__">
     <!-- 版本占位符由 build_native_demo.py 按构建时刻注入——恒定
