@@ -44,7 +44,7 @@ OUT_DIR = CRATE / "target" / "apk"
 WORK = CRATE / "target" / "apk_demo_build"
 FINAL_NAME = "pygamestdev_demo.apk"
 SO_NAME = "libandroid_host.so"
-PKG = "pygamestdev"
+PKG = "pygame.rsdev"  # manifest 包（两段强制）；Java 类包独立 = pygamestdev（JNI 对齐）
 ACTIVITY = f"{PKG}/.MainActivity"
 # 全量脚本源（pygamest 家族两个 examples 目录；递归 games/ 形态暂不收）
 SCRIPT_SOURCES = [
@@ -246,7 +246,7 @@ def cmd_demo(args):
     if args.install:
         adb = "D:/android-tools/platform-tools/adb.exe"
         sh([adb, "install", "-r", str(final)], tail=1)
-        sh([adb, "shell", "am", "start", "-n", f"{PKG}/.MainActivity"], tail=1)
+        sh([adb, "shell", "am", "start", "-n", "pygamestdev/.MainActivity"], tail=1)
 
 
 def main():
