@@ -32,8 +32,8 @@ async def main():
     card = pygame.Surface((120, 90))
     with card.render() as t:
         t.fill((30, 34, 48))
-        t.rect((80, 200, 90), (6, 6, 108, 78), 2)
-        t.circle((230, 70, 70), (34, 45), 16)
+        pygame.gfxdraw.rectangle(t, (6, 6, 108, 78), (80, 200, 90))  # 原 width=2 描边（gfxdraw 恒 1px）
+        pygame.gfxdraw.filled_circle(t, 34, 45, 16, (230, 70, 70))
 
     cam2d = kit.Camera2D(w, h)                      # 相机只建一次
     cam3d = kit.Camera3D(w, h, fov=45.0)
@@ -53,30 +53,29 @@ async def main():
         with screen.render() as t:
             cam2d.use(t)
             t.fill((16, 17, 24))
-            t.set_pos(14, 10); t.draw_surface(title)
-            t.set_transform(
+            pygame.gfxdraw.set_pos(t, 14, 10); pygame.gfxdraw.draw_surface(t, title)
+            pygame.gfxdraw.set_transform(t, 
                 kit.chain(kit.pos(x, 180), kit.rot_z(frame % 360)))
-            t.draw_surface(card)
-            t.rect(color=(70, 74, 92), rect=(0, h // 2, w, 3))
+            pygame.gfxdraw.draw_surface(t, card)
+            pygame.gfxdraw.box(t, (0, h // 2, w, 3), (70, 74, 92))
 
         # ── 下半：3D 透视 + 深度会话（y 向上右手系，看向 -Z）──
         with screen.render_depth() as t:
             cam3d.use(t)
-            t.set_transform(
+            pygame.gfxdraw.set_transform(t, 
                 kit.chain(kit.pos(-0.5, 0.4, -2.2), kit.scale(k)))
-            t.draw_surface(card)
-            t.set_transform(
+            pygame.gfxdraw.draw_surface(t, card)
+            pygame.gfxdraw.set_transform(t, 
                 kit.chain(kit.pos(0.5, 0.6, -3.4), kit.scale(k)))
-            t.draw_surface(card)
+            pygame.gfxdraw.draw_surface(t, card)
 
         # 回 2D 画文字/描边（新会话开始即 Auto 重置——中心系坐标）
         with screen.render() as t:
             cam2d.use(t)
-            t.set_pos(14, h // 2 - 8)
-            t.draw_surface(cjk.render("下半：render_depth + 透视（近大远小）",
+            pygame.gfxdraw.set_pos(t, 14, h // 2 - 8)
+            pygame.gfxdraw.draw_surface(t, cjk.render("下半：render_depth + 透视（近大远小）",
                               True, (150, 160, 180)))
-            t.rect(color=(120, 60, 60),
-                   rect=(20 - w // 2, -(h // 2 - 40), w - 40, h // 2 - 60), width=2)
+            pygame.gfxdraw.rectangle(t, (20 - w // 2, -(h // 2 - 40), w - 40, h // 2 - 60), (120, 60, 60))
 
         pygame.display.flip()
         frame += 1

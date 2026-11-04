@@ -120,9 +120,9 @@ async def main():
         # batch 的既有贴图路径）
         with screen.render() as t:
             t.fill((18, 20, 28))
-            t.set_pos(16, 12); t.draw_surface(label)
-            t.set_pos(160, 120); t.draw_surface(pip)
-            t.set_pos(524, 40); t.draw_surface(ui_surf)
+            pygame.gfxdraw.set_pos(t, 16, 12); pygame.gfxdraw.draw_surface(t, label)
+            pygame.gfxdraw.set_pos(t, 160, 120); pygame.gfxdraw.draw_surface(t, pip)
+            pygame.gfxdraw.set_pos(t, 524, 40); pygame.gfxdraw.draw_surface(t, ui_surf)
         pygame.display.flip()
         frame_no += 1
 

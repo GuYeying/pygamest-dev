@@ -70,21 +70,21 @@ async def main():
         # 主屏会话：底色 + 色板网格（命名颜色实例逐格填充）
         with screen.render() as t:
             t.fill((18, 20, 28))
-            t.set_pos(16, 12); t.draw_surface(label)
+            pygame.gfxdraw.set_pos(t, 16, 12); pygame.gfxdraw.draw_surface(t, label)
             for i, c in enumerate(swatches):
                 x, y = 24 + (i % 8) * 92, 60 + (i // 8) * 64
-                t.rect((c.r, c.g, c.b), (x, y, 80, 44), None)
-                t.set_pos(x, y + 46); t.draw_surface(cjk.render(names[i], False, (220, 220, 220)))
+                pygame.gfxdraw.rectangle(t, (x, y, 80, 44), (c.r, c.g, c.b))
+                pygame.gfxdraw.set_pos(t, x, y + 46); pygame.gfxdraw.draw_surface(t, cjk.render(names[i], False, (220, 220, 220)))
 
         # 深度会话：API 链路验证（独立槽位——绘制按深度管线打包）
         with screen.render_depth() as t:
             t.fill((30, 30, 44))
-            t.rect((0, 200, 90), (300, 200, 200, 140))
-            t.rect((200, 90, 0), (380, 260, 200, 140))
+            pygame.gfxdraw.box(t, (300, 200, 200, 140), (0, 200, 90))
+            pygame.gfxdraw.box(t, (380, 260, 200, 140), (200, 90, 0))
 
         # 普通会话回填说明（画家序叠加演示：三段会话同帧合成）
         with screen.render() as t:
-            t.set_pos(300, 180); t.draw_surface(cjk.render("深度会话样张 ↑（两次 fill+rect 按深度管线）",
+            pygame.gfxdraw.set_pos(t, 300, 180); pygame.gfxdraw.draw_surface(t, cjk.render("深度会话样张 ↑（两次 fill+rect 按深度管线）",
                               False, (160, 220, 160)))
 
         pygame.display.flip()

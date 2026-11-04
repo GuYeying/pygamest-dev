@@ -163,15 +163,15 @@ async def main():
 
         with screen.render() as t:
             t.fill((16, 18, 26))
-            t.set_pos(14, 10); t.draw_surface(title)
-            t.set_pos(14, 36); t.draw_surface(hint)
+            pygame.gfxdraw.set_pos(t, 14, 10); pygame.gfxdraw.draw_surface(t, title)
+            pygame.gfxdraw.set_pos(t, 14, 36); pygame.gfxdraw.draw_surface(t, hint)
             y = 70
             for surf in lines:
-                t.set_pos(24, y); t.draw_surface(surf)
+                pygame.gfxdraw.set_pos(t, 24, y); pygame.gfxdraw.draw_surface(t, surf)
                 y += 30
-            t.set_pos(24, y + 6); t.draw_surface(sum_line)
+            pygame.gfxdraw.set_pos(t, 24, y + 6); pygame.gfxdraw.draw_surface(t, sum_line)
             bar = cjk.render(f"FPS {fps:.1f}", True, (150, 200, 255))
-            t.set_pos(660, 560); t.draw_surface(bar)
+            pygame.gfxdraw.set_pos(t, 660, 560); pygame.gfxdraw.draw_surface(t, bar)
         pygame.display.flip()
         frame += 1
         await pygame.next_frame()

@@ -146,8 +146,8 @@ async def main():
                 st("screen_attachment 帧内可取",
                    pygame.render.screen_attachment() is not None)
             t.fill((14, 15, 22))
-            t.rect((255, 0, 255), (1, 1, 798, 598), 2)  # 诊断：画布边界框
-            t.set_pos(14, 10); t.draw_surface(title)
+            pygame.gfxdraw.rectangle(t, (1, 1, 798, 598), (255, 0, 255))  # 原 width=2 描边（gfxdraw 恒 1px）  # 诊断：画布边界框
+            pygame.gfxdraw.set_pos(t, 14, 10); pygame.gfxdraw.draw_surface(t, title)
             # ── 段 1：2D 正交（对照恒定）——大波纹圆盘（draw_mesh 全量，
             #    免手填顶点范围）+ debug 标注 + 动态状态命令 ──
             with t.raw_render() as p:

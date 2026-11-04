@@ -37,7 +37,7 @@ async def main():
     draw2 = rp.DebugDraw()
     sink2 = rp.LineSink()
     renderer2 = rp.DebugLinesRenderer()
-    renderer2.set_camera(60.0)  # 60 px/m
+    renderer2.set_camera(60.0)  # 60 px/m（physics 相机——非 gfx 状态机）
 
     # ── 3D 世界（⑤ 象限线源；与 pip_test 同构）──
     world3 = rp.PhysicsWorld3D(gravity=(0, -9.81, 0))
@@ -79,9 +79,9 @@ async def main():
         # ② 2D 形状：绿框 + 黄圆 + 青线
         with s_draw.render() as t:
             t.fill((24, 26, 36))
-            t.rect((60, 220, 80), (10, 10, 180, 130), 0)
-            t.circle((220, 220, 60), (100, 75), 50, 0)
-            t.line((60, 220, 220), (0, 0), (200, 150), 3)
+            pygame.gfxdraw.rectangle(t, (10, 10, 180, 130), (60, 220, 80))  # 原 width=0 描边（gfxdraw 恒 1px）
+            pygame.gfxdraw.circle(t, 100, 75, 50, (220, 220, 60))  # 原 width=0 描边（gfxdraw 恒 1px）
+            pygame.gfxdraw.line(t, 0, 0, 200, 150, (60, 220, 220))
         # ③ 深度面 fill：蓝块（depth_buffer=True 的 Surface 采样）
         with s_depth.render() as t:
             t.fill((50, 90, 220))
@@ -97,17 +97,17 @@ async def main():
         # 合成：五象限 + 标签 + 帧计数
         with screen.render() as t:
             t.fill((16, 16, 22))
-            t.set_pos(16, 40); t.draw_surface(s_fill)          # 左上
-            t.set_pos(584, 40); t.draw_surface(s_draw)         # 右上
-            t.set_pos(16, 218); t.draw_surface(s_depth)        # 左中
-            t.set_pos(300, 218); t.draw_surface(s_lines)       # 中中
-            t.set_pos(584, 218); t.draw_surface(s_lines3d)     # 右中
-            t.set_pos(16, 566); t.draw_surface(cjk.render("① fill", True, (220, 220, 220)))
-            t.set_pos(584, 566); t.draw_surface(cjk.render("② 2D 形状", True, (220, 220, 220)))
-            t.set_pos(16, 18); t.draw_surface(cjk.render("③ 深度面蓝", True, (220, 220, 220)))
-            t.set_pos(300, 18); t.draw_surface(cjk.render("④ 2D 线", True, (220, 220, 220)))
-            t.set_pos(584, 18); t.draw_surface(cjk.render("⑤ 3D 线离屏", True, (220, 220, 220)))
-            t.set_pos(368, 178); t.draw_surface(cjk.render(f"帧 {frame_no}", True, (120, 220, 120)))
+            pygame.gfxdraw.set_pos(t, 16, 40); pygame.gfxdraw.draw_surface(t, s_fill)          # 左上
+            pygame.gfxdraw.set_pos(t, 584, 40); pygame.gfxdraw.draw_surface(t, s_draw)         # 右上
+            pygame.gfxdraw.set_pos(t, 16, 218); pygame.gfxdraw.draw_surface(t, s_depth)        # 左中
+            pygame.gfxdraw.set_pos(t, 300, 218); pygame.gfxdraw.draw_surface(t, s_lines)       # 中中
+            pygame.gfxdraw.set_pos(t, 584, 218); pygame.gfxdraw.draw_surface(t, s_lines3d)     # 右中
+            pygame.gfxdraw.set_pos(t, 16, 566); pygame.gfxdraw.draw_surface(t, cjk.render("① fill", True, (220, 220, 220)))
+            pygame.gfxdraw.set_pos(t, 584, 566); pygame.gfxdraw.draw_surface(t, cjk.render("② 2D 形状", True, (220, 220, 220)))
+            pygame.gfxdraw.set_pos(t, 16, 18); pygame.gfxdraw.draw_surface(t, cjk.render("③ 深度面蓝", True, (220, 220, 220)))
+            pygame.gfxdraw.set_pos(t, 300, 18); pygame.gfxdraw.draw_surface(t, cjk.render("④ 2D 线", True, (220, 220, 220)))
+            pygame.gfxdraw.set_pos(t, 584, 18); pygame.gfxdraw.draw_surface(t, cjk.render("⑤ 3D 线离屏", True, (220, 220, 220)))
+            pygame.gfxdraw.set_pos(t, 368, 178); pygame.gfxdraw.draw_surface(t, cjk.render(f"帧 {frame_no}", True, (120, 220, 120)))
         pygame.display.flip()
         frame_no += 1
 

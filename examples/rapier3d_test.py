@@ -122,14 +122,14 @@ async def main():
         # present 收口（深度通道）
         with screen.render() as t:
             t.fill((18, 20, 28))
-            t.set_pos(16, 12); t.draw_surface(label)
+            pygame.gfxdraw.set_pos(t, 16, 12); pygame.gfxdraw.draw_surface(t, label)
             if frame_no == 0:
                 no_raise("t.draw_debug_3d 会话内", lambda: t.draw_debug_3d(renderer, sink))
             else:
                 t.draw_debug_3d(renderer, sink)
             if frame_no % 30 == 0:
-                t.set_pos(counter_x, counter_y)
-                t.draw_surface(cjk.render(f"帧 {frame_no}", True, (120, 220, 120)))
+                pygame.gfxdraw.set_pos(t, counter_x, counter_y)
+                pygame.gfxdraw.draw_surface(t, cjk.render(f"帧 {frame_no}", True, (120, 220, 120)))
 
         pygame.display.flip()
         frame_no += 1

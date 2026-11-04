@@ -19,7 +19,7 @@ class Camera2D:
 
     def use(self, t):
         """会话相机切换（t = render 会话对象；仅本会话生效）"""
-        t.set_camera(self.cam)
+        pygame.gfxdraw.set_camera(t, self.cam)
 
 
 class Camera3D:
@@ -30,7 +30,7 @@ class Camera3D:
             fov, float(w) / float(h), near, far)
 
     def use(self, t):
-        t.set_camera(self.cam)
+        pygame.gfxdraw.set_camera(t, self.cam)
 
 
 def use_2d(t, w, h):

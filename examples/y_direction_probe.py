@@ -18,9 +18,9 @@ async def main():
 
         with screen.render() as f:
             f.fill((16, 16, 28))
-            f.circle((255, 255, 255), (0, 200), 70)      # 中心系上半白圆
-            f.set_pos(-390, 250); f.draw_surface(top)     # +Y 文字（期望顶部）
-            #f.set_pos(-390, -270); f.draw_surface(bot)    # -Y 文字（期望底部）
+            pygame.gfxdraw.filled_circle(f, 0, 200, 70, (255, 255, 255))      # 中心系上半白圆
+            pygame.gfxdraw.set_pos(f, -390, 250); pygame.gfxdraw.draw_surface(f, top)     # +Y 文字（期望顶部）
+            #pygame.gfxdraw.set_pos(f, -390, -270); pygame.gfxdraw.draw_surface(f, bot)    # -Y 文字（期望底部）
         pygame.display.flip()
 
         if frame == 3:
