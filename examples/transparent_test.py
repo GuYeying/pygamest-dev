@@ -81,9 +81,9 @@ async def main():
         panel_a = int(90 + 60 * tri(1800, _t))
 
         with screen.render() as r:
-            r.blit(body, (60, 120))                        # 桌宠本体（不透明）
-            r.blit(title, (60, 40))                        # AA 文字边缘探针
-            r.blit(hint, (60, 100))
+            r.set_pos(60, 120); r.draw_surface(body)                        # 桌宠本体（不透明）
+            r.set_pos(60, 40); r.draw_surface(title)                        # AA 文字边缘探针
+            r.set_pos(60, 100); r.draw_surface(hint)
             r.rect((255, 255, 255, max(0, panel_a)), (460, 60, 200, 120))  # 局部半透明面板
             r.circle((120, 255, 160), (420, 180),
                      max(6, int(30 * tri(1400, _t))))

@@ -151,7 +151,7 @@ async def main():
 
         with screen.render() as t:
             t.fill((18, 20, 28))
-            t.blit(label, (16, 12))
+            t.set_pos(16, 12); t.draw_surface(label)
             # 引擎指针落点校准（红圈）：红圈应贴手指——偏了 = 坐标链问题
             t.circle((255, 0, 0), pygame.mouse.get_pos(), 12)
             if frame_no == 0:

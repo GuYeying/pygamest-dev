@@ -110,32 +110,32 @@ async def main():
         
         with screen.render() as r:
             r.fill((24, 24, 34))
-            r.blit(label, (12, 8))
+            r.set_pos(12, 8); r.draw_surface(label)
             # 第一区：矩形三形态
             r.rect((0, 200, 90), (20, 40, 120, 80))
             r.rect((255, 255, 255), (20, 40, 120, 80), 3)
             r.rect(color=(90, 200, 255), rect=(160, 40, 120, 80), width=2)
-            r.blit(spec[0], (20, 128))
+            r.set_pos(20, 452); r.draw_surface(spec[0])
             # 第二区：圆 + 线
             r.circle((255, 200, 0), (60, 220), 36)
             r.circle((255, 255, 255), (150, 220), 36, 2)
             r.line((200, 60, 60), (20, 270), (250, 270), 2)
-            r.blit(spec[1], (20, 268))
+            r.set_pos(20, 312); r.draw_surface(spec[1])
             # 第三区：多边形 + 椭圆 + 弧
             r.polygon((90, 120, 220), [(280, 220), (380, 240), (350, 310), (280, 300)])
             r.polygon((255, 160, 60), [(20, 330), (120, 340), (90, 410)], 2)
             r.ellipse((60, 180, 120), (160, 330, 180, 90))
             r.arc((120, 220, 255), (360, 330, 160, 120), 3.14159, 6.28318, 2)
-            r.blit(spec[2], (20, 428))
+            r.set_pos(20, 152); r.draw_surface(spec[2])
             # 第四区：半透明叠加 + gfxdraw 兼容混绘
             r.rect((255, 0, 0, 90), (420, 60, 90, 90))
             r.circle((0, 0, 255, 90), (480, 120), 45)
             pygame.gfxdraw.circle(r, 620, 120, 40, (120, 255, 120))
             pygame.gfxdraw.filled_circle(r, 620, 120, 18, (255, 255, 120))
             pygame.gfxdraw.rectangle(r, (580, 200, 140, 80), (255, 120, 255))
-            r.blit(spec[3], (420, 290))
+            r.set_pos(420, 10); r.draw_surface(spec[3])
             # 离屏 Surface 会话产物 blit（独立绘制目标）
-            r.blit(off, (20, 460))
+            r.set_pos(20, 460); r.draw_surface(off)
             # 第五区：vertices/geometry 逃逸舱（批次三十八——原始顶点 +
             # 索引几何直通；主体三角扇 + 线框）
             r.vertices("triangles",

@@ -97,17 +97,17 @@ async def main():
         # 合成：五象限 + 标签 + 帧计数
         with screen.render() as t:
             t.fill((16, 16, 22))
-            t.blit(s_fill, (16, 40))          # 左上
-            t.blit(s_draw, (584, 40))         # 右上
-            t.blit(s_depth, (16, 218))        # 左中
-            t.blit(s_lines, (300, 218))       # 中中
-            t.blit(s_lines3d, (584, 218))     # 右中
-            t.blit(cjk.render("① fill", True, (220, 220, 220)), (16, 12))
-            t.blit(cjk.render("② 2D 形状", True, (220, 220, 220)), (584, 12))
-            t.blit(cjk.render("③ 深度面蓝", True, (220, 220, 220)), (16, 560))
-            t.blit(cjk.render("④ 2D 线", True, (220, 220, 220)), (300, 560))
-            t.blit(cjk.render("⑤ 3D 线离屏", True, (220, 220, 220)), (584, 560))
-            t.blit(cjk.render(f"帧 {frame_no}", True, (120, 220, 120)), (368, 400))
+            t.set_pos(16, 40); t.draw_surface(s_fill)          # 左上
+            t.set_pos(584, 40); t.draw_surface(s_draw)         # 右上
+            t.set_pos(16, 218); t.draw_surface(s_depth)        # 左中
+            t.set_pos(300, 218); t.draw_surface(s_lines)       # 中中
+            t.set_pos(584, 218); t.draw_surface(s_lines3d)     # 右中
+            t.set_pos(16, 566); t.draw_surface(cjk.render("① fill", True, (220, 220, 220)))
+            t.set_pos(584, 566); t.draw_surface(cjk.render("② 2D 形状", True, (220, 220, 220)))
+            t.set_pos(16, 18); t.draw_surface(cjk.render("③ 深度面蓝", True, (220, 220, 220)))
+            t.set_pos(300, 18); t.draw_surface(cjk.render("④ 2D 线", True, (220, 220, 220)))
+            t.set_pos(584, 18); t.draw_surface(cjk.render("⑤ 3D 线离屏", True, (220, 220, 220)))
+            t.set_pos(368, 178); t.draw_surface(cjk.render(f"帧 {frame_no}", True, (120, 220, 120)))
         pygame.display.flip()
         frame_no += 1
 

@@ -70,11 +70,11 @@ async def main():
         # 主屏会话：底色 + 色板网格（命名颜色实例逐格填充）
         with screen.render() as t:
             t.fill((18, 20, 28))
-            t.blit(label, (16, 12))
+            t.set_pos(16, 12); t.draw_surface(label)
             for i, c in enumerate(swatches):
                 x, y = 24 + (i % 8) * 92, 60 + (i // 8) * 64
                 t.rect((c.r, c.g, c.b), (x, y, 80, 44), None)
-                t.blit(cjk.render(names[i], False, (220, 220, 220)), (x, y + 46))
+                t.set_pos(x, y + 46); t.draw_surface(cjk.render(names[i], False, (220, 220, 220)))
 
         # 深度会话：API 链路验证（独立槽位——绘制按深度管线打包）
         with screen.render_depth() as t:
@@ -84,8 +84,8 @@ async def main():
 
         # 普通会话回填说明（画家序叠加演示：三段会话同帧合成）
         with screen.render() as t:
-            t.blit(cjk.render("深度会话样张 ↑（两次 fill+rect 按深度管线）",
-                              False, (160, 220, 160)), (300, 180))
+            t.set_pos(300, 180); t.draw_surface(cjk.render("深度会话样张 ↑（两次 fill+rect 按深度管线）",
+                              False, (160, 220, 160)))
 
         pygame.display.flip()
         frame_no += 1

@@ -16,7 +16,7 @@ async def main():
         "上半：blit_transform 2D 三联（旋转30°/缩放1.4/水平镜像）· 右侧 transform.rotate 烘焙对照",
         True, (205, 205, 205))
     sub = cjk.render(
-        "下半：render.set_default_camera(透视) + blit_transform 空间放置（z=-2.2/-3.2/-4.2 近大远小）",
+        "下半：render.set_camera(透视) + blit_transform 空间放置（z=-2.2/-3.2/-4.2 近大远小）",
         True, (205, 205, 205))
     _fail = []
 
@@ -55,7 +55,7 @@ async def main():
     m_mid = card(0.0, -0.68, -3.2)
     m_far = card(0.9, -0.85, -4.2)
 
-    st("初始相机状态 auto2d", pygame.render.camera_state() == "auto2d")
+    st("camera_mvp 可查（Auto 兜底）", hasattr(pygame.render.camera_mvp(), "mul_mat4"))
     frame_no = 0
     asserted = False
     while True:
@@ -68,36 +68,34 @@ async def main():
         # ── 上半：2D 正交（默认相机）三联 + 烘焙对照 ──
         with screen.render() as t:
             t.fill((16, 17, 24))
-            t.blit(title, (14, 10))
+            t.set_pos(14, 10); t.draw_surface(title)
             if frame_no == 0:
                 # 收口断言：blit_transform 可调（不抛即过）
                 st("t.blit_transform 会话内（旋转）", True)
-            t.blit_transform(art, m_rot, (255, 255, 255))
-            t.blit_transform(art, m_scale, (255, 255, 255))
-            t.blit_transform(art, m_mirror, (255, 255, 255))
-            t.blit(baked, (660, 120))
+            t.set_transform(m_rot); t.draw_surface(art)
+            t.set_transform(m_scale); t.draw_surface(art)
+            t.set_transform(m_mirror); t.draw_surface(art)
+            t.set_pos(660, 120); t.draw_surface(baked)
             t.rect(color=(70, 74, 92), rect=(0, 300, 800, 3))
 
-        # ── 下半：Manual 透视 + 深度会话空间放置（近大远小）──
-        pygame.render.set_default_camera(cam3d)
-        if frame_no == 0:
-            st("set_default_camera 后状态 manual", pygame.render.camera_state() == "manual")
+        # ── 下半：透视 + 深度会话空间放置（近大远小；会话级 set_camera）──
         with screen.render_depth() as t:
-            t.blit_transform(art, m_near, (255, 120, 120))
-            t.blit_transform(art, m_mid, (120, 255, 120))
-            t.blit_transform(art, m_far, (120, 160, 255))
-        # 回默认：显式切正交（reset_camera 已撤——Manual 语义自管切换）
-        pygame.render.set_default_camera(pygame.render.camera_ortho(800.0, 600.0))
+            if frame_no == 0:
+                st("set_camera 会话级切换", True)
+            t.set_camera(cam3d)
+            t.set_transform(m_near); t.draw_surface(art)
+            t.set_transform(m_mid); t.draw_surface(art)
+            t.set_transform(m_far); t.draw_surface(art)
+        # 回 2D：下一普通会话开始即 Auto 重置（渲染统一 draw 面定约）
 
         with screen.render() as t:
-            t.blit(sub, (14, 306))
+            t.set_pos(14, 306); t.draw_surface(sub)
             t.rect(color=(120, 60, 60), rect=(30, 350, 740, 220), width=2)
 
         pygame.display.flip()
         frame_no += 1
 
         if not asserted and frame_no == 60:
-            st("帧循环空档已回切 manual 正交", pygame.render.camera_state() == "manual")
             st("blit_transform 60 帧排程不抛", True)
             asserted = True
             print("[blit-demo] SUMMARY",

@@ -47,7 +47,25 @@ async def main():
 cargo build --release        # 产物 target/release/python.exe
 ```
 
-依赖：`../pygamest` 与 `../starfish`（path 依赖，同机同源）。
+依赖：跨仓依赖以 **git 形式**声明（Cargo.lock 锁定 rev）——使用者直接
+clone 本仓 `cargo build` 即可，无需手动下载依赖仓库。
+
+贡献者（要改 pygamest/starfish 源码联调）：clone 六仓到同级目录后，在
+本仓建 `.cargo/config.toml`（已 gitignore）：
+
+```toml
+paths = [
+  "../pygamest",
+  "../starfish/crates/starfish-we",
+  "../starfish/crates/starfish-render",
+  "../starfish/crates/starfish-gfx",
+  "../starfish/crates/starfish-std",
+  "../starfish/crates/starfish-io",
+  "../starfish/crates/starfish-debug",
+  "../starfish/crates/starfish-pygame",
+]
+```
+
 Windows MSVC 构建自动抬主线程栈（build.rs，RP 引导需要）。
 
 ## 架构（一句话）

@@ -18,7 +18,7 @@ async def main():
                 return
 
         with screen.render() as r:
-            r.blit(hello_world_text, (325, 275))
+            r.set_pos(325, 275); r.draw_surface(hello_world_text)
 
         clock.tick(60)
 

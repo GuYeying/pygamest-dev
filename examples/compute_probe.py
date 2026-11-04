@@ -202,7 +202,7 @@ async def main():
                 p.set_mesh(mesh)
                 p.draw_indirect(ind_buf, 0)                   # [3, n, 0, 0]
             if fps_surf:
-                t.blit(fps_surf, (14, 10))
+                t.set_pos(14, 10); t.draw_surface(fps_surf)
             t.draw_ui(hud)
         pygame.display.flip()
         frame += 1

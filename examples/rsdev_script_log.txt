@@ -1,0 +1,4 @@
+[0] set_mode = (800, 600) | get_size 一致: True
+[3] 日志落点 = rsdev_script_log.txt
+[271] [selftest] 帧空档相机 = manual: True
+[5066] DONE 600 帧渲染收口

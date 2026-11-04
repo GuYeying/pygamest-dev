@@ -49,38 +49,39 @@ async def main():
 
         x = 100 + (frame * 3) % (w - 220)           # 匀速巡游（帧推进自证）
 
-        # ── 上半：Manual 2D 正交 + blit_transform（平移×旋转矩阵链）──
-        cam2d.use()
+        # ── 上半：2D 正交（会话级 set_camera）+ draw_surface 矩阵链 ──
         with screen.render() as t:
+            cam2d.use(t)
             t.fill((16, 17, 24))
-            t.blit(title, (14, 10))
-            t.blit_transform(
-                card, kit.chain(kit.pos(x, 120), kit.rot_z(frame % 360)),
-                (255, 255, 255))
+            t.set_pos(14, 10); t.draw_surface(title)
+            t.set_transform(
+                kit.chain(kit.pos(x, 180), kit.rot_z(frame % 360)))
+            t.draw_surface(card)
             t.rect(color=(70, 74, 92), rect=(0, h // 2, w, 3))
 
-        # ── 下半：Manual 3D 透视 + 深度会话（y 向上右手系，看向 -Z）──
-        cam3d.use()
+        # ── 下半：3D 透视 + 深度会话（y 向上右手系，看向 -Z）──
         with screen.render_depth() as t:
-            t.blit_transform(
-                card, kit.chain(kit.pos(-0.5, -0.4, -2.2), kit.scale(k)),
-                (255, 140, 140))
-            t.blit_transform(
-                card, kit.chain(kit.pos(0.5, -0.6, -3.4), kit.scale(k)),
-                (140, 200, 255))
+            cam3d.use(t)
+            t.set_transform(
+                kit.chain(kit.pos(-0.5, 0.4, -2.2), kit.scale(k)))
+            t.draw_surface(card)
+            t.set_transform(
+                kit.chain(kit.pos(0.5, 0.6, -3.4), kit.scale(k)))
+            t.draw_surface(card)
 
-        # 回 2D 画文字/描边（Manual 状态跨帧保持——帧空档仍是正交）
-        cam2d.use()
+        # 回 2D 画文字/描边（新会话开始即 Auto 重置——中心系坐标）
         with screen.render() as t:
-            t.blit(cjk.render("下半：render_depth + 透视（近大远小）",
-                              True, (150, 160, 180)), (14, h // 2 + 8))
+            cam2d.use(t)
+            t.set_pos(14, h // 2 - 8)
+            t.draw_surface(cjk.render("下半：render_depth + 透视（近大远小）",
+                              True, (150, 160, 180)))
             t.rect(color=(120, 60, 60),
-                   rect=(20, h // 2 + 40, w - 40, h // 2 - 60), width=2)
+                   rect=(20 - w // 2, -(h // 2 - 40), w - 40, h // 2 - 60), width=2)
 
         pygame.display.flip()
         frame += 1
         if frame == 30:
-            rlog.log("[selftest] 帧空档相机 = manual:", kit.state() == "manual")
+            rlog.log("[selftest] 帧空档相机 = manual:", hasattr(pygame.render.camera_mvp(), "mul_mat4"))
         await pygame.next_frame()
 
     rlog.log("DONE 600 帧渲染收口")
