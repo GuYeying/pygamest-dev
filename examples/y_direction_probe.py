@@ -8,7 +8,7 @@ async def main():
     screen = pygame.display.set_mode((800, 600))
     font = pygame.font.Font(None, 24)
     top = font.render("THIS TEXT WAS DRAWN AT +Y (expect TOP)", True, (120, 255, 120))
-    bot = font.render("this text was drawn at -Y (expect BOTTOM)", True, (255, 160, 120))
+    #bot = font.render("this text was drawn at -Y (expect BOTTOM)", True, (255, 160, 120))
 
     frame = 0
     while True:
@@ -20,7 +20,7 @@ async def main():
             f.fill((16, 16, 28))
             f.circle((255, 255, 255), (0, 200), 70)      # 中心系上半白圆
             f.set_pos(-390, 250); f.draw_surface(top)     # +Y 文字（期望顶部）
-            f.set_pos(-390, -270); f.draw_surface(bot)    # -Y 文字（期望底部）
+            #f.set_pos(-390, -270); f.draw_surface(bot)    # -Y 文字（期望底部）
         pygame.display.flip()
 
         if frame == 3:
