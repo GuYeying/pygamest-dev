@@ -91,7 +91,7 @@ async def main():
     # 负路径：颜色分量不足 / 非法项
     def bad_color(s):
         with s.render() as t:
-            pygame.gfxdraw.box(t, (0, 0, 1, 1), (0, 200))
+            pygame.gfxdraw.set_color(t, (0, 200))
     try:
         bad_color(off)
         st("颜色分量不足 TypeError", False)
