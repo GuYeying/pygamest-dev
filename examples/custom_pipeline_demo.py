@@ -123,7 +123,7 @@ async def main():
             M.mat4_translation(0.0, 0.0, -dist)
             .mul_mat4(M.mat4_from_quat(
                 M.quat_from_axis_angle(0.0, 1.0, 0.0, yaw)))
-            .mul_mat4(M.mat4_translation(-400.0, -340.0, 0.0))
+            .mul_mat4(M.mat4_translation(0.0, 40.0, 0.0))
         )
         cam3d = pygame.render.camera_perspective(
             # fov = 度数制（API 契约；曾误传弧度意图的 0.9——0.9° 超长焦
