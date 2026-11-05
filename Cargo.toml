@@ -28,11 +28,15 @@ crate-type = ["cdylib"]
 # default = 开发解释器全量形态；生产壳（pygamest-runtime）以
 # default-features = false 消费本仓，只取所需轴——不带 full =
 # 生产保留裁剪版 stdlib（freeze 白名单，exe -32% 批次的战果）。
-default = ["full", "gui", "physics2d", "physics3d"]
+default = ["full", "gui", "physics2d", "physics3d", "spine", "live2d"]
 full = ["pygamest/stdlib-full"]
 gui = ["pygamest/gui"]
 physics2d = ["pygamest/physics2d"]
 physics3d = ["pygamest/physics3d"]
+spine = ["pygamest/spine"]
+live2d = ["pygamest/live2d"]
+# ozz = nightly 专属（上游 std::simd——`cargo +nightly build --features ozz` 显式激活，不入 default）
+ozz = ["pygamest/ozz"]
 
 [dependencies]
 starfish-debug = { git = "https://github.com/GuYeying/starfish" }
