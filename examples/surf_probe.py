@@ -79,9 +79,12 @@ async def main():
         # ② 2D 形状：绿框 + 黄圆 + 青线
         with s_draw.render() as t:
             t.fill((24, 26, 36))
-            pygame.gfxdraw.rectangle(t, (10, 10, 180, 130), (60, 220, 80))  # 原 width=0 描边（gfxdraw 恒 1px）
-            pygame.gfxdraw.circle(t, 100, 75, 50, (220, 220, 60))  # 原 width=0 描边（gfxdraw 恒 1px）
-            pygame.gfxdraw.line(t, 0, 0, 200, 150, (60, 220, 220))
+            pygame.gfxdraw.set_color(t, (60, 220, 80))
+            pygame.gfxdraw.rectangle(t, (10, 10, 180, 130))  # 原 width=0 描边（gfxdraw 恒 1px）
+            pygame.gfxdraw.set_color(t, (220, 220, 60))
+            pygame.gfxdraw.circle(t, 100, 75, 50)  # 原 width=0 描边（gfxdraw 恒 1px）
+            pygame.gfxdraw.set_color(t, (60, 220, 220))
+            pygame.gfxdraw.line(t, 0, 0, 200, 150)
         # ③ 深度面 fill：蓝块（depth_buffer=True 的 Surface 采样）
         with s_depth.render() as t:
             t.fill((50, 90, 220))

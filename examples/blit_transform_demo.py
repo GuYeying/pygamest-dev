@@ -75,9 +75,9 @@ async def main():
                 # 收口断言：blit_transform 可调（不抛即过）
                 st("t.blit_transform 会话内（旋转）", True)
             pygame.gfxdraw.set_transform(t, m_rot); pygame.gfxdraw.draw_surface(t, art)
-            pygame.gfxdraw.set_transform(t, m_scale); pygame.gfxdraw.draw_surface(t, art)
-            pygame.gfxdraw.set_transform(t, m_mirror); pygame.gfxdraw.draw_surface(t, art)
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(660, 120, 0)); pygame.gfxdraw.draw_surface(t, baked)
+            #pygame.gfxdraw.set_transform(t, m_scale); pygame.gfxdraw.draw_surface(t, art)
+            #pygame.gfxdraw.set_transform(t, m_mirror); pygame.gfxdraw.draw_surface(t, art)
+            #pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(660, 120, 0)); pygame.gfxdraw.draw_surface(t, baked)
             pygame.gfxdraw.box(t, (0, 300, 800, 3))
 
         # ── 下半：透视 + 深度会话空间放置（近大远小；会话级 set_camera）──
@@ -85,8 +85,8 @@ async def main():
             if frame_no == 0:
                 st("set_camera 会话级切换", True)
             pygame.gfxdraw.set_camera(t, cam3d)
-            pygame.gfxdraw.set_transform(t, m_near); pygame.gfxdraw.draw_surface(t, art)
-            pygame.gfxdraw.set_transform(t, m_mid); pygame.gfxdraw.draw_surface(t, art)
+            #pygame.gfxdraw.set_transform(t, m_near); pygame.gfxdraw.draw_surface(t, art)
+            #pygame.gfxdraw.set_transform(t, m_mid); pygame.gfxdraw.draw_surface(t, art)
             pygame.gfxdraw.set_transform(t, m_far); pygame.gfxdraw.draw_surface(t, art)
         # 回 2D：下一普通会话开始即 Auto 重置（渲染统一 draw 面定约）
 

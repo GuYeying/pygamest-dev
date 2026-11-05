@@ -133,7 +133,7 @@ async def main():
          (2, "storage_rw", pos_out)], label="p3_state_bind")
     rbind = ac.bind_group([(0, "uniform", cam_buf)], label="p3_rbind")
     cpipe = ac.compute_pipeline(compute_shader, [state_bind], label="p3_cpipe")
-    rpipe = ac.pipeline(render_shader, mesh, [rbind], flavor="2d", label="p3_rpipe")
+    rpipe = ac.pipeline(render_shader, mesh, [rbind], label="p3_rpipe")
     cam = pygame.render.camera_ortho(800.0, 600.0)
 
     frame = 0

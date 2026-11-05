@@ -45,8 +45,10 @@ async def main():
     body = pygame.Surface((280, 240))
     with body.render() as br:
         br.fill((255, 180, 80, 255))                     # 橙色身体（不透明主体）
-        pygame.gfxdraw.filled_circle(br, 90, 90, 18, (40, 30, 30))            # 眼
-        pygame.gfxdraw.filled_circle(br, 190, 90, 18, (40, 30, 30))
+        pygame.gfxdraw.set_color(br, (40, 30, 30))
+        pygame.gfxdraw.filled_circle(br, 90, 90, 18)            # 眼
+        pygame.gfxdraw.set_color(br, (40, 30, 30))
+        pygame.gfxdraw.filled_circle(br, 190, 90, 18)
     body.set_alpha(255)                                  # 主体不透明（桌宠形态：背景全透、本体实心）
 
     # AA 文字边缘探针：黄色大字（若出现 fill 色描边 = colorkey 类缺陷）
