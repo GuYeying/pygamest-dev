@@ -47,24 +47,24 @@ async def main():
 
         # ── ② 3D：透视相机（世界原点 = 屏幕中心）──
         with screen.render_depth() as f:
-            f.set_camera(pygame.render.camera_perspective(60.0, aspect, 0.1, 100.0))
+            pygame.gfxdraw.set_camera(f, pygame.render.camera_perspective(60.0, aspect, 0.1, 100.0))
             # 原点牌：文字中心对世界原点（z=-3 前方；透视投影 (0,0) → 屏幕中心）
             # 可见高 @z=3 ≈ 3.46 世界单位 → 文字 320px 宽 × k=0.0045 ≈ 1.44 单位（约屏宽 36%）
             k = 0.0045
-            f.set_transform(
+            pygame.gfxdraw.set_transform(f, 
                 pygame.math.mat4_translation(0, 0, -3)
                 * pygame.math.mat4_scale(k, k, 1)
                 * pygame.math.mat4_translation(-160, -12, 0))
             pygame.gfxdraw.draw_surface(f, quad3d)
             pygame.gfxdraw.filled_circle(f, 0, 0, 6, (255, 255, 255))
             # 右上偏移牌：+x 右、+y 上（y 向上方向验证）
-            f.set_transform(
+            pygame.gfxdraw.set_transform(f, 
                 pygame.math.mat4_translation(1.0, 0.75, -3)
                 * pygame.math.mat4_scale(k, k, 1)
                 * pygame.math.mat4_translation(-110, -12, 0))
             pygame.gfxdraw.draw_surface(f, quad3d_off)
             # 3D 原点白点（世界 (0,0,0)——透视下应恰在屏幕中心）
-            f.set_transform(pygame.math.mat4_translation(0, 0, -0.5))
+            pygame.gfxdraw.set_transform(f, pygame.math.mat4_translation(0, 0, -0.5))
             pygame.gfxdraw.filled_circle(f, 0, 0, 60, (255, 255, 255))
 
         pygame.display.flip()
