@@ -63,9 +63,10 @@ async def main():
                 * pygame.math.mat4_scale(k, k, 1)
                 * pygame.math.mat4_translation(-110, -12, 0))
             pygame.gfxdraw.draw_surface(f, quad3d_off)
-            # 3D 原点白点（世界 (0,0,0)——透视下应恰在屏幕中心）
-            pygame.gfxdraw.set_transform(f, pygame.math.mat4_translation(0, 0, -0.5))
-            pygame.gfxdraw.filled_circle(f, 0, 0, 60, (255, 255, 255))
+            # 3D 原点标记：上方文字牌中心即世界原点（透视投影 (0,0) →
+            # 屏幕中心）。⚠️ gfxdraw 图元半径 = i32 整数世界单位——透视
+            # 空间做不了"小物体"（1 单位半径在近处即盖满屏——本 demo
+            # 初版纯白屏根因）；3D 小物体用 draw_surface（quad 可任意缩放）
 
         pygame.display.flip()
         await pygame.next_frame()
