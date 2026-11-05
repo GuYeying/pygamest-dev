@@ -21,8 +21,9 @@ async def main():
                 pos = (e.x, e.y)
         with screen.render() as r:
             r.fill((0, 0, 255))
-            pygame.gfxdraw.rectangle(r, (0, 0, w, h), (255, 255, 0))  # 原 width=6 描边（gfxdraw 恒 1px）
-            for cx, cy in ((8, 8), (w - 8, 8), (8, h - 8), (w - 8, h - 8)):
+            pygame.gfxdraw.rectangle(r, (-w // 2, -h // 2, w, h), (255, 255, 0))  # 原 width=6 描边（gfxdraw 恒 1px）
+            for cx, cy in ((-w // 2 + 8, -h // 2 + 8), (w // 2 - 8, -h // 2 + 8),
+                           (-w // 2 + 8, h // 2 - 8), (w // 2 - 8, h // 2 - 8)):
                 pygame.gfxdraw.filled_circle(r, cx, cy, 8, (255, 255, 255))
             if pos:
                 pygame.gfxdraw.filled_circle(r, pos[0], pos[1], 20, (255, 0, 0))

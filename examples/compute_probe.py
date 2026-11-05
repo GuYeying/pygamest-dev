@@ -189,7 +189,7 @@ async def main():
 
         with screen.render() as t:
             t.fill((6, 8, 14))
-            pygame.gfxdraw.rectangle(t, (1, 1, 798, 598), (255, 0, 255))  # 原 width=2 描边（gfxdraw 恒 1px）       # 画布边界诊断
+            pygame.gfxdraw.rectangle(t, (-399, -299, 798, 598), (255, 0, 255))  # 原 width=2 描边（gfxdraw 恒 1px）       # 画布边界诊断
             with t.raw_compute() as p:
                 p.set_pipeline(cpipe)
                 p.set_bind_group(0, state_bind)
@@ -202,7 +202,7 @@ async def main():
                 p.set_mesh(mesh)
                 p.draw_indirect(ind_buf, 0)                   # [3, n, 0, 0]
             if fps_surf:
-                pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(14, 10, 0)); pygame.gfxdraw.draw_surface(t, fps_surf)
+                pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(-370, 280, 0)); pygame.gfxdraw.draw_surface(t, fps_surf)
             t.draw_ui(hud)
         pygame.display.flip()
         frame += 1
