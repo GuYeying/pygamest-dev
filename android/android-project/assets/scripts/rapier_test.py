@@ -129,7 +129,7 @@ async def main():
 
         with screen.render() as t:
             t.fill((18, 20, 28))
-            pygame.gfxdraw.set_pos(t, 16, 12); pygame.gfxdraw.draw_surface(t, label)
+            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(16, 12, 0)); pygame.gfxdraw.draw_surface(t, label)
             # 会话排程：调试线（与 egui 的 t.draw_ui 同一渲染行为——
             # 会话内调用、flip 时恒在游戏内容之上）
             if frame_no == 0:

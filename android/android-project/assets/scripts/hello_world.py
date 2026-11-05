@@ -18,7 +18,7 @@ async def main():
                 return
 
         with screen.render() as r:
-            pygame.gfxdraw.set_pos(r, 325, 275); pygame.gfxdraw.draw_surface(r, hello_world_text)
+            pygame.gfxdraw.set_transform(r, pygame.math.mat4_translation(325, 275, 0)); pygame.gfxdraw.draw_surface(r, hello_world_text)
 
         clock.tick(60)
 

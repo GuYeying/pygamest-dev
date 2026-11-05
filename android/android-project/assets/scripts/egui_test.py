@@ -151,7 +151,7 @@ async def main():
 
         with screen.render() as t:
             t.fill((18, 20, 28))
-            pygame.gfxdraw.set_pos(t, 16, 12); pygame.gfxdraw.draw_surface(t, label)
+            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(16, 12, 0)); pygame.gfxdraw.draw_surface(t, label)
             # 引擎指针落点校准（红圈）：红圈应贴手指——偏了 = 坐标链问题
             _mp = pygame.mouse.get_pos()
             pygame.gfxdraw.filled_circle(t, _mp[0], _mp[1], 12, (255, 0, 0))
