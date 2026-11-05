@@ -189,7 +189,8 @@ async def main():
 
         with screen.render() as t:
             t.fill((6, 8, 14))
-            pygame.gfxdraw.rectangle(t, (-399, -299, 798, 598), (255, 0, 255))  # 原 width=2 描边（gfxdraw 恒 1px）       # 画布边界诊断
+            pygame.gfxdraw.set_color(t,(255, 0, 255))
+            pygame.gfxdraw.rectangle(t, (-399, -299, 798, 598),)  # 原 width=2 描边（gfxdraw 恒 1px）       # 画布边界诊断
             with t.raw_compute() as p:
                 p.set_pipeline(cpipe)
                 p.set_bind_group(0, state_bind)

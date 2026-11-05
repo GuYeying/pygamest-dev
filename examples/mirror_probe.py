@@ -13,6 +13,7 @@ async def main():
     art = pygame.Surface((200, 200))
     with art.render() as t:
         t.fill((0, 0, 0, 0))
+        pygame.gfx.draw.set_color(t,(255, 0, 0))
         pygame.gfxdraw.filled_circle(t, -50, 0, 30, (255, 0, 0))
 
     font = pygame.font.Font(None, 18)

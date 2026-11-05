@@ -27,9 +27,16 @@ async def main():
     art = pygame.Surface((160, 120))
     with art.render() as t:
         t.fill((125, 125, 125))
-        pygame.gfxdraw.rectangle(t, (8, 8, 144, 104), (80, 200, 90))  # 原 width=2 描边（gfxdraw 恒 1px）
-        pygame.gfxdraw.filled_circle(t, 40, 60, 24, (230, 70, 70))
-        pygame.gfxdraw.line(t, 10, 110, 150, 10, (240, 200, 80))
+
+        pygame.gfxdraw.set_color(t,(80, 200, 90))
+        pygame.gfxdraw.rectangle(t, (8, 8, 144, 104))  # 原 width=2 描边（gfxdraw 恒 1px）
+
+        pygame.gfxdraw.set_color(t,(230, 70, 70))
+        pygame.gfxdraw.filled_circle(t, 40, 60, 24)
+
+        pygame.gfxdraw.set_color(t,(240, 200, 80))
+        pygame.gfxdraw.set_wireframe(t,True)
+        pygame.gfxdraw.line(t, 10, 110, 150, 10)
     # 烘焙对照（一次烘焙——非逐帧反模式）
     baked = pygame.transform.rotate(art, 30)
 
@@ -71,7 +78,7 @@ async def main():
             pygame.gfxdraw.set_transform(t, m_scale); pygame.gfxdraw.draw_surface(t, art)
             pygame.gfxdraw.set_transform(t, m_mirror); pygame.gfxdraw.draw_surface(t, art)
             pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(660, 120, 0)); pygame.gfxdraw.draw_surface(t, baked)
-            pygame.gfxdraw.box(t, (0, 300, 800, 3), (70, 74, 92))
+            pygame.gfxdraw.box(t, (0, 300, 800, 3))
 
         # ── 下半：透视 + 深度会话空间放置（近大远小；会话级 set_camera）──
         with screen.render_depth() as t:
@@ -85,7 +92,8 @@ async def main():
 
         with screen.render() as t:
             pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(14, 306, 0)); pygame.gfxdraw.draw_surface(t, sub)
-            pygame.gfxdraw.rectangle(t, (30, 350, 740, 220), (120, 60, 60))
+            pygame.gfxdraw.set_color(t,(120, 60, 60))
+            pygame.gfxdraw.rectangle(t, (30, 350, 740, 220))
 
         pygame.display.flip()
         frame_no += 1

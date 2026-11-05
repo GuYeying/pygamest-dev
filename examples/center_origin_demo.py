@@ -28,15 +28,22 @@ async def main():
         with screen.render() as f:
             f.fill((14, 14, 22))
             # 坐标轴（横纵过原点）
-            pygame.gfxdraw.line(f, -400, 0, 400, 0, (80, 80, 100))
-            pygame.gfxdraw.line(f, 0, -300, 0, 300, (80, 80, 100))
+            pygame.gfxdraw.set_color(f,(80, 80, 100))
+            pygame.gfxdraw.line(f, -400, 0, 400, 0)
+            pygame.gfxdraw.set_color(f,(80, 80, 100))
+            pygame.gfxdraw.line(f, 0, -300, 0, 300, )
             # 四象限圆（y 向上：+y 在屏幕上半）
-            pygame.gfxdraw.filled_circle(f, -200, 150, 26, (255, 200, 0))     # 第 II 象限（左上）
-            pygame.gfxdraw.filled_circle(f, 200, 150, 26, (120, 255, 160))    # 第 I 象限（右上）
-            pygame.gfxdraw.filled_circle(f, -200, -150, 26, (255, 120, 120))  # 第 III 象限（左下）
-            pygame.gfxdraw.filled_circle(f, 200, -150, 26, (120, 160, 255))   # 第 IV 象限（右下）
+            pygame.gfxdraw.set_color(f,(255, 200, 0))
+            pygame.gfxdraw.filled_circle(f, -200, 150, 26, )     # 第 II 象限（左上）
+            pygame.gfxdraw.set_color(f,(120, 255, 160))
+            pygame.gfxdraw.filled_circle(f, 200, 150, 26, )    # 第 I 象限（右上）
+            pygame.gfxdraw.set_color(f,(255, 120, 120))
+            pygame.gfxdraw.filled_circle(f, -200, -150, 26, )  # 第 III 象限（左下）
+            pygame.gfxdraw.set_color(f,(120, 160, 255))
+            pygame.gfxdraw.filled_circle(f, 200, -150, 26, )   # 第 IV 象限（右下）
             # 原点白圆
-            pygame.gfxdraw.filled_circle(f, 0, 0, 18, (255, 255, 255))
+            pygame.gfxdraw.set_color(f, (255, 255, 255))
+            pygame.gfxdraw.filled_circle(f, 0, 0, 18,)
             # 文字标注（中心系摆放）
             pygame.gfxdraw.set_transform(
                 f, pygame.math.mat4_translation(-390, 260, 0))
@@ -55,7 +62,8 @@ async def main():
                 pygame.math.mat4_translation(0, 0, -3)
                 * pygame.math.mat4_scale(k, k, 1))
             pygame.gfxdraw.draw_surface(f, quad3d)
-            pygame.gfxdraw.filled_circle(f, 0, 0, 6, (255, 255, 255))
+            pygame.gfxdraw.set_color(f,(255, 255, 255))
+            pygame.gfxdraw.filled_circle(f, 0, 0, 6, )
             # 右上偏移牌：+x 右、+y 上（y 向上方向验证）
             pygame.gfxdraw.set_transform(f, 
                 pygame.math.mat4_translation(1.0, 0.75, -3)

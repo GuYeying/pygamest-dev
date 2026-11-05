@@ -13,7 +13,8 @@ async def main():
                 return
         with screen.render() as r:
             r.fill((20, 120, 20))
-            pygame.gfxdraw.rectangle(r, (100, 80, 200, 150), (255, 255, 0))  # 原 width=3 描边（gfxdraw 恒 1px）
+            pygame.gfx.draw.set_color(r,(255, 255, 0))
+            pygame.gfxdraw.rectangle(r, (100, 80, 200, 150), )  # 原 width=3 描边（gfxdraw 恒 1px）
         pygame.display.flip()
         await pygame.next_frame()
     assert screen.get_size() == (800, 600)
