@@ -22,6 +22,7 @@ async def main():
             ratio = abs((frame % 120) - 60) / 60.0
             p.sample(ratio)
             pygame.gfxdraw.draw_ozz_bones(t, p, scale=60.0, cx=0.0, cy=-80.0)
+            pygame.gfxdraw.draw_ozz_quads(t, p, scale=60.0, cx=0.0, cy=-80.0, size=10.0)
         label = font.render(f"ozz demo frame={frame} ratio={ratio:.2f}", True, (220, 220, 230))
         with screen.render() as t:
             pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(-380, 270, 0))

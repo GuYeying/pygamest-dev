@@ -1,40 +1,53 @@
-# spine_render_demo —— chine 渲染管线集成验证：程序化 region 骨架经
-# gfxdraw.draw_spine 上屏（page0 纹理 = 程序化色块 Surface）。arm 骨
-# 正弦摆动，body/hand 两方块跟随骨骼世界变换。300 帧自动退出。
+# spine_render_demo —— chine 渲染管线真资产验证：Spineboy 官方导出
+# （EsotericSoftware/spine-runtimes examples/spineboy/export，Spine
+# Runtimes License）load_with_atlas 一体绑定 → walk 动画 AnimationState
+# 播放 → gfxdraw.draw_spine 上屏。300 帧自动退出。
+import time
+
 import pygame
 import pygame_spine
 
+ASSETS = "D:/Projects/Rust/pygame_spine/assets/spineboy"
+
 async def main():
     screen = pygame.display.set_mode((800, 600))
-    data = pygame_spine.demo_textured_skeleton()
+    # 一体加载：JSON 骨架 + atlas 元数据绑定（page/uv 重映射 crate 侧完成）
+    # 冻结面无 open——经引擎 io 读文本（路径 → 内容）
+    j = pygame.io.read_text(f"{ASSETS}/spineboy-ess.json")
+    a = pygame.io.read_text(f"{ASSETS}/spineboy.atlas")
+    data, pages = pygame_spine.load_with_atlas(j, a)
+    print("[spine_demo] 图集页数 =", pages)
     sk = pygame_spine.Skeleton(data)
     sk.set_skin("default")
+    anim = data.find_animation("walk")
+    print("[spine_demo] walk 动画 =", anim is not None, "| duration =", anim.duration() if anim else None)
+    state = pygame_spine.AnimationState()
+    state.set_animation(anim, True)
 
-    # page0 纹理：64x64 四象限色块（region uv 全图 → 方块四色拼花）
-    page0 = pygame.Surface((64, 64))
-    with page0.render() as t:
-        pygame.gfxdraw.set_color(t, (200, 60, 60))
-        pygame.gfxdraw.box(t, (-32, -32, 32, 32))
-        pygame.gfxdraw.set_color(t, (60, 200, 90))
-        pygame.gfxdraw.box(t, (0, -32, 32, 32))
-        pygame.gfxdraw.set_color(t, (70, 110, 220))
-        pygame.gfxdraw.box(t, (-32, 0, 32, 32))
-        pygame.gfxdraw.set_color(t, (230, 200, 70))
-        pygame.gfxdraw.box(t, (0, 0, 32, 32))
+    # 图集页纹理：spineboy.png（1024×256 单页）
+    page0 = await pygame.image.load(f"{ASSETS}/spineboy.png")
 
     font = pygame.font.Font(None, 22)
     frame = 0
+    last = time.time()
     while frame < 300:
         for e in pygame.event.get():
             if e.type == pygame.event.QUIT:
                 return
+        now = time.time()
+        dt = now - last
+        last = now
         with screen.render() as t:
-            pygame.gfxdraw.set_color(t, (24, 26, 34))
+            pygame.gfxdraw.set_color(t, (30, 34, 44))
             pygame.gfxdraw.box(t, (-400, -300, 800, 600))
-            sk.set_bone_rotation(1, -30.0 + 60.0 * abs((frame % 120) - 60) / 60.0)  # 三角波摆动（冻结面无 math）
+            state.update(dt)
+            state.apply(sk)
             sk.update_world_transform()
+            # spineboy 世界坐标：y 向上、原点在脚底——抬到屏幕中部
+            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(0, -60, 0))
             pygame.gfxdraw.draw_spine(t, sk, [page0])
-        label = font.render(f"spine demo frame={frame}", True, (220, 220, 230))
+            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(0, 0, 0))
+        label = font.render(f"spineboy walk frame={frame}", True, (220, 220, 230))
         with screen.render() as t:
             pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(-380, 270, 0))
             pygame.gfxdraw.draw_surface(t, label)
