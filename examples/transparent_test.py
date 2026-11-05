@@ -81,9 +81,9 @@ async def main():
         panel_a = int(90 + 60 * tri(1800, _t))
 
         with screen.render() as r:
-            pygame.gfxdraw.set_pos(r, 60, 120); pygame.gfxdraw.draw_surface(r, body)                        # 桌宠本体（不透明）
-            pygame.gfxdraw.set_pos(r, 60, 40); pygame.gfxdraw.draw_surface(r, title)                        # AA 文字边缘探针
-            pygame.gfxdraw.set_pos(r, 60, 100); pygame.gfxdraw.draw_surface(r, hint)
+            pygame.gfxdraw.set_transform(r, pygame.math.mat4_translation(60, 120, 0)); pygame.gfxdraw.draw_surface(r, body)                        # 桌宠本体（不透明）
+            pygame.gfxdraw.set_transform(r, pygame.math.mat4_translation(60, 40, 0)); pygame.gfxdraw.draw_surface(r, title)                        # AA 文字边缘探针
+            pygame.gfxdraw.set_transform(r, pygame.math.mat4_translation(60, 100, 0)); pygame.gfxdraw.draw_surface(r, hint)
             pygame.gfxdraw.box(r, (-140, 90, 200, 120), (255, 255, 255, max(0, panel_a)))  # 局部半透明面板（x-400, y=300-60-120 → 顶 90）
             pygame.gfxdraw.filled_circle(r, 20, 120,
                      max(6, int(30 * tri(1400, _t))), (120, 255, 160))

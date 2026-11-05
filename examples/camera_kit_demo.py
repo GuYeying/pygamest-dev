@@ -53,7 +53,7 @@ async def main():
         with screen.render() as t:
             cam2d.use(t)
             t.fill((16, 17, 24))
-            pygame.gfxdraw.set_pos(t, 14, 10); pygame.gfxdraw.draw_surface(t, title)
+            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(14, 10, 0)); pygame.gfxdraw.draw_surface(t, title)
             pygame.gfxdraw.set_transform(t, 
                 kit.chain(kit.pos(x, 180), kit.rot_z(frame % 360)))
             pygame.gfxdraw.draw_surface(t, card)
@@ -72,7 +72,7 @@ async def main():
         # 回 2D 画文字/描边（新会话开始即 Auto 重置——中心系坐标）
         with screen.render() as t:
             cam2d.use(t)
-            pygame.gfxdraw.set_pos(t, 14, h // 2 - 8)
+            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(14, h // 2 - 8, 0))
             pygame.gfxdraw.draw_surface(t, cjk.render("下半：render_depth + 透视（近大远小）",
                               True, (150, 160, 180)))
             pygame.gfxdraw.rectangle(t, (20 - w // 2, -(h // 2 - 40), w - 40, h // 2 - 60), (120, 60, 60))
