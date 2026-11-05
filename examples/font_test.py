@@ -115,10 +115,10 @@ async def main():
             r.fill((24, 24, 34))
             y = 290
             for surf in spec:
-                pygame.gfxdraw.set_transform(r, pygame.math.mat4_translation(12, y, 0)); pygame.gfxdraw.draw_surface(r, surf)
-                y += 48
+                pygame.gfxdraw.set_transform(r, pygame.math.mat4_translation(-200, y, 0)); pygame.gfxdraw.draw_surface(r, surf)
+                y -= 48
             # 底部状态行：CJK 是否可用（颜色即状态）
-            pygame.gfxdraw.set_transform(r, pygame.math.mat4_translation(12, y + 8, 0))
+            pygame.gfxdraw.set_transform(r, pygame.math.mat4_translation(-200, y - 8, 0))
             pygame.gfxdraw.draw_surface(r, cjk.render("状态：CJK 可用 ✓" if len(_fail) == 0
                               else "状态：见控制台失败项", True,
                               (120, 255, 120) if not _fail else (255, 120, 120)))

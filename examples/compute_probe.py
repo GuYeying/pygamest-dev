@@ -32,22 +32,22 @@ fn cs_main(@builtin(global_invocation_id) gid: vec3<u32>) {
     if (gid.x >= cfg.n) { return; }
     var p = state[gid.x];
     if (cfg.mode == 1u) {           // 单帧自初始化（脚本置 mode=1 一帧后回 0）
-        p.pos = vec4<f32>(100.0 + f32(hash(gid.x) % 600u),
-                          80.0 + f32(hash(gid.x ^ 0x9e3779b9u) % 400u), 0.0, 0.0);
+        p.pos = vec4<f32>(-300.0 + f32(hash(gid.x) % 600u),
+                          -200.0 + f32(hash(gid.x ^ 0x9e3779b9u) % 400u), 0.0, 0.0);
         p.vel = vec4<f32>(f32(hash(gid.x ^ 0x85ebca6bu) % 121u) - 60.0,
                           f32(hash(gid.x ^ 0xc2b2ae35u) % 61u) - 30.0, 0.0, 0.0);
     }
     // dt 驱动（真实毫秒→秒，钳 1..50ms——帧率解耦，各平台运动一致）
     let dt = clamp(f32(cfg.dt_ms) / 1000.0, 0.001, 0.05);
-    p.vel = p.vel + vec4<f32>(0.0, 240.0, 0.0, 0.0) * dt;  // 重力
+    p.vel = p.vel + vec4<f32>(0.0, -240.0, 0.0, 0.0) * dt;  // 重力
     p.pos = p.pos + p.vel * dt;                              // 积分
-    if (p.pos.x < 10.0 || p.pos.x > 790.0) {                  // 反弹
+    if (p.pos.x < -390.0 || p.pos.x > 390.0) {                  // 反弹
         p.vel.x = -p.vel.x;
-        p.pos.x = clamp(p.pos.x, 10.0, 790.0);
+        p.pos.x = clamp(p.pos.x, -390.0, 390.0);
     }
-    if (p.pos.y < 10.0 || p.pos.y > 590.0) {
+    if (p.pos.y < -290.0 || p.pos.y > 290.0) {
         p.vel.y = -p.vel.y;
-        p.pos.y = clamp(p.pos.y, 10.0, 590.0);
+        p.pos.y = clamp(p.pos.y, -290.0, 290.0);
     }
     state[gid.x] = p;
     out_pos[gid.x] = p.pos.xy;      // 连续平面直写（避免 32B 交错拷贝错位）

@@ -38,7 +38,7 @@ fn vs_main(in: VIn) -> VOut {
 @fragment
 fn fs_main(in: VOut) -> @location(0) vec4<f32> {
     // SDF 圆盘 + 同心波纹（引擎内置绘制无法实现的逐像素程序化效果）
-    let c = vec2<f32>(400.0, 340.0);
+    let c = vec2<f32>(0.0, -40.0);
     let d = distance(in.world, c);
     let r = 235.0;
     let edge = smoothstep(r, r - 5.0, d);
@@ -69,7 +69,7 @@ async def main():
     ac = pygame.render.access()
     shader = ac.shader(WGSL, label="demo_shader")
     # 500×500 quad（pos3color4——颜色基色，圆盘形态/波纹全在 fragment）
-    x0, y0, x1, y1 = 150.0, 90.0, 650.0, 590.0
+    x0, y0, x1, y1 = -250.0, 210.0, 250.0, -290.0
     verts = [
         x0, y0, 0.0, 1.0, 1.0, 1.0, 1.0,
         x1, y0, 0.0, 1.0, 1.0, 1.0, 1.0,
