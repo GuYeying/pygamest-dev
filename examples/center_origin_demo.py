@@ -53,15 +53,13 @@ async def main():
             k = 0.0045
             pygame.gfxdraw.set_transform(f, 
                 pygame.math.mat4_translation(0, 0, -3)
-                * pygame.math.mat4_scale(k, k, 1)
-                * pygame.math.mat4_translation(-160, -12, 0))
+                * pygame.math.mat4_scale(k, k, 1))
             pygame.gfxdraw.draw_surface(f, quad3d)
             pygame.gfxdraw.filled_circle(f, 0, 0, 6, (255, 255, 255))
             # 右上偏移牌：+x 右、+y 上（y 向上方向验证）
             pygame.gfxdraw.set_transform(f, 
                 pygame.math.mat4_translation(1.0, 0.75, -3)
-                * pygame.math.mat4_scale(k, k, 1)
-                * pygame.math.mat4_translation(-110, -12, 0))
+                * pygame.math.mat4_scale(k, k, 1))
             pygame.gfxdraw.draw_surface(f, quad3d_off)
             # 3D 原点标记：上方文字牌中心即世界原点（透视投影 (0,0) →
             # 屏幕中心）。⚠️ gfxdraw 图元半径 = i32 整数世界单位——透视

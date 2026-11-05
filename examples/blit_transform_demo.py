@@ -12,12 +12,8 @@ import pygame
 async def main():
     screen = pygame.display.set_mode((800, 600))
     cjk = pygame.font.Font("cjk", 17)
-    title = cjk.render(
-        "上半：blit_transform 2D 三联（旋转30°/缩放1.4/水平镜像）· 右侧 transform.rotate 烘焙对照",
-        True, (205, 205, 205))
-    sub = cjk.render(
-        "下半：pygame.gfxdraw.set_camera(render, 透视) + blit_transform 空间放置（z=-2.2/-3.2/-4.2 近大远小）",
-        True, (205, 205, 205))
+    title = cjk.render("上半：blit_transform 2D 三联（旋转30°/缩放1.4/水平镜像）· 右侧 transform.rotate 烘焙对照",True, (205, 205, 205))
+    sub = cjk.render("下半：pygame.gfxdraw.set_camera(render, 透视) + blit_transform 空间放置（z=-2.2/-3.2/-4.2 近大远小）",True, (205, 205, 205))
     _fail = []
 
     def st(name, cond):
@@ -30,7 +26,7 @@ async def main():
     # 源面：离屏画布（非对称图案——红圆在左，镜像可辨）
     art = pygame.Surface((160, 120))
     with art.render() as t:
-        t.fill((30, 34, 48))
+        t.fill((125, 125, 125))
         pygame.gfxdraw.rectangle(t, (8, 8, 144, 104), (80, 200, 90))  # 原 width=2 描边（gfxdraw 恒 1px）
         pygame.gfxdraw.filled_circle(t, 40, 60, 24, (230, 70, 70))
         pygame.gfxdraw.line(t, 10, 110, 150, 10, (240, 200, 80))
@@ -40,10 +36,9 @@ async def main():
     # 2D 三联矩阵（局部四角 (0,0)(w,0)(w,h)(0,h) 经矩阵：
     # 平移 × 旋转 / 缩放 / 镜像；镜像 = S(-1,1) + 平移 w 补偿）
     M = pygame.math
-    m_rot = M.mat4_translation(30, 90, 0).mul_mat4(
-        M.mat4_from_quat(M.quat_from_axis_angle(0, 0, 1, 30)))
-    m_scale = M.mat4_translation(300, 70, 0).mul_mat4(M.mat4_scale(1.4, 1.4, 1))
-    m_mirror = M.mat4_translation(560 + 160, 70, 0).mul_mat4(M.mat4_scale(-1, 1, 1))
+    m_rot = M.mat4_translation(0, 0, 0).mul_mat4(M.mat4_from_quat(M.quat_from_axis_angle(0, 0, 1, 30)))
+    m_scale = M.mat4_translation(0, 0, 0).mul_mat4(M.mat4_scale(1.4, 1.4, 1))
+    m_mirror = M.mat4_translation(0, 0, 0).mul_mat4(M.mat4_scale(-1, 1, 1))
 
     # 3D 透视相机（identity 视图——相机在原点看 -Z；右手系卡片摆 -Z 前）
     cam3d = pygame.render.camera_perspective(45.0, 800.0 / 600.0, 0.1, 100.0)
