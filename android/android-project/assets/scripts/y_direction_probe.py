@@ -18,7 +18,8 @@ async def main():
 
         with screen.render() as f:
             f.fill((16, 16, 28))
-            pygame.gfxdraw.filled_circle(f, 0, 200, 70, (255, 255, 255))      # 中心系上半白圆
+            pygame.gfxdraw.set_color(f, (255, 255, 255))
+            pygame.gfxdraw.filled_circle(f, 0, 200, 70)      # 中心系上半白圆
             pygame.gfxdraw.set_transform(f, pygame.math.mat4_translation(-390, 250, 0)); pygame.gfxdraw.draw_surface(f, top)     # +Y 文字（期望顶部）
             #pygame.gfxdraw.set_transform(f, pygame.math.mat4_translation(-390, -270, 0)); pygame.gfxdraw.draw_surface(f, bot)    # -Y 文字（期望底部）
         pygame.display.flip()

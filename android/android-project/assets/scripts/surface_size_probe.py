@@ -6,16 +6,17 @@ import sys
 # 附在 sys.argv 末尾（argv[-2:]），脚本据此 set_mode——画布 = 屏幕，
 # 1:1 满屏零变形（"std 屏幕尺寸接口"的壳层先行形态）。桌面/web 无
 # 附加参数 = 回退 1024×768。蓝底标画布边界，黄描边 + 四角白点验证
-# 锚点，红圈 = 触摸映射落点。源码含 OPENGLES 词 → 创建期预扫描置位。
+# 锚点，红圈 = 触摸映射落点。
 
-FULLSCREEN = 2  # 1 << 1（引擎 display 位定义；Python 常量面待开放）
+FULLSCREEN = 2  # 1 << 1
 
 async def main():
     req_w, req_h = 1024, 768
     if len(sys.argv) >= 3:
         req_w, req_h = int(sys.argv[-2]), int(sys.argv[-1])
     screen = pygame.display.set_mode((req_w, req_h), FULLSCREEN)
-    sw, sh = screen.get_size()  # FULLSCREEN 下引擎以原生窗口实测尺寸为准
+    sw, sh = screen.get_size()
+    hw, hh = sw // 2, sh // 2
     print(f"[probe] 请求 = ({req_w}, {req_h})；FULLSCREEN 生效 = ({sw}, {sh})")
     frame = 0
     pos = None
@@ -27,11 +28,17 @@ async def main():
                 pos = (e.x, e.y)
         with screen.render() as r:
             r.fill((0, 0, 255))
-            pygame.gfxdraw.rectangle(r, (0, 0, sw, sh), (255, 255, 0))  # 原 width=6 描边（gfxdraw 恒 1px）
-            for cx, cy in ((8, 8), (sw - 8, 8), (8, sh - 8), (sw - 8, sh - 8)):
-                pygame.gfxdraw.filled_circle(r, cx, cy, 8, (255, 255, 255))
+            # 中心原点：全屏 rect = 从左下角 (-hw, -hh) 开始
+            pygame.gfxdraw.set_color(r, (255, 255, 0))
+            pygame.gfxdraw.rectangle(r, (-hw, -hh, sw, sh))
+            # 四角圆 = 四个屏幕角落（中心系）
+            for cx, cy in ((-hw + 8, -hh + 8), (hw - 8, -hh + 8),
+                           (-hw + 8, hh - 8), (hw - 8, hh - 8)):
+                pygame.gfxdraw.set_color(r, (255, 255, 255))
+                pygame.gfxdraw.filled_circle(r, cx, cy, 8)
             if pos:
-                pygame.gfxdraw.filled_circle(r, pos[0], pos[1], 20, (255, 0, 0))
+                pygame.gfxdraw.set_color(r, (255, 0, 0))
+                pygame.gfxdraw.filled_circle(r, pos[0], pos[1], 20)
         pygame.display.flip()
         frame += 1
         if frame == 1 or frame % 120 == 0:

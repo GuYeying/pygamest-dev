@@ -38,7 +38,7 @@ fn vs_main(in: VIn) -> VOut {
 @fragment
 fn fs_main(in: VOut) -> @location(0) vec4<f32> {
     // SDF 圆盘 + 同心波纹（引擎内置绘制无法实现的逐像素程序化效果）
-    let c = vec2<f32>(400.0, 340.0);
+    let c = vec2<f32>(0.0, -40.0);
     let d = distance(in.world, c);
     let r = 235.0;
     let edge = smoothstep(r, r - 5.0, d);
@@ -69,7 +69,7 @@ async def main():
     ac = pygame.render.access()
     shader = ac.shader(WGSL, label="demo_shader")
     # 500×500 quad（pos3color4——颜色基色，圆盘形态/波纹全在 fragment）
-    x0, y0, x1, y1 = 150.0, 90.0, 650.0, 590.0
+    x0, y0, x1, y1 = -250.0, 210.0, 250.0, -290.0
     verts = [
         x0, y0, 0.0, 1.0, 1.0, 1.0, 1.0,
         x1, y0, 0.0, 1.0, 1.0, 1.0, 1.0,
@@ -123,7 +123,7 @@ async def main():
             M.mat4_translation(0.0, 0.0, -dist)
             .mul_mat4(M.mat4_from_quat(
                 M.quat_from_axis_angle(0.0, 1.0, 0.0, yaw)))
-            .mul_mat4(M.mat4_translation(-400.0, -340.0, 0.0))
+            .mul_mat4(M.mat4_translation(0.0, 40.0, 0.0))
         )
         cam3d = pygame.render.camera_perspective(
             # fov = 度数制（API 契约；曾误传弧度意图的 0.9——0.9° 超长焦
@@ -146,8 +146,9 @@ async def main():
                 st("screen_attachment 帧内可取",
                    pygame.render.screen_attachment() is not None)
             t.fill((14, 15, 22))
-            pygame.gfxdraw.rectangle(t, (1, 1, 798, 598), (255, 0, 255))  # 原 width=2 描边（gfxdraw 恒 1px）  # 诊断：画布边界框
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(14, 10, 0)); pygame.gfxdraw.draw_surface(t, title)
+            pygame.gfxdraw.set_color(t, (255, 0, 255))
+            pygame.gfxdraw.rectangle(t, (-399, -299, 798, 598),)  # 原 width=2 描边（gfxdraw 恒 1px）  # 诊断：画布边界框
+            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(-370, 280, 0)); pygame.gfxdraw.draw_surface(t, title)
             # ── 段 1：2D 正交（对照恒定）——大波纹圆盘（draw_mesh 全量，
             #    免手填顶点范围）+ debug 标注 + 动态状态命令 ──
             with t.raw_render() as p:

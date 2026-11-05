@@ -33,12 +33,15 @@ async def main():
         with screen.render_depth() as f:
             # ① Auto2d 兜底：中心原点 2D 图元——(0,0) = 屏幕中心，
             #    (-250, 150) = 中心左侧偏上（y 向上）
-            pygame.gfxdraw.filled_circle(f, -250, 150, 36, (255, 200, 0))
-            pygame.gfxdraw.box(f, (-330, -60, 120, 80), (90, 120, 220))
+            pygame.gfxdraw.set_color(f, (255, 200, 0))
+            pygame.gfxdraw.filled_circle(f, -250, 150, 36)
+            pygame.gfxdraw.set_color(f, (90, 120, 220))
+            pygame.gfxdraw.box(f, (-330, -60, 120, 80))
 
             # ② 会话级正交相机（显式）——右侧 2D 圆（同画布分段）
             pygame.gfxdraw.set_camera(f, pygame.render.camera_ortho(800.0, 600.0))
-            pygame.gfxdraw.filled_circle(f, 250, 150, 30, (120, 255, 120))
+            pygame.gfxdraw.set_color(f, (120, 255, 120))
+            pygame.gfxdraw.filled_circle(f, 250, 150, 30)
             pygame.gfxdraw.reset_camera(f)
 
             # ③ 会话级透视相机：3D 空间放置
@@ -56,7 +59,8 @@ async def main():
             if img is not None:
                 pygame.gfxdraw.draw_surface(f, img)
             else:
-                pygame.gfxdraw.box(f, (-30, -30, 60, 60), (200, 120, 90))
+                pygame.gfxdraw.set_color(f, (200, 120, 90))
+                pygame.gfxdraw.box(f, (-30, -30, 60, 60))
 
             # 3b. 3D 文字牌（游戏内 id）：文字表面 quad 放进世界
             #     （billboard 手动 = 让牌面朝相机——本 demo 相机固定
@@ -66,8 +70,10 @@ async def main():
 
             # ④ 回 Auto：中心系十字准星（验证 reset_camera 兜底）
             pygame.gfxdraw.reset_camera(f)
-            pygame.gfxdraw.line(f, -16, 0, 16, 0, (255, 255, 255))
-            pygame.gfxdraw.line(f, 0, -12, 0, 12, (255, 255, 255))
+            pygame.gfxdraw.set_color(f, (255, 255, 255))
+            pygame.gfxdraw.line(f, -16, 0, 16, 0)
+            pygame.gfxdraw.set_color(f, (255, 255, 255))
+            pygame.gfxdraw.line(f, 0, -12, 0, 12)
 
         # HUD（叠加在 3D 内容之上——Auto 兜底段）
         with screen.render() as f:

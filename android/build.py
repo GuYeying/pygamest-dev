@@ -46,9 +46,9 @@ FINAL_NAME = "pygamestdev_demo.apk"
 SO_NAME = "libandroid_host.so"
 PKG = "pygame.rsdev"  # manifest 包（两段强制）；Java 类包独立 = pygamestdev（JNI 对齐）
 ACTIVITY = f"{PKG}/.MainActivity"
-# 全量脚本源（pygamest 家族两个 examples 目录；递归 games/ 形态暂不收）
+# 全量脚本源（本仓 examples 单源——旧世代 pygamest/examples 已退役，
+# 勿回加：遗留脚本会"复活"进 APK；递归 games/ 形态暂不收）
 SCRIPT_SOURCES = [
-    Path("D:/Projects/Rust/pygamest/examples"),
     Path("D:/Projects/Rust/pygamest-dev/examples"),
 ]
 
@@ -113,12 +113,12 @@ def cmd_export(_args):
 def cmd_demo(args):
     ndk_bin, bt, jar = sdk_tools()
 
-    # 1) 全量脚本收集（覆盖式——与仓库 examples 保持一致）
+    # 1) 全量脚本收集（整目录重建——与仓库 examples 严格一致；老式
+    # 仅清 *.py 会漏网杂散文件，曾混入 python.exe 打进 APK）
     print("=== 1/7 收集全量脚本 → assets/scripts ===")
     scripts_dir = ASSETS / "scripts"
     if scripts_dir.is_dir():
-        for p in scripts_dir.glob("*.py"):
-            p.unlink()
+        shutil.rmtree(scripts_dir)
     scripts_dir.mkdir(parents=True, exist_ok=True)
     count = 0
     for src in SCRIPT_SOURCES:

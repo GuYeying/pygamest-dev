@@ -91,7 +91,7 @@ async def main():
     _keep = []
     _rot_src = cjk.render("旋转 30° 的中文文字", True, (255, 150, 150))
     _keep.append(_rot_src)
-    spec.append(pygame.transform.rotate(_rot_src, 30))
+    spec.append(pygame.transform.rotate(_rot_src, 0))
     _sc_src = f24.render("SMOOTHSCALE x2", True, (150, 220, 255))
     _keep.append(_sc_src)
     spec.append(pygame.transform.smoothscale(
@@ -113,12 +113,12 @@ async def main():
         
         with screen.render() as r:
             r.fill((24, 24, 34))
-            y = 12
+            y = 290
             for surf in spec:
-                pygame.gfxdraw.set_transform(r, pygame.math.mat4_translation(12, y, 0)); pygame.gfxdraw.draw_surface(r, surf)
-                y += 48
+                pygame.gfxdraw.set_transform(r, pygame.math.mat4_translation(-200, y, 0)); pygame.gfxdraw.draw_surface(r, surf)
+                y -= 48
             # 底部状态行：CJK 是否可用（颜色即状态）
-            pygame.gfxdraw.set_transform(r, pygame.math.mat4_translation(12, y + 8, 0))
+            pygame.gfxdraw.set_transform(r, pygame.math.mat4_translation(-200, y - 8, 0))
             pygame.gfxdraw.draw_surface(r, cjk.render("状态：CJK 可用 ✓" if len(_fail) == 0
                               else "状态：见控制台失败项", True,
                               (120, 255, 120) if not _fail else (255, 120, 120)))
