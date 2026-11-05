@@ -4162,7 +4162,7 @@ dependencies = [
 
 [[package]]
 name = "pygamest-dev"
-version = "0.1.7"
+version = "0.1.8"
 dependencies = [
  "android-activity",
  "jni-sys 0.3.1",
