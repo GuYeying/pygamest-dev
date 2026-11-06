@@ -122,7 +122,11 @@ pub async fn run<H: Host>(host: &H) -> i32 {
     // 后端声明位同样"首次 set_mode 定终身"）——宿主壳预建窗须替脚本
     // 带上。脚本文本含词即置位：注释提及也会命中（保守误报可接受）；
     // 运行期旗标（RESIZABLE 等）不在此列，脚本 set_mode 经
-    // apply_window_request 照常生效 ──
+    // apply_window_request 照常生效。
+    // ⚠️ NOFRAME 必须入列（2026-11-06 实测）：NOFRAME 漏扫 = 宿主窗
+    // 带框创建 → 脚本 set_mode 运行期 set_borderless(true) 补刀 → 客
+    // 户区跳变（800×600 → 1024×864 外框尺寸）→ WM_SIZE 重配风暴 →
+    // 合成链（透明窗）在途帧 ResizeBuffers 失败 → 面解配置崩 ──
     let mut host_flags = 0u32;
     for (token, bit) in [
         ("TRANSPARENT", display::TRANSPARENT),
@@ -131,6 +135,7 @@ pub async fn run<H: Host>(host: &H) -> i32 {
         ("OPENGLES", display::OPENGLES),
         ("OPENGL", display::OPENGL),
         ("HIDDEN", display::HIDDEN),
+        ("NOFRAME", display::NOFRAME),
     ] {
         if req.code.contains(token) {
             host_flags |= bit;

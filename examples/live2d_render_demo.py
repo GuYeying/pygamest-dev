@@ -9,9 +9,10 @@ import pygame
 import pygame_live2d
 
 MODEL = "D:/Projects/Rust/pygame_live2d/assets/models/Hiyori"
+#MODEL = "D:/Projects/Rust/pygame-rs-dev/examples/Mao"
 
 async def main():
-    screen = pygame.display.set_mode((1000, 800))
+    screen = pygame.display.set_mode((1000, 800),[pygame.display.NOFRAME,pygame.display.TRANSPARENT])
     # 产物面：与屏幕等尺寸（1:1 上屏；换任意尺寸只影响清晰度）
     buf = pygame.Surface((1000, 800))
     rt = pygame_live2d.load_runtime(f"{MODEL}/Hiyori.model3.json")
@@ -38,7 +39,7 @@ async def main():
         rt.draw(buf, scale=0.9)
         with screen.render() as t:
             pygame.gfxdraw.set_color(t, (36, 40, 52))
-            pygame.gfxdraw.box(t, (-500, -400, 1000, 800))
+            #pygame.gfxdraw.box(t, (-500, -400, 1000, 800))
             pygame.gfxdraw.draw_surface(t, buf)
             if frame == 30:
                 probe = pygame.render.screen_probe()
