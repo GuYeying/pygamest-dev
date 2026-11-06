@@ -44,7 +44,9 @@ async def main():
             state.apply(sk)
             sk.update_world_transform()
             # spineboy 世界坐标：y 向上、原点在脚底——抬到屏幕中部
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(0, -60, 0))
+            zoom = pygame.math.mat4_scale(0.6, 0.6, 0.6)
+            m = pygame.math.mat4_translation(0, -120, 0).mul_mat4(zoom)
+            pygame.gfxdraw.set_transform(t, m)
             pygame.gfxdraw.draw_spine(t, sk, [page0])
             pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(0, 0, 0))
         label = font.render(f"spineboy walk frame={frame}", True, (220, 220, 230))
