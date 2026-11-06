@@ -13,6 +13,9 @@ use rustpython_vm::VirtualMachine;
 
 /// 桌面入口（REPL/serve/运行 三分派 + 退出码；`-> !` 不返回）
 pub fn desktop_main() -> ! {
+    // 内存泄漏排查 harness（PYGAMEST_MEMTRACE=1 开监控打印——分配器
+    // 计数从进程启动即生效，此处只挂打印线程）
+    crate::leak_harness::start();
     // 日志统一入口（starfish-debug log 模块）：文件全量 + 告警以上直出
     starfish_debug::log::init(starfish_debug::log::LogConfig {
         level: starfish_debug::log::Level::Debug,
