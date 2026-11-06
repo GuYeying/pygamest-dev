@@ -20,10 +20,12 @@ pub static LIVE_BYTES: AtomicU64 = AtomicU64::new(0);
 /// 累计分配字节（吞吐参考；单调）
 pub static TOTAL_ALLOC_BYTES: AtomicU64 = AtomicU64::new(0);
 
-const HEADER: usize = 16;
+const HEADER: usize = 8;
 
-/// 计数分配器：用户区前 16B 头存 [回退到 raw 的距离, 用户尺寸]——
-/// dealloc 时凭头精确回收 + 扣活字节。任意对齐（对齐上取整留 slack）。
+/// 计数分配器：用户区前 8B 头存 [回退到 raw 的距离]——dealloc 凭头 +
+/// 原 layout 精确重算 total（⚠️ 必须与 alloc 的 total 公式逐字节一致：
+/// `HEADER + pad_to_align(size) + max(align, HEADER)`——dlmalloc（wasm）
+/// 的 free 是尺寸敏感的，size 错算即断言崩——2026-11-07 wasm 实测教训）。
 pub struct CountingAlloc;
 
 unsafe impl GlobalAlloc for CountingAlloc {
@@ -36,24 +38,22 @@ unsafe impl GlobalAlloc for CountingAlloc {
         }
         let user_addr = raw as usize + HEADER;
         let aligned_addr = (user_addr + align - 1) & !(align - 1);
-        let meta = (aligned_addr - HEADER) as *mut usize;
-        *meta = aligned_addr - raw as usize;
-        *meta.add(1) = layout.size();
+        ((aligned_addr - HEADER) as *mut usize).write(aligned_addr - raw as usize);
         LIVE_ALLOC.fetch_add(1, Ordering::Relaxed);
         LIVE_BYTES.fetch_add(layout.size() as u64, Ordering::Relaxed);
         TOTAL_ALLOC_BYTES.fetch_add(total as u64, Ordering::Relaxed);
         aligned_addr as *mut u8
     }
 
-    unsafe fn dealloc(&self, ptr: *mut u8, _layout: Layout) {
-        let meta = (ptr as usize - HEADER) as *mut usize;
-        let back = *meta;
-        let size = *meta.add(1);
+    unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+        let back = ((ptr as usize - HEADER) as *mut usize).read();
+        let align = layout.align().max(HEADER);
+        let total = HEADER + layout.pad_to_align().size() + align;
         LIVE_ALLOC.fetch_sub(1, Ordering::Relaxed);
-        LIVE_BYTES.fetch_sub(size as u64, Ordering::Relaxed);
+        LIVE_BYTES.fetch_sub(layout.size() as u64, Ordering::Relaxed);
         System.dealloc(
             (ptr as usize - back) as *mut u8,
-            Layout::from_size_align_unchecked(back + size + HEADER, HEADER),
+            Layout::from_size_align_unchecked(total, HEADER),
         );
     }
 }
