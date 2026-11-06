@@ -88,6 +88,31 @@ async def main():
     )[1]
     st("触发区 collider 句柄", isinstance(trig, int))
 
+    # ── 体素碰撞体（rapier 0.36 原生 voxels / voxelized_mesh）──
+    vox_body = rp3.RigidBodyBuilder3D("fixed", translation=(6.0, 0.0, 0.0))
+    vox_col = rp3.ColliderBuilder3D("voxels", voxel_size=0.5,
+                                    voxels=[0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 1,
+                                            0, 1, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1])
+    vbh, _ = world.insert(vox_body, vox_col)
+    world.step()  # broad_phase 时约：insert 后须 step 一次方可查询
+    st("voxels 构建插入", isinstance(vbh, int))
+    vhit = world.cast_ray((6.0, 3.0, 0.0), (0.0, -1.0, 0.0), None)
+    st("cast_ray 命中体素墙（顶面 y=1.0）", vhit is not None and abs(vhit[1] - 2.0) < 0.05)
+    # 立方网格体素化（surface 填充）：1×1×1 立方 → 8 顶点 12 三角
+    cube_v = [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0,
+              0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0]
+    cube_i = [0, 2, 1, 0, 3, 2, 4, 5, 6, 4, 6, 7,
+              0, 1, 5, 0, 5, 4, 2, 3, 7, 2, 7, 6,
+              0, 4, 7, 0, 7, 3, 1, 2, 6, 1, 6, 5]
+    vm_body = rp3.RigidBodyBuilder3D("fixed", translation=(10.0, 0.5, 0.0))
+    vm_col = rp3.ColliderBuilder3D("voxelized_mesh", vertices=cube_v, indices=cube_i,
+                                   voxel_size=0.3, fill_mode="surface")
+    vmbh, _ = world.insert(vm_body, vm_col)
+    world.step()  # broad_phase 时约：insert 后须 step 一次方可查询
+    st("voxelized_mesh 构建插入", isinstance(vmbh, int))
+    vmhit = world.cast_ray((10.0, 3.0, 0.0), (0.0, -1.0, 0.0), None)
+    st("cast_ray 命中体素化网格（体素化外扩 ≤ 一格——区间断言）", vmhit is not None and 1.0 < vmhit[1] < 2.05)
+
     # 调试三件套 + look-at 相机（fov = 垂直视场角弧度）
     draw = rp3.DebugDraw3D()
     sink = rp3.LineSink3D()

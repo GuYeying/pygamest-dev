@@ -153,6 +153,15 @@ async def main():
             st("触发器 started 事件", "started" in kinds)
             st("触发器 stopped 事件", "stopped" in kinds)
             st("drain_events 元组形态", all(len(e) == 3 for e in evs))
+            # ── 体素碰撞体（rapier 0.36 原生 voxels）──
+            vox_body = rp.RigidBodyBuilder("fixed", translation=(8.0, 0.0))
+            vox_col = rp.ColliderBuilder("voxels", voxel_size=0.5,
+                                         voxels=[0, 0, 1, 0, 0, 1, 1, 1, 2, 1, 2, 0])
+            vbh, _ = world.insert(vox_body, vox_col)
+            world.step()  # broad_phase 时约：insert 后须 step 一次方可查询
+            st("voxels 构建插入", isinstance(vbh, int))
+            vhit = world.cast_ray((8.0, 3.0), (0.0, -1.0), None)
+            st("cast_ray 命中体素墙（顶面 y=1.0，格子 (c+0.5)×s 语义）", vhit is not None and abs(vhit[1] - 2.0) < 0.05)
             asserted = True
             print("[rapier-test] SUMMARY",
                   "PASS" if not _fail else "FAIL " + str(_fail))
