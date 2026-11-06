@@ -1,7 +1,7 @@
 # live2d_render_demo —— mocari 渲染管线集成验证（sprite 工作流）：
 # Hiyori 官方样例模型（Live2D Free Material License 资产，经 neocari
-# 仓库分发副本 vendor）。用户创建 Surface 注入 → rt.draw() 全管线自理
-# 画进 buf（全透明底人物图）→ gfxdraw.draw_surface 上屏。参数/motion
+# 仓库分发副本 vendor）。rt.draw(buf) 全管线自理（产物面每帧传入——
+# 同一对象可画任意尺寸/多个面）→ gfxdraw.draw_surface 上屏。参数/motion
 # 双驱动，300 帧自动退出，第 30 帧像素探针自验可见性。
 import time
 
@@ -14,7 +14,7 @@ async def main():
     screen = pygame.display.set_mode((1000, 800))
     # 产物面：与屏幕等尺寸（1:1 上屏；换任意尺寸只影响清晰度）
     buf = pygame.Surface((1000, 800))
-    rt = pygame_live2d.load_runtime(f"{MODEL}/Hiyori.model3.json", buf)
+    rt = pygame_live2d.load_runtime(f"{MODEL}/Hiyori.model3.json")
     print("[live2d_demo] canvas =", rt.canvas_size())
     print("[live2d_demo] drawable 数 =", rt.mesh_count())
 
@@ -35,7 +35,7 @@ async def main():
         player.apply(rt)
         rt.update_meshes()
         # 全管线自理：蒙版/masked/整模型三段落 buf（居中 90% 画布利用率）
-        rt.draw(scale=0.9)
+        rt.draw(buf, scale=0.9)
         with screen.render() as t:
             pygame.gfxdraw.set_color(t, (36, 40, 52))
             pygame.gfxdraw.box(t, (-500, -400, 1000, 800))

@@ -45,7 +45,7 @@ async def main():
     rgba_len = len(model.texture_rgba(0))
     chk("texture_rgba 量", rgba_len, 2048 * 2048 * 4)
 
-    rt = pygame_live2d.load_runtime(f"{MODEL}/Hiyori.model3.json", buf)
+    rt = pygame_live2d.load_runtime(f"{MODEL}/Hiyori.model3.json")
     chk("runtime canvas", rt.canvas_size(), (2976.0, 4175.0))
     pids = rt.parameter_ids()
     chk("parameter_ids 非空", len(pids) > 50, True)
@@ -68,7 +68,7 @@ async def main():
     chk("load_motion", motion is not None, True)
     chk("motion duration>0", motion.duration() > 0, True)
     player = pygame_live2d.motion_player(motion)
-    rt2 = pygame_live2d.load_runtime(f"{MODEL}/Hiyori.model3.json", buf2)
+    rt2 = pygame_live2d.load_runtime(f"{MODEL}/Hiyori.model3.json")
     n2 = rt2.mesh_count()
     base2 = [tuple(rt2.mesh(i)[2]) for i in range(n2)]
     for i in range(40):
@@ -83,9 +83,9 @@ async def main():
     chk("restart 回零", abs(player.time()) < 1e-5, True)
 
     # ── draw 面（注入式全管线自理）──
-    rt.draw(scale=0.9)
+    rt.draw(buf, scale=0.9)
     chk("draw 默认参数", True, True)
-    rt.draw(x=0.0, y=0.0, scale=0.9)
+    rt.draw(buf, x=0.0, y=0.0, scale=0.9)
     chk("draw 显式参数", True, True)
 
     # ── 视觉 smoke（60 帧 motion + rt.draw + draw_surface 上屏）──
@@ -101,7 +101,7 @@ async def main():
         player.tick(dt)
         player.apply(rt2)
         rt2.update_meshes()
-        rt2.draw(scale=0.9)
+        rt2.draw(buf2, scale=0.9)
         with screen.render() as t:
             pygame.gfxdraw.set_color(t, (36, 40, 52))
             pygame.gfxdraw.box(t, (-400, -300, 800, 600))

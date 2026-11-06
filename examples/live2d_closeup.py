@@ -10,7 +10,7 @@ SHOTS = [(8, "closeup_a"), (95, "closeup_b"), (175, "closeup_c")]
 async def main():
     pygame.display.set_mode((400, 300))
     buf = pygame.Surface((800, 600))
-    rt = pygame_live2d.load_runtime(f"{MODEL}/Hiyori.model3.json", buf)
+    rt = pygame_live2d.load_runtime(f"{MODEL}/Hiyori.model3.json")
     motion = pygame_live2d.load_motion(f"{MODEL}/motions/Hiyori_m01.motion3.json")
     player = pygame_live2d.motion_player(motion)
     for frame in range(180):
@@ -18,7 +18,7 @@ async def main():
         player.apply(rt)
         rt.update_meshes()
         if frame in (s[0] for s in SHOTS):
-            rt.draw(x=0.0, y=-0.65, scale=1.7)
+            rt.draw(buf, x=0.0, y=-0.65, scale=1.7)
             for f, name in SHOTS:
                 if f == frame:
                     pygame.image.save(
