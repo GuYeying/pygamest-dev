@@ -88,6 +88,30 @@ async def main():
     )[1]
     st("触发区 collider 句柄", isinstance(trig, int))
 
+    # ── 弹簧关节（rapier spring；debug joints=True 线段配色）──
+    s1 = world.insert(
+        rp3.RigidBodyBuilder3D("dynamic", translation=(-4.0, 12.0, 0.0)),
+        rp3.ColliderBuilder3D("ball", radius=0.3))[0]
+    s2 = world.insert(
+        rp3.RigidBodyBuilder3D("dynamic", translation=(4.0, 12.0, 0.0)),
+        rp3.ColliderBuilder3D("ball", radius=0.3))[0]
+    jh = world.create_joint("spring", body1=s1, body2=s2,
+                            rest_length=1.0, stiffness=50.0, damping=2.0)
+    st("create_joint 返回句柄", isinstance(jh, int))
+    for _ in range(90):
+        world.step()
+    (ax, ay, az), (bx, by, bz) = world.translation(s1), world.translation(s2)
+    dist = ((ax - bx) ** 2 + (ay - by) ** 2 + (az - bz) ** 2) ** 0.5
+    st("弹簧收拢（初距 8 → <3）", dist < 3.0)
+    st("remove_joint 生效", world.remove_joint(jh) is True)
+    st("remove_joint 二次 False", world.remove_joint(jh) is False)
+    try:
+        world.create_joint("spring", body1=s1, body2=s2,
+                           rest_length=0.0, stiffness=50.0, damping=2.0)
+        st("rest_length<=0 ValueError", False)
+    except ValueError:
+        st("rest_length<=0 ValueError", True)
+
     # ── 体素碰撞体（rapier 0.36 原生 voxels / voxelized_mesh）──
     # ⚠️ 上游 bug 规避（0.36.1 最新版未修）：动态体与体素复合体接触后
     # 收敛（流形收缩）即 panic "stale ContactRef manifold ordinal"
@@ -168,7 +192,7 @@ async def main():
             st("落体 y 下降", y < first_y - 0.5)
             st("球落至地面附近（0 < y < 1.0）", -1.0 < y < 1.0)
             st("球未横向漂出（|x| < 3）", abs(x) < 3.0)
-            st("sim_time ≈ 1.5s", abs(world.sim_time() - 1.5) < 0.2)
+            st("sim_time ≈ 3.0s（90 帧 + 弹簧 90 手动步）", abs(world.sim_time() - 3.0) < 0.25)
             evs = world.drain_events()
             st("触发器事件流非空", len(evs) > 0)
             st("drain_events 元组形态", all(len(e) == 3 for e in evs))
