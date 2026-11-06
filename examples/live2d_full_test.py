@@ -1,5 +1,6 @@
 # live2d_full_test —— pygame_live2d 全量断言测试（Hiyori 真模型 +
-# motion 播放 + 参数变形实效验证 + 错误路径 + 视觉 smoke 60 帧）。
+# motion 播放 + 参数变形实效验证 + 错误路径 + 视觉 smoke 60 帧；
+# sprite 工作流：注入式 Surface + rt.draw）。
 import time
 
 import pygame
@@ -24,11 +25,16 @@ def raises(fn):
     try:
         fn()
         return "未抛异常"
-    except ValueError:
-        return "ValueError"
+    except (ValueError, TypeError):
+        return "ValueError/TypeError"
 
 
 async def main():
+    # 注入式渲染需要 GPU 会话与产物面——先建窗
+    screen = pygame.display.set_mode((800, 600))
+    buf = pygame.Surface((800, 600))
+    buf2 = pygame.Surface((800, 600))
+
     # ── 加载面 ──
     model = pygame_live2d.load_model(f"{MODEL}/Hiyori.model3.json")
     chk("load_model canvas", model.canvas_size(), (2976.0, 4175.0))
@@ -39,16 +45,16 @@ async def main():
     rgba_len = len(model.texture_rgba(0))
     chk("texture_rgba 量", rgba_len, 2048 * 2048 * 4)
 
-    rt = pygame_live2d.load_runtime(f"{MODEL}/Hiyori.model3.json")
+    rt = pygame_live2d.load_runtime(f"{MODEL}/Hiyori.model3.json", buf)
     chk("runtime canvas", rt.canvas_size(), (2976.0, 4175.0))
     pids = rt.parameter_ids()
     chk("parameter_ids 非空", len(pids) > 50, True)
     chk("ParamAngleX 存在", "ParamAngleX" in pids, True)
 
-    chk("load_model 缺失", raises(lambda: pygame_live2d.load_model("nope.json")), "ValueError")
-    chk("load_runtime 缺失", raises(lambda: pygame_live2d.load_runtime("nope.json")), "ValueError")
+    chk("load_model 缺失", raises(lambda: pygame_live2d.load_model("nope.json")), "ValueError/TypeError")
+    chk("load_runtime 缺失", raises(lambda: pygame_live2d.load_runtime("nope.json", buf)), "ValueError/TypeError")
 
-    # ── 参数变形实效验证（核心——参数真的驱动网格；后文有全量扫描版）──
+    # ── 参数变形实效验证（核心——参数真的驱动网格）──
     chk("set_parameter 非法 id", rt.set_parameter_normalized("NoSuchParam", 0.5), False)
 
     # mesh 数据形态：扁平偶数长度 + 索引非空
@@ -62,7 +68,7 @@ async def main():
     chk("load_motion", motion is not None, True)
     chk("motion duration>0", motion.duration() > 0, True)
     player = pygame_live2d.motion_player(motion)
-    rt2 = pygame_live2d.load_runtime(f"{MODEL}/Hiyori.model3.json")
+    rt2 = pygame_live2d.load_runtime(f"{MODEL}/Hiyori.model3.json", buf2)
     n2 = rt2.mesh_count()
     base2 = [tuple(rt2.mesh(i)[2]) for i in range(n2)]
     for i in range(40):
@@ -76,8 +82,13 @@ async def main():
     player.restart()
     chk("restart 回零", abs(player.time()) < 1e-5, True)
 
-    # ── 视觉 smoke（60 帧 motion + draw_live2d）──
-    screen = pygame.display.set_mode((800, 600))
+    # ── draw 面（注入式全管线自理）──
+    rt.draw(scale=0.9)
+    chk("draw 默认参数", True, True)
+    rt.draw(x=0.0, y=0.0, scale=0.9)
+    chk("draw 显式参数", True, True)
+
+    # ── 视觉 smoke（60 帧 motion + rt.draw + draw_surface 上屏）──
     frame = 0
     last = time.time()
     while frame < 60:
@@ -87,13 +98,14 @@ async def main():
         now = time.time()
         dt = now - last
         last = now
+        player.tick(dt)
+        player.apply(rt2)
+        rt2.update_meshes()
+        rt2.draw(scale=0.9)
         with screen.render() as t:
             pygame.gfxdraw.set_color(t, (36, 40, 52))
             pygame.gfxdraw.box(t, (-400, -300, 800, 600))
-            player.tick(dt)
-            player.apply(rt2)
-            rt2.update_meshes()
-            pygame.gfxdraw.draw_live2d(t, rt2)
+            pygame.gfxdraw.draw_surface(t, buf2)
         pygame.display.flip()
         await pygame.next_frame()
         frame += 1
