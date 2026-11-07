@@ -39,6 +39,12 @@ live2d = ["pygamest/live2d"]
 # click-through → pygamest/click-through → starfish-pygame/click-through
 # → starfish-we/click-through；未启用 = pygame.display 两口不存在）
 click-through = ["pygamest/click-through"]
+# skip-taskbar = 任务栏（Dock）隐藏（桌宠配套；Win32/macOS 实装，
+# Linux Wayland 站桩——透传链同上；未启用 = pygame.display 两口不存在）
+skip-taskbar = ["pygamest/skip-taskbar"]
+# tray = 系统托盘（桌宠配套；三桌面实装——透传链同上；未启用 =
+# pygame.display 两口 + 事件三常量不存在）
+tray = ["pygamest/tray"]
 # ozz = nightly 专属（上游 std::simd——`cargo +nightly build --features ozz` 显式激活，不入 default）
 ozz = ["pygamest/ozz"]
 
