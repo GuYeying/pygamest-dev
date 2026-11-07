@@ -59,7 +59,7 @@ async def main():
 
     # 显式字节构造（与 demo 内嵌同一资产——从 demo_player 拿不到字节，
     # 用错误字节走错误路径 + 构造器成功路径由 demo_player 覆盖）
-    chk("Player 坏字节", raises(lambda: pygame_ozz.OzzPlayer(b"\x00", b"\x01")), "ValueError")
+    chk("Player 不存在路径", raises(lambda: pygame_ozz.OzzPlayer("/nonexistent.ozz", "/nonexistent.ozz")), "ValueError")
 
     # ── 数据口 ──
     jpos = p.joint_positions_xy()

@@ -32,12 +32,11 @@ def raises(fn):
 
 
 async def main():
-    # ── 加载面 ──
-    data = pygame_spine.load_json(pygame.io.read_text(f"{ASSETS}/spineboy-ess.json"))
+    # ── 加载面（路径进对象出——io 在绑定层闭环）──
+    data = pygame_spine.load_json(f"{ASSETS}/spineboy-ess.json")
     chk("load_json bone_count>0", data.bone_count() > 0, True)
 
-    binary_bytes = pygame.io.read(f"{ASSETS}/spineboy-ess.skel")
-    data_bin = pygame_spine.load_binary(binary_bytes)
+    data_bin = pygame_spine.load_binary(f"{ASSETS}/spineboy-ess.skel")
     chk("load_binary 骨骼数一致", data_bin.bone_count() == data.bone_count(), True)
 
     demo = pygame_spine.demo_skeleton()
@@ -48,13 +47,13 @@ async def main():
     chk("demo_textured 存在", tex_demo.bone_count() > 0, True)
 
     data2, pages = pygame_spine.load_with_atlas(
-        pygame.io.read_text(f"{ASSETS}/spineboy-ess.json"),
-        pygame.io.read_text(f"{ASSETS}/spineboy.atlas"),
+        f"{ASSETS}/spineboy-ess.json",
+        f"{ASSETS}/spineboy.atlas",
     )
     chk("load_with_atlas 页数", pages, 1)
 
-    chk("load_json 坏内容", raises(lambda: pygame_spine.load_json("{{{bad")), "ValueError")
-    chk("load_binary 坏字节", raises(lambda: pygame_spine.load_binary(b"\x00\x01\x02")), "ValueError")
+    chk("load_json 不存在路径", raises(lambda: pygame_spine.load_json("/nonexistent.json")), "ValueError")
+    chk("load_binary 不存在路径", raises(lambda: pygame_spine.load_binary("/nonexistent.skel")), "ValueError")
 
     # ── 检索面 ──
     walk = data.find_animation("walk")

@@ -11,11 +11,10 @@ ASSETS = "D:/Projects/Rust/pygame_spine/assets/spineboy"
 
 async def main():
     screen = pygame.display.set_mode((800, 600))
-    # 一体加载：JSON 骨架 + atlas 元数据绑定（page/uv 重映射 crate 侧完成）
-    # 冻结面无 open——经引擎 io 读文本（路径 → 内容）
-    j = pygame.io.read_text(f"{ASSETS}/spineboy-ess.json")
-    a = pygame.io.read_text(f"{ASSETS}/spineboy.atlas")
-    data, pages = pygame_spine.load_with_atlas(j, a)
+    # 一体加载：路径进对象出（io 在绑定层闭环——Python 零搬运）
+    data, pages = pygame_spine.load_with_atlas(
+        f"{ASSETS}/spineboy-ess.json", f"{ASSETS}/spineboy.atlas"
+    )
     print("[spine_demo] 图集页数 =", pages)
     sk = pygame_spine.Skeleton(data)
     sk.set_skin("default")
