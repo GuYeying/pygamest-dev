@@ -21,11 +21,13 @@ async def main():
 
     motion = pygame_live2d.load_motion(f"{MODEL}/motions/Hiyori_m01.motion3.json")
     player = pygame_live2d.motion_player(motion)
-
+    
+    clock = pygame.time.Clock()
+    
     font = pygame.font.Font(None, 22)
     frame = 0
     last = time.time()
-    while frame < 300:
+    while frame < 30000:
         for e in pygame.event.get():
             if e.type == pygame.event.QUIT:
                 return
@@ -53,6 +55,7 @@ async def main():
         with screen.render() as t:
             pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(-380, 270, 0))
             pygame.gfxdraw.draw_surface(t, label)
+        clock.tick(60)
         pygame.display.flip()
         await pygame.next_frame()
         frame += 1

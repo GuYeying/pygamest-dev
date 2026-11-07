@@ -35,6 +35,10 @@ physics2d = ["pygamest/physics2d"]
 physics3d = ["pygamest/physics3d"]
 spine = ["pygamest/spine"]
 live2d = ["pygamest/live2d"]
+# click-through = 鼠标事件穿透（桌宠形态配套；Win32 实装——透传链
+# click-through → pygamest/click-through → starfish-pygame/click-through
+# → starfish-we/click-through；未启用 = pygame.display 两口不存在）
+click-through = ["pygamest/click-through"]
 # ozz = nightly 专属（上游 std::simd——`cargo +nightly build --features ozz` 显式激活，不入 default）
 ozz = ["pygamest/ozz"]
 

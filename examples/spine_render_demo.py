@@ -30,7 +30,7 @@ async def main():
     font = pygame.font.Font(None, 22)
     frame = 0
     last = time.time()
-    while frame < 300:
+    while frame < 30000:
         for e in pygame.event.get():
             if e.type == pygame.event.QUIT:
                 return
