@@ -282,12 +282,20 @@ def check_bindgen_version():
 
 def main():
     ap = argparse.ArgumentParser(description="pygamest-dev Web 宿主构建")
-    ap.parse_args()
+    ap.add_argument("--nightly", action="store_true",
+                    help="cargo +nightly（ozz 轴必需）")
+    ap.add_argument("--features", default="",
+                    help="cargo --features（逗号分隔，如 ozz,skip-taskbar,tray）")
+    args = ap.parse_args()
 
     check_bindgen_version()
     print("=== 构建 wasm host（bin python）===")
-    sh(["cargo", "build", "--release", "--target", "wasm32-unknown-unknown",
-        "--bin", "python"])
+    cargo = ["cargo", "+nightly"] if args.nightly else ["cargo"]
+    cmd = cargo + ["build", "--release", "--target", "wasm32-unknown-unknown",
+                   "--bin", "python"]
+    if args.features:
+        cmd += ["--features", args.features]
+    sh(cmd)
     wasm = TARGET_DIR / "python.wasm"
     if not wasm.is_file():
         sys.exit(f"[FAIL] wasm 产物缺失: {wasm}")

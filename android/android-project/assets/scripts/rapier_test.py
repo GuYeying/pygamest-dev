@@ -153,6 +153,39 @@ async def main():
             st("触发器 started 事件", "started" in kinds)
             st("触发器 stopped 事件", "stopped" in kinds)
             st("drain_events 元组形态", all(len(e) == 3 for e in evs))
+            # ── 弹簧关节（rapier spring；debug joints=True 线段配色）──
+            s1 = world.insert(
+                rp.RigidBodyBuilder("dynamic", translation=(-4.0, 8.0)),
+                rp.ColliderBuilder("ball", radius=0.3))[0]
+            s2 = world.insert(
+                rp.RigidBodyBuilder("dynamic", translation=(4.0, 8.0)),
+                rp.ColliderBuilder("ball", radius=0.3))[0]
+            jh = world.create_joint("spring", body1=s1, body2=s2,
+                                    rest_length=1.0, stiffness=50.0, damping=2.0)
+            st("create_joint 返回句柄", isinstance(jh, int))
+            for _ in range(90):
+                world.step()
+            (ax, ay), (bx, by) = world.translation(s1), world.translation(s2)
+            dist = ((ax - bx) ** 2 + (ay - by) ** 2) ** 0.5
+            st("弹簧收拢（初距 8 → <3）", dist < 3.0)
+            st("remove_joint 生效", world.remove_joint(jh) is True)
+            st("remove_joint 二次 False", world.remove_joint(jh) is False)
+            try:
+                world.create_joint("spring", body1=s1, body2=s2,
+                                   rest_length=0.0, stiffness=50.0, damping=2.0)
+                st("rest_length<=0 ValueError", False)
+            except ValueError:
+                st("rest_length<=0 ValueError", True)
+
+            # ── 体素碰撞体（rapier 0.36 原生 voxels）──
+            vox_body = rp.RigidBodyBuilder("fixed", translation=(8.0, 0.0))
+            vox_col = rp.ColliderBuilder("voxels", voxel_size=0.5,
+                                         voxels=[0, 0, 1, 0, 0, 1, 1, 1, 2, 1, 2, 0])
+            vbh, _ = world.insert(vox_body, vox_col)
+            world.step()  # broad_phase 时约：insert 后须 step 一次方可查询
+            st("voxels 构建插入", isinstance(vbh, int))
+            vhit = world.cast_ray((8.0, 3.0), (0.0, -1.0), None)
+            st("cast_ray 命中体素墙（顶面 y=1.0，格子 (c+0.5)×s 语义）", vhit is not None and abs(vhit[1] - 2.0) < 0.05)
             asserted = True
             print("[rapier-test] SUMMARY",
                   "PASS" if not _fail else "FAIL " + str(_fail))

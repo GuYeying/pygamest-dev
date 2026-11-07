@@ -88,6 +88,59 @@ async def main():
     )[1]
     st("触发区 collider 句柄", isinstance(trig, int))
 
+    # ── 弹簧关节（rapier spring；debug joints=True 线段配色）──
+    s1 = world.insert(
+        rp3.RigidBodyBuilder3D("dynamic", translation=(-4.0, 12.0, 0.0)),
+        rp3.ColliderBuilder3D("ball", radius=0.3))[0]
+    s2 = world.insert(
+        rp3.RigidBodyBuilder3D("dynamic", translation=(4.0, 12.0, 0.0)),
+        rp3.ColliderBuilder3D("ball", radius=0.3))[0]
+    jh = world.create_joint("spring", body1=s1, body2=s2,
+                            rest_length=1.0, stiffness=50.0, damping=2.0)
+    st("create_joint 返回句柄", isinstance(jh, int))
+    for _ in range(90):
+        world.step()
+    (ax, ay, az), (bx, by, bz) = world.translation(s1), world.translation(s2)
+    dist = ((ax - bx) ** 2 + (ay - by) ** 2 + (az - bz) ** 2) ** 0.5
+    st("弹簧收拢（初距 8 → <3）", dist < 3.0)
+    st("remove_joint 生效", world.remove_joint(jh) is True)
+    st("remove_joint 二次 False", world.remove_joint(jh) is False)
+    try:
+        world.create_joint("spring", body1=s1, body2=s2,
+                           rest_length=0.0, stiffness=50.0, damping=2.0)
+        st("rest_length<=0 ValueError", False)
+    except ValueError:
+        st("rest_length<=0 ValueError", True)
+
+    # ── 体素碰撞体（rapier 0.36 原生 voxels / voxelized_mesh）──
+    # ⚠️ 上游 bug 规避（0.36.1 最新版未修）：动态体与体素复合体接触后
+    # 收敛（流形收缩）即 panic "stale ContactRef manifold ordinal"
+    # （单线程同样必现，非并行竞态）——体素体放远离球轨迹的 x=30/34
+    # （构造/射线验证不受影响；接触测试等 rapier 升级后回归）
+    vox_body = rp3.RigidBodyBuilder3D("fixed", translation=(30.0, 0.0, 0.0))
+    vox_col = rp3.ColliderBuilder3D("voxels", voxel_size=0.5,
+                                    voxels=[0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 1,
+                                            0, 1, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1])
+    vbh, _ = world.insert(vox_body, vox_col)
+    world.step()  # broad_phase 时约：insert 后须 step 一次方可查询
+    st("voxels 构建插入", isinstance(vbh, int))
+    vhit = world.cast_ray((30.0, 3.0, 0.0), (0.0, -1.0, 0.0), None)
+    st("cast_ray 命中体素墙（顶面 y=1.0）", vhit is not None and abs(vhit[1] - 2.0) < 0.05)
+    # 立方网格体素化（surface 填充）：1×1×1 立方 → 8 顶点 12 三角
+    cube_v = [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0,
+              0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0]
+    cube_i = [0, 2, 1, 0, 3, 2, 4, 5, 6, 4, 6, 7,
+              0, 1, 5, 0, 5, 4, 2, 3, 7, 2, 7, 6,
+              0, 4, 7, 0, 7, 3, 1, 2, 6, 1, 6, 5]
+    vm_body = rp3.RigidBodyBuilder3D("fixed", translation=(34.0, 0.5, 0.0))
+    vm_col = rp3.ColliderBuilder3D("voxelized_mesh", vertices=cube_v, indices=cube_i,
+                                   voxel_size=0.3, fill_mode="surface")
+    vmbh, _ = world.insert(vm_body, vm_col)
+    world.step()  # broad_phase 时约：insert 后须 step 一次方可查询
+    st("voxelized_mesh 构建插入", isinstance(vmbh, int))
+    vmhit = world.cast_ray((34.0, 3.0, 0.0), (0.0, -1.0, 0.0), None)
+    st("cast_ray 命中体素化网格（体素化外扩 ≤ 一格——区间断言）", vmhit is not None and 1.0 < vmhit[1] < 2.05)
+
     # 调试三件套 + look-at 相机（fov = 垂直视场角弧度）
     draw = rp3.DebugDraw3D()
     sink = rp3.LineSink3D()
@@ -139,7 +192,7 @@ async def main():
             st("落体 y 下降", y < first_y - 0.5)
             st("球落至地面附近（0 < y < 1.0）", -1.0 < y < 1.0)
             st("球未横向漂出（|x| < 3）", abs(x) < 3.0)
-            st("sim_time ≈ 1.5s", abs(world.sim_time() - 1.5) < 0.2)
+            st("sim_time ≈ 3.0s（90 帧 + 弹簧 90 手动步）", abs(world.sim_time() - 3.0) < 0.25)
             evs = world.drain_events()
             st("触发器事件流非空", len(evs) > 0)
             st("drain_events 元组形态", all(len(e) == 3 for e in evs))

@@ -49,7 +49,7 @@ ACTIVITY = f"{PKG}/.MainActivity"
 # 全量脚本源（本仓 examples 单源——旧世代 pygamest/examples 已退役，
 # 勿回加：遗留脚本会"复活"进 APK；递归 games/ 形态暂不收）
 SCRIPT_SOURCES = [
-    Path("D:/Projects/Rust/pygamest-dev/examples"),
+    Path(__file__).resolve().parent.parent / "examples",
 ]
 
 
@@ -83,11 +83,15 @@ def sdk_tools():
     return ndk_bin, bt, jar
 
 
-def ndk_build(abi: str):
-    """cargo ndk 交叉编译 android_host .so → jniLibs/<abi>/（release 铁律）"""
-    sh(["cargo", "ndk", "-t", abi, "-P", "26", "-o", str(JNI_LIBS),
-        "--", "build", "--release", "--example", "android_host"],
-       cwd=CRATE, tail=1)
+def ndk_build(abi: str, nightly: bool = False, features: str = ""):
+    """cargo ndk 交叉编译 android_host .so → jniLibs/<abi>/（release 铁律；
+    nightly/features 透传——ozz 需 nightly，能力轴 feature 按需叠加）"""
+    cargo = ["cargo", "+nightly"] if nightly else ["cargo"]
+    cmd = cargo + ["ndk", "-t", abi, "-P", "26", "-o", str(JNI_LIBS),
+                   "--", "build", "--release", "--example", "android_host"]
+    if features:
+        cmd += ["--features", features]
+    sh(cmd, cwd=CRATE, tail=1)
     so = JNI_LIBS / abi / SO_NAME
     if not so.is_file():
         sys.exit(f"[FAIL] .so 缺失: {so}")
@@ -99,7 +103,7 @@ def cmd_export(_args):
     ndk_bin, _, _ = sdk_tools()
     for abi in ABIS:
         print(f"=== export [{abi}] cargo ndk build ===")
-        so = ndk_build(abi)
+        so = ndk_build(abi, nightly=_args.nightly, features=_args.features or "")
         sh([str(ndk_bin / "llvm-strip"), str(so)])
         dst = SDK_OUT / abi / SO_NAME
         dst.parent.mkdir(parents=True, exist_ok=True)
@@ -152,7 +156,7 @@ def cmd_demo(args):
     so = jni_libs / ABI / so_name
     if not args.skip_build:
         print(f"=== 2/7 cargo ndk build ({ABI}) ===")
-        so = ndk_build(ABI)
+        so = ndk_build(ABI, nightly=args.nightly, features=args.features or "")
     if not so.is_file():
         sys.exit(f"[FAIL] .so 缺失: {so}")
     sh([str(ndk_bin / "llvm-strip"), str(so)])
@@ -255,6 +259,11 @@ def main():
     p_export = sub.add_parser("export", help="纯 SDK：各 ABI .so 归集 → dist/android/")
     p_demo = sub.add_parser("demo", help="参考宿主 demo APK 全链")
     p_demo.add_argument("--skip-build", action="store_true", help="复用现有 jniLibs .so（调试迭代用）")
+    for p in (p_export, p_demo):
+        p.add_argument("--nightly", action="store_true",
+                       help="cargo +nightly（ozz 轴必需）")
+        p.add_argument("--features", default="",
+                       help="cargo --features（逗号分隔，如 ozz,click-through,skip-taskbar,tray）")
     p_demo.add_argument("--install", action="store_true", help="构建后 adb install -r 并启动")
     # 横竖屏（Android 原生 screenOrientation 取值）——与 runtime 的
     # pack.toml [android] orientation 同语义（行为一致定约）
