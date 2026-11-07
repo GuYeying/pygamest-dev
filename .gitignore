@@ -21,3 +21,4 @@ dist/
 .cargo/config.toml
 examples/rsdev_script_log.txt
 examples/assets/
+android/android-project/assets/assets/
