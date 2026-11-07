@@ -170,7 +170,9 @@ public class ScriptActivity extends Activity implements SurfaceHolder.Callback {
     /** assets/scripts/*.py → filesDir/scripts/（io 基准内的就近副本；
      *  assets/modules/* → filesDir/modules/（多文件工程的模块——脚本
      *  import modules.xxx；嵌套子目录随包保留）；字体 assets/fonts/cjk.ttf
-     *  存在才拷——缺省走系统 Noto 兜底） */
+     *  存在才拷——缺省走系统 Noto 兜底；assets/assets/* → filesDir/assets/
+     *  （模型/图集资产树——与桌面 CWD assets/、web 服务根 assets/ 同构，
+     *  三端脚本相对路径 "assets/..." 字面一致，递归全保留） */
     private void prepareFiles() {
         try {
             File dir = new File(getFilesDir(), "scripts");
@@ -196,7 +198,30 @@ public class ScriptActivity extends Activity implements SurfaceHolder.Callback {
                 fdir.mkdirs();
                 copyAsset("fonts/cjk.ttf", new File(fdir, "cjk.ttf"));
             }
+            File adir = new File(getFilesDir(), "assets");
+            adir.mkdirs();
+            copyAssetDir("assets", adir);
         } catch (IOException ignored) {
+        }
+    }
+
+    /** 递归拷贝资产子树（目录结构随包保留——copyAsset 单文件形态的
+     *  目录版；叶子判定 = list() 为空，与 AssetManager 目录枚举语义
+     *  一致）。失败单点容忍（SdLog 记录后继续——资产缺失在脚本侧
+     *  显式报错，不连带拖垮 scripts/modules 落盘） */
+    private void copyAssetDir(String assetPath, File dst) {
+        try {
+            String[] names = getAssets().list(assetPath);
+            if (names == null || names.length == 0) {
+                copyAsset(assetPath, dst);
+                return;
+            }
+            dst.mkdirs();
+            for (String n : names) {
+                copyAssetDir(assetPath + "/" + n, new File(dst, n));
+            }
+        } catch (IOException e) {
+            SdLog.log("prepareFiles assets 子树 " + assetPath + ": " + e);
         }
     }
 

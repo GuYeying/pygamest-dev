@@ -3,7 +3,7 @@
 import pygame
 import pygame_live2d
 
-MODEL = "D:/Projects/Rust/pygame_live2d/assets/models/Hiyori"
+MODEL = "assets/models/Hiyori"
 
 
 async def main():
@@ -19,5 +19,5 @@ async def main():
         if frame == 10:
             rt.draw(buf, scale=0.9)
         await pygame.next_frame()
-    pygame.image.save(buf, "D:/Projects/Rust/pygame-rs-dev/examples/live2d_shot.png")
+    pygame.image.save(buf, "live2d_shot.png")
     print("SHOT SAVED")

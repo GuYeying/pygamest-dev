@@ -149,6 +149,19 @@ def cmd_demo(args):
                 dst.write_bytes(py.read_bytes())
                 mcount += 1
     print(f"[OK] 打包模块 {mcount} 个")
+    # 1c) 模型/图集资产收集（web/assets 单源 → APK assets/assets/——与
+    #     桌面 CWD assets/、web 服务根 assets/ 同构；三端脚本相对路径
+    #     "assets/..." 字面一致，ScriptActivity.copyAssetDir 递归落盘）
+    ast_src = CRATE / "web" / "assets"
+    ast_dst = ASSETS / "assets"
+    if ast_dst.is_dir():
+        shutil.rmtree(ast_dst)
+    if ast_src.is_dir():
+        shutil.copytree(ast_src, ast_dst)
+        n = sum(1 for f in ast_dst.rglob("*") if f.is_file())
+        print(f"[OK] 打包模型资产 {n} 个（spineboy + Hiyori）")
+    else:
+        print("[WARN] web/assets 缺失——动画资产脚本在端上将找不到文件")
 
     # 2) 交叉编译 .so（release 铁律）
     so_name = SO_NAME

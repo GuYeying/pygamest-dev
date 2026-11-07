@@ -6,7 +6,7 @@ import time
 import pygame
 import pygame_live2d
 
-MODEL = "D:/Projects/Rust/pygame_live2d/assets/models/Hiyori"
+MODEL = "assets/models/Hiyori"
 ok_count = 0
 fail_count = 0
 

@@ -3,7 +3,7 @@
 import pygame
 import pygame_live2d
 
-MODEL = "D:/Projects/Rust/pygame_live2d/assets/models/Hiyori"
+MODEL = "assets/models/Hiyori"
 SHOTS = [(8, "closeup_a"), (95, "closeup_b"), (175, "closeup_c")]
 
 
@@ -22,7 +22,7 @@ async def main():
             for f, name in SHOTS:
                 if f == frame:
                     pygame.image.save(
-                        buf, f"D:/Projects/Rust/pygame-rs-dev/examples/{name}.png"
+                        buf, f"{name}.png"
                     )
                     print(f"{name} saved @frame{frame}")
         await pygame.next_frame()

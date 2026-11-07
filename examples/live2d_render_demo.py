@@ -8,7 +8,7 @@ import time
 import pygame
 import pygame_live2d
 
-MODEL = "D:/Projects/Rust/pygame_live2d/assets/models/Hiyori"
+MODEL = "assets/models/Hiyori"
 #MODEL = "D:/Projects/Rust/pygame-rs-dev/examples/Mao"
 
 async def main():

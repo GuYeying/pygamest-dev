@@ -7,7 +7,7 @@ import time
 import pygame
 import pygame_spine
 
-ASSETS = "D:/Projects/Rust/pygame_spine/assets/spineboy"
+ASSETS = "assets/spineboy"
 
 async def main():
     screen = pygame.display.set_mode((800, 600))

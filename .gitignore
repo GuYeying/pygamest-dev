@@ -20,3 +20,4 @@ dist/
 # 开发者本机依赖覆盖（paths）
 .cargo/config.toml
 examples/rsdev_script_log.txt
+examples/assets/

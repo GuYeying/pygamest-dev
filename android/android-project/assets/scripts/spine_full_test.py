@@ -6,7 +6,7 @@ import time
 import pygame
 import pygame_spine
 
-ASSETS = "D:/Projects/Rust/pygame_spine/assets/spineboy"
+ASSETS = "assets/spineboy"
 ok_count = 0
 fail_count = 0
 
