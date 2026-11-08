@@ -1,6 +1,6 @@
 [package]
 name = "pygamest-dev"
-version = "0.1.8"
+version = "0.1.9"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "pygamest-dev —— pygame 的 python（开发解释器）：pygame 全内置、零 Rust 工具链"
@@ -25,10 +25,21 @@ crate-type = ["cdylib"]
 
 [features]
 # 能力轴透传（对齐 pygamest 同名轴——本仓不新增语义）。
-# default = 开发解释器全量形态；生产壳（pygamest-runtime）以
-# default-features = false 消费本仓，只取所需轴——不带 full =
-# 生产保留裁剪版 stdlib（freeze 白名单，exe -32% 批次的战果）。
-default = ["full", "gui", "physics2d", "physics3d", "spine", "live2d"]
+# default = 开发解释器基准形态（gui + physics2d/3d + ozz）；spine/live2d
+# **退出 default**——资产依赖重 + Live2D IP 许可敏感，按需
+# `--features spine,live2d` 显式叠加（未启用 = 对应 Python 子模块
+# 不存在，import 即 AttributeError——能力轴裁剪定约）。生产壳
+# （pygamest-runtime）以 default-features = false 消费本仓，只取所需
+# 轴——不带 full = 生产保留裁剪版 stdlib（freeze 白名单，exe -32%
+# 批次的战果）。
+# ⚠️ ozz 入 default：上游 ozz-animation-rs 用 std::simd——本仓默认
+# 构建**须 nightly 工具链**（`cargo +nightly build`；stable 构建会在
+# ozz 依赖树报 core::simd 错，属预期）。
+# full **退出 default**（2026-11-08 定约）："独立 RustPython 承担打包"
+# 路线暂缓——默认走 Lib_min 白名单裁剪版 stdlib（time/sys = RP 内建
+# 原生模块不依赖冻结；当前项目零影响，-23MB 级）。full 保留为 opt-in
+# （编辑器工具链面），后续 RP 可替代 CPython 时再补回。
+default = ["gui", "physics2d", "physics3d", "ozz"]
 full = ["pygamest/stdlib-full"]
 gui = ["pygamest/gui"]
 physics2d = ["pygamest/physics2d"]
@@ -45,7 +56,7 @@ skip-taskbar = ["pygamest/skip-taskbar"]
 # tray = 系统托盘（桌宠配套；三桌面实装——透传链同上；未启用 =
 # pygame.display 两口 + 事件三常量不存在）
 tray = ["pygamest/tray"]
-# ozz = nightly 专属（上游 std::simd——`cargo +nightly build --features ozz` 显式激活，不入 default）
+# ozz = 3D 骨骼动画（已入 default——见上 ⚠️ nightly 工具链说明）
 ozz = ["pygamest/ozz"]
 
 [dependencies]
