@@ -16,6 +16,7 @@ public final class PygameRsDev {
     /** 绑定宿主 Context（ndk-context 初始化；cpal/robius 等 JNI 消费方
      *  依赖——嵌入形态必调一次；包装守卫防二次初始化断言） */
     public static void initContext(android.content.Context ctx) {
+        appContext = ctx;
         if (contextBound) return;
         contextBound = true;
         nativeInitContext(ctx);
@@ -55,3 +56,33 @@ public final class PygameRsDev {
     /** 请求停止当前运行（帧边界收口；线程无法强杀，取消标志 = 唯一安全方式） */
     public static native void stop();
 }
+
+    // ── 文本输入对话框（Android 原生 EditText 组合方案）──
+    private static android.content.Context appContext;
+    private static android.widget.EditText dialogEdit;
+
+    /** 弹出文本对话框（预填 current；确定 → textDialogResult 回投）。 */
+    public static void showTextDialog(String current) {
+        final android.content.Context ctx = appContext;
+        if (ctx == null) return;
+        new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+            try {
+                android.widget.EditText et = new android.widget.EditText(ctx);
+                et.setText(current);
+                new android.app.AlertDialog.Builder(ctx, android.R.style.Theme_Material_Dialog)
+                        .setTitle("文本输入")
+                        .setView(et)
+                        .setPositiveButton("确定", (d, w) -> {
+                            dialogEdit = null;
+                            textDialogResult(et.getText().toString());
+                        })
+                        .setNegativeButton("取消", (d, w) -> { dialogEdit = null; })
+                        .show();
+                dialogEdit = et;
+            } catch (Exception e) {
+                android.util.Log.e("PygameRsDev", "showTextDialog", e);
+            }
+        });
+    }
+
+    private static native void textDialogResult(String text);
