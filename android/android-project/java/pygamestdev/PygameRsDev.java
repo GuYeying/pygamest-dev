@@ -48,6 +48,10 @@ public final class PygameRsDev {
      *  坐标 = SurfaceView 位图像素 */
     public static native void injectTouch(int action, float x, float y);
 
+    /** IME 提交文本注入（TextInput 事件链——TextInputSurfaceView 的
+     *  InputConnection.commitText 转发） */
+    public static native void injectText(String text);
+
     /** 请求停止当前运行（帧边界收口；线程无法强杀，取消标志 = 唯一安全方式） */
     public static native void stop();
 }

@@ -200,7 +200,7 @@ def cmd_demo(args):
             encoding="utf-8",
         )
         staged.append(str(staged_path))
-    sh(["javac", "--release", "11", "-classpath", str(jar), "-d", str(obj),
+    sh(["javac", "-encoding", "UTF-8", "--release", "11", "-classpath", str(jar), "-d", str(obj),
         *staged])
     print(f"[OK] 构建ID = {build_id}（ksys_log 首行可查）")
 

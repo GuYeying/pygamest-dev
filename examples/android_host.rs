@@ -433,6 +433,18 @@ backtrace:
     }));
 }
 
+/// IME 提交文本注入（TextInput 事件——TextInputSurfaceView 的
+/// InputConnection.commitText 转发）
+#[no_mangle]
+pub extern "system" fn Java_pygamestdev_PygameRsDev_injectText(
+    env: jni_sys::JNIEnv,
+    _clazz: jni_sys::jclass,
+    text: jni_sys::jstring,
+) {
+    let text = unsafe { jstring_to_string(env, text) };
+    starfish_we::embedded::inject_text(text);
+}
+
 #[no_mangle]
 pub extern "system" fn Java_pygamestdev_PygameRsDev_stop(
     _env: jni_sys::JNIEnv,

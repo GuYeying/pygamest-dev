@@ -62,7 +62,7 @@ public class ScriptActivity extends Activity implements SurfaceHolder.Callback {
 
         FrameLayout root = new FrameLayout(this);
         root.setBackgroundColor(0xFF000000);
-        SurfaceView sv = new SurfaceView(this);
+        sv = new TextInputSurfaceView(this, PygameRsDev::injectText);
         sv.getHolder().addCallback(this);
         // 不钉 buffer：跟随 view 满屏；脚本 set_mode 的尺寸语义由引擎
         // 呈现映射承载（FULLSCREEN = 画布即屏幕；非全屏 = 等比居中）
@@ -94,6 +94,7 @@ public class ScriptActivity extends Activity implements SurfaceHolder.Callback {
     }
 
     private FrameLayout root;
+    private SurfaceView sv;
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
@@ -139,6 +140,23 @@ public class ScriptActivity extends Activity implements SurfaceHolder.Callback {
 
     // ── 输入（原始窗口像素直通，引擎 map_point 逆映射）────────────
 
+    private float downX, downY;
+    private long downAt;
+
+    /** 点按呼出软键盘（IME 集成——文本输入场景；长按/拖动不触发） */
+    private void showKeyboard() {
+        try {
+            sv.requestFocus();
+            android.view.inputmethod.InputMethodManager imm =
+                    (android.view.inputmethod.InputMethodManager)
+                            getSystemService(INPUT_METHOD_SERVICE);
+            imm.showSoftInput(sv, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);
+            SdLog.log("showKeyboard 请求已发");
+        } catch (Exception e) {
+            SdLog.log("showKeyboard 失败: " + e);
+        }
+    }
+
     @Override
     public boolean onTouchEvent(MotionEvent e) {
         final int a = e.getActionMasked();
@@ -147,6 +165,17 @@ public class ScriptActivity extends Activity implements SurfaceHolder.Callback {
         else if (a == MotionEvent.ACTION_MOVE) action = 1;
         else if (a == MotionEvent.ACTION_UP || a == MotionEvent.ACTION_CANCEL) action = 2;
         else return false;
+        // 点按呼出软键盘（IME 集成；长按/拖动不触发）
+        if (a == MotionEvent.ACTION_DOWN) {
+            downX = e.getX(); downY = e.getY();
+            downAt = android.os.SystemClock.uptimeMillis();
+        }
+        if (a == MotionEvent.ACTION_UP
+                && android.os.SystemClock.uptimeMillis() - downAt < 250
+                && Math.abs(e.getX() - downX) < 24
+                && Math.abs(e.getY() - downY) < 24) {
+            showKeyboard();
+        }
         // 原始窗口像素直通：引擎 map_point 逆映射回脚本坐标系（呈现
         // 映射的逆，FULLSCREEN/非全屏同一通道）
         float x = e.getX(), y = e.getY();
