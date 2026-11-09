@@ -197,6 +197,7 @@ public class ScriptActivity extends Activity implements SurfaceHolder.Callback {
                     (android.view.inputmethod.InputMethodManager)
                             getSystemService(INPUT_METHOD_SERVICE);
             imm.hideSoftInputFromWindow(sv.getWindowToken(), 0);
+            sv.clearFocus(); // 焦点归还——下轮 wanted 再起时 requestFocus 干净重挂
             SdLog.log("hideKeyboard 请求已发");
         } catch (Exception e) {
             SdLog.log("hideKeyboard 失败: " + e);

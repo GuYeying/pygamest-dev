@@ -20,7 +20,15 @@ class TextInputSurfaceView extends SurfaceView {
     TextInputSurfaceView(Context ctx, TextSink sink) {
         super(ctx);
         this.sink = sink;
+        // FOCUSABLE（非 touch-mode）= 程序性 requestFocus 的前提——
+        // showSoftInput 要求 served view 持有焦点；**不开**
+        // focusableInTouchMode：点按自动聚焦→IMM 自动挂输入法（点哪
+        // 都弹键盘）的元凶，弹收全权交给 isTextInputWanted 轮询
+        setFocusable(FOCUSABLE);
     }
+
+    @Override
+    public boolean onCheckIsTextEditor() { return true; }
 
     @Override
     public InputConnection onCreateInputConnection(EditorInfo outAttrs) {
@@ -38,6 +46,19 @@ class TextInputSurfaceView extends SurfaceView {
             public boolean deleteSurroundingText(int beforeLength, int afterLength) {
                 PygameRsDev.injectBackspace();
                 return true;
+            }
+            @Override
+            public boolean sendKeyEvent(android.view.KeyEvent event) {
+                // 退格第二路径：部分输入法删字走 sendKeyEvent(KEYCODE_DEL)
+                // 而非 deleteSurroundingText——InputConnection 层直接拦
+                // （不依赖 view 焦点分发，卓易通翻译层同吃）。ACTION_DOWN
+                // 消费一次防双删，其余按键放行默认分发
+                if (event.getAction() == android.view.KeyEvent.ACTION_DOWN
+                        && event.getKeyCode() == android.view.KeyEvent.KEYCODE_DEL) {
+                    PygameRsDev.injectBackspace();
+                    return true;
+                }
+                return super.sendKeyEvent(event);
             }
         };
     }
