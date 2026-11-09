@@ -71,6 +71,19 @@ pub async fn run<H: Host>(host: &H) -> i32 {
     if let Some(root) = &req.module_root {
         let _ = std::env::set_current_dir(root);
     }
+    // base_dir 显式接线（2026-11-09 统一定约：全平台宿主显式调用——
+    // 对齐 Android RtHost.setBaseDir 形态，消灭隐式 CWD 兜底）：
+    // 优先级 = --assets（宿主已接线，此处让位）> 模块根 > CWD。
+    // web/android 端 base_dir 各由平台承载（Java setBaseDir / 页面相对），
+    // 桌面 native 的 base_dir()/set_base_dir 才真实存在——cfg 收敛。
+    #[cfg(not(target_arch = "wasm32"))]
+    if starfish_io::base_dir().is_none() {
+        let root = req
+            .module_root
+            .clone()
+            .unwrap_or_else(|| std::env::current_dir().unwrap_or_default().to_string_lossy().into_owned());
+        starfish_io::set_base_dir(&root);
+    }
     // ── 控制台阶段：建窗前完成全部确定性启动开销（各阶段打点——
     // 顺序与耗时可审计，"白窗等待"归因用；"开始/就绪"成对——崩溃
     // 定位到具体阶段）──
