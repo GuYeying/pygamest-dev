@@ -12,6 +12,8 @@ public final class PygameRsDev {
     private PygameRsDev() {}
 
     private static boolean contextBound = false;
+    private static android.content.Context appContext;
+    private static android.widget.EditText dialogEdit;
 
     /** 绑定宿主 Context（ndk-context 初始化；cpal/robius 等 JNI 消费方
      *  依赖——嵌入形态必调一次；包装守卫防二次初始化断言） */
@@ -55,11 +57,8 @@ public final class PygameRsDev {
 
     /** 请求停止当前运行（帧边界收口；线程无法强杀，取消标志 = 唯一安全方式） */
     public static native void stop();
-}
 
     // ── 文本输入对话框（Android 原生 EditText 组合方案）──
-    private static android.content.Context appContext;
-    private static android.widget.EditText dialogEdit;
 
     /** 弹出文本对话框（预填 current；确定 → textDialogResult 回投）。 */
     public static void showTextDialog(String current) {
@@ -86,3 +85,4 @@ public final class PygameRsDev {
     }
 
     private static native void textDialogResult(String text);
+}
