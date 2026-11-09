@@ -139,16 +139,19 @@ cd web && python -m http.server 8000        # 或本解释器内置服务器 pyt
 `?script=anim3_wasm_test.py`（资产在 `web/assets/`——与桌面
 `examples/assets/`、Android filesDir 同构，相对路径三端字面一致）。
 
-### Android
+### Android（案例形式）
 
 ```
-python android/build.py demo --nightly --features "spine,live2d"    # demo APK 全链（收集脚本+交叉编译+签名）
+python android/build.py demo --nightly --features "spine,live2d"    # 案例 APK 全链（收集脚本+交叉编译+签名）
 python android/build.py demo --install                              # 构建后 adb install -r 并启动
 python android/build.py export --nightly                            # 纯 SDK 形态：各 ABI .so → dist/android/
 ```
 
-- demo 链路把 examples 全量脚本 + modules + 模型资产（web/assets 单源）
-  打进 APK；产物 `target/apk/pygamestdev_demo.apk`
+- **案例形式**：demo 链路把 examples/ 全量脚本（48+ 案例）+ modules +
+  模型资产（web/assets 单源）打进 APK——装上后启动器里**逐案例点选运行**
+  （需对应能力轴：轴未启用的案例 import 即 ModuleNotFoundError，属预期
+  裁剪语义）；产物 `target/apk/pygamestdev_demo.apk`
+- `--features` 逗号分隔透传 cargo（`--nightly` 因默认集含 ozz 实际恒需）
 - 构建 ID 注入（`ksys_log` 首行可查真机包新旧）；versionCode 随构建
   时间生成（防部分 ROM 覆盖安装静默跳过）
 - ABI：demo 内置 arm64-v8a（x86_64 走 export 形态）
