@@ -55,6 +55,12 @@ public final class PygameRsDev {
      *  InputConnection.commitText 转发） */
     public static native void injectText(String text);
 
+    /** IME 退格注入（deleteSurroundingText 转发——Backspace 事件） */
+    public static native void injectBackspace();
+
+    /** 文本输入活跃标志（隐式 egui wants_keyboard 状态——Java 轮询读） */
+    public static native boolean isTextInputWanted();
+
     /** 请求停止当前运行（帧边界收口；线程无法强杀，取消标志 = 唯一安全方式） */
     public static native void stop();
 

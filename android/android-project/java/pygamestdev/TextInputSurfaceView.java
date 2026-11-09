@@ -39,6 +39,11 @@ class TextInputSurfaceView extends SurfaceView {
                 sink.onText(text.toString());
                 return true;
             }
+            @Override
+            public boolean deleteSurroundingText(int beforeLength, int afterLength) {
+                PygameRsDev.injectBackspace();
+                return true;
+            }
         };
     }
 }

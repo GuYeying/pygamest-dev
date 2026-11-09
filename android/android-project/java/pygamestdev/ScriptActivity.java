@@ -181,7 +181,28 @@ public class ScriptActivity extends Activity implements SurfaceHolder.Callback {
         float x = e.getX(), y = e.getY();
         if (action == 0) SdLog.log("touch down " + x + "," + y);
         PygameRsDev.injectTouch(action, x, y);
+        // 隐式文本输入轮询（egui wants_keyboard 状态 → 软键盘跟）
+        boolean wanted = PygameRsDev.isTextInputWanted();
+        if (wanted != keyboardShown) {
+            if (wanted) showKeyboard();
+            else hideKeyboard();
+            keyboardShown = wanted;
+        }
         return true;
+    }
+
+    private boolean keyboardShown = false;
+
+    private void hideKeyboard() {
+        try {
+            android.view.inputmethod.InputMethodManager imm =
+                    (android.view.inputmethod.InputMethodManager)
+                            getSystemService(INPUT_METHOD_SERVICE);
+            imm.hideSoftInputFromWindow(sv.getWindowToken(), 0);
+            SdLog.log("hideKeyboard 请求已发");
+        } catch (Exception e) {
+            SdLog.log("hideKeyboard 失败: " + e);
+        }
     }
 
     @Override
