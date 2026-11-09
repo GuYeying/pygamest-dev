@@ -155,6 +155,15 @@ public class ScriptActivity extends Activity implements SurfaceHolder.Callback {
                             getSystemService(INPUT_METHOD_SERVICE);
             imm.showSoftInput(sv, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);
             SdLog.log("showKeyboard 请求已发");
+            // startInput 未就绪时首调静默失败（焦点/连接竞速——真机实证）
+            // ——延迟补一刀，flag 门控防误弹
+            new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+                if (PygameRsDev.isTextInputWanted()) {
+                    imm.showSoftInput(sv,
+                            android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);
+                    SdLog.log("showKeyboard 重试已发");
+                }
+            }, 120);
         } catch (Exception e) {
             SdLog.log("showKeyboard 失败: " + e);
         }
@@ -182,6 +191,7 @@ public class ScriptActivity extends Activity implements SurfaceHolder.Callback {
         // 隐式文本输入轮询（egui wants_keyboard 状态 → 软键盘跟）
         boolean wanted = PygameRsDev.isTextInputWanted();
         if (wanted != keyboardShown) {
+            SdLog.log("IME 轮询翻转 wanted=" + wanted);
             if (wanted) showKeyboard();
             else hideKeyboard();
             keyboardShown = wanted;
