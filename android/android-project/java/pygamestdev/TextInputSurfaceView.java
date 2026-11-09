@@ -19,13 +19,8 @@ class TextInputSurfaceView extends SurfaceView {
 
     TextInputSurfaceView(Context ctx, TextSink sink) {
         super(ctx);
-        setFocusable(true);
-        setFocusableInTouchMode(true);
         this.sink = sink;
     }
-
-    @Override
-    public boolean onCheckIsTextEditor() { return true; }
 
     @Override
     public InputConnection onCreateInputConnection(EditorInfo outAttrs) {
