@@ -165,16 +165,11 @@ public class ScriptActivity extends Activity implements SurfaceHolder.Callback {
         else if (a == MotionEvent.ACTION_MOVE) action = 1;
         else if (a == MotionEvent.ACTION_UP || a == MotionEvent.ACTION_CANCEL) action = 2;
         else return false;
-        // 点按呼出软键盘（IME 集成；长按/拖动不触发）
+        // 点按计时保留（移除硬编码 showKeyboard——键盘弹收由
+        // isTextInputWanted 轮询控制，脚本显式 start_text_input 触发）
         if (a == MotionEvent.ACTION_DOWN) {
             downX = e.getX(); downY = e.getY();
             downAt = android.os.SystemClock.uptimeMillis();
-        }
-        if (a == MotionEvent.ACTION_UP
-                && android.os.SystemClock.uptimeMillis() - downAt < 250
-                && Math.abs(e.getX() - downX) < 24
-                && Math.abs(e.getY() - downY) < 24) {
-            showKeyboard();
         }
         // 原始窗口像素直通：引擎 map_point 逆映射回脚本坐标系（呈现
         // 映射的逆，FULLSCREEN/非全屏同一通道）
