@@ -32,6 +32,7 @@
         </activity>
 
         <activity android:name="pygamestdev.ScriptActivity"
+            android:exported="true"
             android:screenOrientation="__ORIENTATION__"
             android:configChanges="orientation|screenSize|keyboardHidden|screenLayout|smallestScreenSize"
             android:theme="@android:style/Theme.Material.NoActionBar.Fullscreen" />
