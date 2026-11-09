@@ -19,6 +19,50 @@ async def main():
     font = pygame.font.Font(None, 24)
     payload = b"hello-io-" * 10
 
+    # 端检测（异常驱动——Web 站桩口一触即显式 ValueError，零平台字符串依赖）
+    try:
+        pygame.io.write("__probe_case__.bin", b"x")
+        web = False
+    except ValueError as e:
+        web = "Web" in str(e)
+        check("web 站桩 write", True, str(e)[:40])
+
+    if web:
+        # Web 站桩语义：v1 同步口（read/read_text/write/write_text）显式
+        # ValueError（宿主预载/异步资源装载承载）；异步通道三件套照常可用
+        for name, fn in [
+            ("read", lambda: pygame.io.read("__probe_case__.bin")),
+            ("read_text", lambda: pygame.io.read_text("__probe_case__.bin")),
+            ("write", lambda: pygame.io.write("__probe_case__.bin", b"1")),
+            ("write_text", lambda: pygame.io.write_text("__probe_case__.txt", "1")),
+        ]:
+            try:
+                fn()
+                check(f"web 站桩 {name}", False, "no exception")
+            except ValueError as e:
+                check(f"web 站桩 {name}", "Web" in str(e), str(e)[:40])
+        # 异步通道 web 真跑（静态服务承载 io_case.txt——fetch 通道端到端）
+        pygame.io.io_pending_append("io_case.txt")
+        got = None
+        for _ in range(600):
+            if pygame.io.io_ready("io_case.txt"):
+                got = pygame.io.io_take("io_case.txt")
+                break
+            await pygame.next_frame()
+        check("web 异步通道 pending→ready→take",
+              got == "你好 io 测试".encode(), f"got={got!r}")
+        assert not FAIL, f"web 分支有失败项: {FAIL}"
+        print(f"[SUMMARY] PASS={len(PASS)} FAIL={len(FAIL)} {FAIL or ''}")
+        last = time.time()
+        while True:
+            for e in pygame.event.get():
+                if e.type == pygame.event.QUIT or (
+                    e.type == pygame.event.KEYDOWN and e.key == pygame.key.K_ESCAPE):
+                    return
+            if time.time() - last > 2.0:
+                return
+            await pygame.next_frame()
+
     # ① 字节写读闭环
     pygame.io.write("io_case.bin", payload)
     check("write+read bytes", pygame.io.read("io_case.bin") == payload)

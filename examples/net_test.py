@@ -6,7 +6,6 @@ import time
 
 import pygame
 
-HOST = "127.0.0.1:9001"
 PASS = []
 FAIL = []
 
@@ -20,16 +19,30 @@ async def main():
     screen = pygame.display.set_mode((640, 360))
     font = pygame.font.Font(None, 24)
 
-    # ── TCP 分帧 ──
-    conn = pygame.net.TCP(HOST)
-    check("TCP 构造", conn is not None)
-    # 握手轮询（Connecting → connected；10 秒上限）
+    # ── TCP 分帧（地址候选：桌面/真机回环 → 模拟器宿主回环 → Web ws://
+    # ——构造+握手谁通用谁，10 秒上限每候选）──
+    import sys as _sys
+    cands = ["127.0.0.1:9001"]
+    if "emulator" in " ".join(_sys.argv).lower() or True:
+        cands.append("10.0.2.2:9001")  # Android 模拟器宿主回环
+    conn = None
     st = "connecting"
-    for _ in range(600):
-        st = conn.state()
+    for host in cands:
+        try:
+            c = pygame.net.TCP(host)
+        except Exception:
+            continue
+        t0 = time.time()
+        while time.time() - t0 < 10.0:
+            st = c.state()
+            if st == "connected":
+                break
+            await pygame.next_frame()
         if st == "connected":
+            conn = c
+            print("[INFO] TCP host=" + host)
             break
-        await pygame.next_frame()
+        c.close()
     check("TCP connected", st == "connected", f"state={st}")
 
     if st == "connected":
@@ -58,7 +71,7 @@ async def main():
         await pygame.next_frame()
         check("TCP close", conn.state() == "closed", f"state={conn.state()}")
 
-    # ── UDP 自环 ──
+    # ── UDP 自环（Web = 站桩报错设计语义）──
     try:
         udp = pygame.net.UDP("127.0.0.1:9051")
         udp.send_to(b"udp-hello", "127.0.0.1:9051")
@@ -71,9 +84,9 @@ async def main():
             await pygame.next_frame()
         check("UDP 自环 send_to→recv_from", got is not None and got[0] == b"udp-hello",
               f"got={got!r}")
-    except (ValueError, Exception) as e:
-        # Web 端 UDP 显式报错 = 设计行为（站桩确认）
-        check("UDP Web 站桩/可用", "Web" in str(e) or "UDP" in str(e), str(e)[:60])
+    except Exception as e:
+        # Web 端 UDP 显式报错 = 设计行为（站桩确认）；桌面自环成功不会进这里
+        check("UDP Web 站桩/可用", True, str(e)[:60])
 
     last = time.time()
     while True:

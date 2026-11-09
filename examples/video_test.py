@@ -22,6 +22,27 @@ async def main():
     vs = pygame.video.VideoSystem()
     check("VideoSystem 构造", vs is not None)
 
+    # 端检测（异常驱动）：Web 站桩 open 一触即显式 ValueError
+    v = None
+    try:
+        v = vs.open("assets/video/bbb_10s.mp4")
+    except ValueError as e:
+        if "Web" in str(e):
+            check("web 站桩 open", True, str(e)[:40])
+            assert not FAIL, f"web 分支有失败项: {FAIL}"
+            print(f"[SUMMARY] PASS={len(PASS)} FAIL={len(FAIL)} {FAIL or ''}")
+            last = time.time()
+            while True:
+                for e in pygame.event.get():
+                    if e.type == pygame.event.QUIT or (
+                        e.type == pygame.event.KEYDOWN and e.key == pygame.key.K_ESCAPE):
+                        return
+                if time.time() - last > 2.0:
+                    return
+                await pygame.next_frame()
+        else:
+            check("open", False, str(e)[:60])
+
     # 缺失文件错误路径
     try:
         vs.open("__missing_video__.mp4")
