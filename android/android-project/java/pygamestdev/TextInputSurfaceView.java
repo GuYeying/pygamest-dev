@@ -15,7 +15,7 @@ import android.view.inputmethod.InputConnection;
 class TextInputSurfaceView extends SurfaceView {
     private final TextSink sink;
 
-    interface TextSink { void onText(String text); }
+    interface TextSink { void onText(String text); void onDelete(); }
 
     TextInputSurfaceView(Context ctx, TextSink sink) {
         super(ctx);
@@ -45,5 +45,15 @@ class TextInputSurfaceView extends SurfaceView {
                 return true;
             }
         };
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, android.view.KeyEvent event) {
+        // KEYCODE_DEL = 软键盘/实体键盘的退格路径（不走 InputConnection）
+        if (keyCode == android.view.KeyEvent.KEYCODE_DEL) {
+            sink.onDelete();
+            return true;
+        }
+        return super.onKeyDown(keyCode, event);
     }
 }

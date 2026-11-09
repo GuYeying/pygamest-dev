@@ -62,7 +62,10 @@ public class ScriptActivity extends Activity implements SurfaceHolder.Callback {
 
         FrameLayout root = new FrameLayout(this);
         root.setBackgroundColor(0xFF000000);
-        sv = new TextInputSurfaceView(this, PygameRsDev::injectText);
+        sv = new TextInputSurfaceView(this, new TextInputSurfaceView.TextSink() {
+            @Override public void onText(String text) { PygameRsDev.injectText(text); }
+            @Override public void onDelete() { PygameRsDev.injectBackspace(); }
+        });
         sv.getHolder().addCallback(this);
         // 不钉 buffer：跟随 view 满屏；脚本 set_mode 的尺寸语义由引擎
         // 呈现映射承载（FULLSCREEN = 画布即屏幕；非全屏 = 等比居中）
