@@ -443,6 +443,16 @@ pub extern "system" fn Java_pygamestdev_PygameRsDev_isTextInputWanted(
     starfish_we::text_input_active()
 }
 
+/// SAF 对话框活动期（宿主生命周期守卫：活动期 surfaceDestroyed 豁免停
+/// 引擎——选择器返回后引擎存活才能接结果；starfish-dialog 计数）
+#[no_mangle]
+pub extern "system" fn Java_pygamestdev_PygameRsDev_isDialogActive(
+    _env: jni_sys::JNIEnv,
+    _clazz: jni_sys::jclass,
+) -> bool {
+    starfish_dialog::jobs_active()
+}
+
 #[no_mangle]
 pub extern "system" fn Java_pygamestdev_PygameRsDev_injectBackspace(
     _env: jni_sys::JNIEnv,
