@@ -67,6 +67,10 @@ async def main():
             _fail.append(name)
             print("[cube-demo] FAIL", name)
 
+    # 显式 camera（阶段一定约——渲染会话必传）
+    cam = pygame.render.game_camera_perspective(58.0, 800, 600, 800, 600, 0.1, 300.0)
+    screen.set_camera(cam)
+
     ac = pygame.render.access()
 
     # ── 加载纹理（cloth.png → Surface → bind_group texture 槽）──
