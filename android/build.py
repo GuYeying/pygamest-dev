@@ -272,7 +272,10 @@ def cmd_demo(args):
     if args.install:
         adb = "D:/android-tools/platform-tools/adb.exe"
         sh([adb, "install", "-r", str(final)], tail=1)
-        sh([adb, "shell", "am", "start", "-n", "pygamestdev/.MainActivity"], tail=1)
+        # 启动组件 = manifest 包（PKG）+ Java 类全名（两段式）——
+        # 旧写法 "pygamestdev/.MainActivity" 把 Java 类包当成了 manifest
+        # 包（Error type 3: Activity class does not exist）
+        sh([adb, "shell", "am", "start", "-n", f"{PKG}/pygamestdev.MainActivity"], tail=1)
 
 
 def main():
