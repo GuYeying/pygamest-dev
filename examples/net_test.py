@@ -22,9 +22,11 @@ async def main():
     # ── TCP 分帧（地址候选：桌面/真机回环 → 模拟器宿主回环 → Web ws://
     # ——构造+握手谁通用谁，10 秒上限每候选）──
     import sys as _sys
-    cands = ["127.0.0.1:9001"]
-    if "emulator" in " ".join(_sys.argv).lower() or True:
-        cands.append("10.0.2.2:9001")  # Android 模拟器宿主回环
+    cands = [
+        "127.0.0.1:9001",        # USB adb reverse / 本机
+        "192.168.31.12:9001",    # 局域网直连（PC 网卡——同网段真机）
+        "10.0.2.2:9001",         # Android 模拟器宿主回环
+    ]
     conn = None
     st = "connecting"
     for host in cands:
