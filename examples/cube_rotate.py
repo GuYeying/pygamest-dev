@@ -129,18 +129,13 @@ async def main():
          1.0, -1.0,  1.0,   0.0, -1.0, 0.0,   1.0, 1.0,
         -1.0, -1.0,  1.0,   0.0, -1.0, 0.0,   0.0, 1.0,
     ]
-    indices = []
-    for i in range(6):
-        base = i * 4
-        indices.extend([base, base + 1, base + 2, base, base + 2, base + 3])
-
-    # mesh_builder：任意布局（pos3 + normal3 + uv2——预设里没有的组合）
+    # 顺序展开式（36 vertex = 6 面 × 6 顶点，两三角形直接展开）——
+    # 无 index（每面独立 6 顶点不复用角点；GPU 顺序画 12 三角形）
     mesh = ac.mesh(
         ["float32x3", "float32x3", "float32x2"], verts,
-        indices=indices, label="textured_cube"
+        label="textured_cube"
     )
-    st("mesh 创建（24 vertex）", mesh.vertex_count() > 0)
-    st("索引 36", mesh.index_count() == 36 or mesh.index_count() == 0)
+    st("mesh 创建（8f/vertex × 36 vertex）", mesh.vertex_count() == 36)
 
     # ── uniform buffer + bind group（camera + model + texture + sampler）──
     cam_buf = ac.buffer(64, label="cam_buf")
@@ -154,7 +149,7 @@ async def main():
     ], label="cube_bind")
     st("bind_group 4 槽", True)
 
-    pipe = ac.pipeline(shader, mesh, [bind], label="cube_textured")
+    pipe = ac.pipeline(shader, mesh, [bind], cull="back", label="cube_textured")
 
     frame = 0
     asserted = False
