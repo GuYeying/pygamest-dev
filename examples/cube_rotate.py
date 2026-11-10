@@ -149,7 +149,12 @@ async def main():
     ], label="cube_bind")
     st("bind_group 4 槽", True)
 
-    pipe = ac.pipeline(shader, mesh, [bind], cull="back", label="cube_textured")
+    pipe = ac.pipeline(shader, mesh, [bind],
+        cull="back",
+        blend="opaque",
+        depth_mode="standard",
+        depth_write=True,
+        label="cube_textured")
 
     frame = 0
     asserted = False
