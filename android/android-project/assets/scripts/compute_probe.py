@@ -123,7 +123,7 @@ async def main():
     pos_out = ac.buffer(MAXN * 8, usage="storage", label="p3_posout")   # vec2 × MAXN
     # inst_pos2：实例步进网格（容量预留零填充——pos 每帧 GPU 直搬进来）
     # floats = MAXN×2（inst_pos2 = 每实例 vec2 = 8B——此前 MAXN 少算一半）
-    mesh = ac.mesh("inst_pos2", floats=MAXN * 2, label="p3_mesh")
+    mesh = ac.mesh_builder(["float32x2"], floats=MAXN * 2, label="p3_mesh")
     cfg_buf = ac.buffer(16, label="p3_cfg")
     cam_buf = ac.buffer(64, label="p3_cam")
     ind_buf = ac.buffer(16, usage="indirect", label="p3_ind")

@@ -19,7 +19,7 @@ async def main():
     shader = ac.shader(CS, label="diag_cs")
     n = 2048
     pos_out = ac.buffer(n * 8, usage="storage", label="diag_pos")
-    mesh = ac.mesh("inst_pos2", floats=n * 2, label="diag_mesh")
+    mesh = ac.mesh_builder(["float32x2"], floats=n * 2, label="diag_mesh")
     cfg_buf = ac.buffer(16, label="diag_cfg")
     sbind = ac.bind_group([(0, "storage_rw", pos_out), (1, "uniform", cfg_buf)],
                           label="diag_bind")
