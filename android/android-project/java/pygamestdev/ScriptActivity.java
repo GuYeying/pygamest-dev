@@ -125,16 +125,9 @@ public class ScriptActivity extends Activity implements SurfaceHolder.Callback {
         }
         // 可靠收口：surface 销毁 = 本场运行必终。ANCO 的返回手势不触发
         // onBackPressed（真机实证：无 stop 标志时引擎不收口 → 音频泄漏
-        // /换场异常）——这里补发 stop，detach 的 Close 双保险。
-        // SAF 对话框例外（2026-11-10）：系统选择器覆盖触发 surface 销毁
-        // ——停引擎则选择返回后无人接结果；活动期豁免 stop（surface 照
-        // 常 detach，重建时 surfaceCreated 重挂）
-        if (PygameRsDev.isDialogActive()) {
-            SdLog.log("surfaceDestroyed（SAF 对话框活动期）→ 豁免 stop，仅 detach");
-        } else {
-            SdLog.log("surfaceDestroyed → stop + detach");
-            PygameRsDev.stop();
-        }
+        // /换场异常）——这里补发 stop，detach 的 Close 双保险
+        SdLog.log("surfaceDestroyed → stop + detach");
+        PygameRsDev.stop();
         PygameRsDev.detachSurface(holder.getSurface());
     }
 

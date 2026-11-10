@@ -16,7 +16,9 @@ public final class PygameRsDev {
     private static android.widget.EditText dialogEdit;
 
     /** 绑定宿主 Context（ndk-context 初始化；cpal/robius 等 JNI 消费方
-     *  依赖——嵌入形态必调一次；包装守卫防二次初始化断言） */
+     *  依赖——嵌入形态必调一次；包装守卫防二次初始化断言）。
+     *  **传 Activity 本体**（robius dialog 走 runOnUiThread 需要 UI
+     *  Handler——app Context 会 NPE） */
     public static void initContext(android.content.Context ctx) {
         appContext = ctx;
         if (contextBound) return;
@@ -61,8 +63,6 @@ public final class PygameRsDev {
     /** 文本输入活跃标志（隐式 egui wants_keyboard 状态——Java 轮询读） */
     public static native boolean isTextInputWanted();
 
-    /** SAF 对话框活动期（生命周期守卫——surfaceDestroyed 豁免停引擎） */
-    public static native boolean isDialogActive();
 
     /** 请求停止当前运行（帧边界收口；线程无法强杀，取消标志 = 唯一安全方式） */
     public static native void stop();

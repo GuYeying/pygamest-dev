@@ -86,16 +86,6 @@ def sdk_tools():
 def ndk_build(abi: str, nightly: bool = False, features: str = ""):
     """cargo ndk 交叉编译 android_host .so → jniLibs/<abi>/（release 铁律；
     nightly/features 透传——ozz 需 nightly，能力轴 feature 按需叠加）"""
-    # ANDROID_JAR 注入（robius-file-picker 构建脚本要求——starfish-dialog
-    # Android 后端依赖；缺失时按本脚本已解析的 platforms jar 补齐）
-    import os
-    if "ANDROID_JAR" not in os.environ:
-        try:
-            _, _, jar = sdk_tools()
-            os.environ["ANDROID_JAR"] = str(jar)
-            print(f"[ENV] ANDROID_JAR = {jar}")
-        except SystemExit:
-            pass
     cargo = ["cargo", "+nightly"] if nightly else ["cargo"]
     cmd = cargo + ["ndk", "-t", abi, "-P", "26", "-o", str(JNI_LIBS),
                    "--", "build", "--release", "--example", "android_host"]
