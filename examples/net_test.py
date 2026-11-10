@@ -21,11 +21,14 @@ async def main():
 
     # ── TCP 分帧（地址候选：桌面/真机回环 → 模拟器宿主回环 → Web ws://
     # ——构造+握手谁通用谁，10 秒上限每候选）──
+    # Web 端 TCP = WebSocket 同协议（pygame.net 自动 ws:// 化）：
+    # 9001 是 raw TCP 回声服（握手必败快过）→ 9002 才是 WS 回声服。
     import sys as _sys
     cands = [
         "127.0.0.1:9001",        # USB adb reverse / 本机
         "192.168.31.12:9001",    # 局域网直连（PC 网卡——同网段真机）
         "10.0.2.2:9001",         # Android 模拟器宿主回环
+        "127.0.0.1:9002",        # Web WS 回声服（net_echo_ws_server.py）
     ]
     conn = None
     st = "connecting"
