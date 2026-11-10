@@ -9,7 +9,7 @@ MAX_FRAME = 16 * 1024 * 1024
 
 
 def handle(c, addr):
-    print("[echo] connected", addr)
+    print("[echo] connected", addr, flush=True)
     try:
         while True:
             head = b""
@@ -32,14 +32,14 @@ def handle(c, addr):
     except OSError:
         pass
     finally:
-        print("[echo] closed", addr)
+        print("[echo] closed", addr, flush=True)
 
 
 srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 srv.bind(("0.0.0.0", 9001))  # 0.0.0.0：同网段真机/模拟器宿主直连
 srv.listen(4)
-print("[echo] listening 127.0.0.1:9001")
+print("[echo] listening 0.0.0.0:9001", flush=True)
 while True:
     c, addr = srv.accept()
     threading.Thread(target=handle, args=(c, addr), daemon=True).start()
