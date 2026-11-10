@@ -27,6 +27,8 @@ class Hud(egui.UiBase):
         if ui.button("发送") and self.draft:
             self.pending_send = self.draft
             self.draft = ""
+        if ui.button("重连"):
+            self.do_reconnect = True
         for line in self.log[-12:]:
             ui.label(line)
         ui.label(f"连接态 = {self.state}")
@@ -37,27 +39,28 @@ async def main():
     egui.init()
     hud = Hud()
 
-    # 连接（三顺位候选——谁通用谁）
-    conn = None
-    for host in HOSTS:
-        try:
-            c = pygame.net.TCP(host)
-        except Exception:
-            continue
-        t0 = time.time()
-        while time.time() - t0 < 5.0:
+    # 连接（三顺位候选——谁通用谁；重连按钮可反复触发）
+    async def connect_any():
+        for host in HOSTS:
+            try:
+                c = pygame.net.TCP(host)
+            except Exception:
+                continue
+            t0 = time.time()
+            while time.time() - t0 < 5.0:
+                if c.state() == "connected":
+                    break
+                await pygame.next_frame()
             if c.state() == "connected":
-                break
-            await pygame.next_frame()
-        if c.state() == "connected":
-            conn = c
-            hud.log.append(f"[系统] 已连接 {host}")
-            hud.state = "connected"
-            break
-        c.close()
-    if conn is None:
+                hud.log.append(f"[系统] 已连接 {host}")
+                hud.state = "connected"
+                return c
+            c.close()
         hud.state = "closed"
         hud.log.append("[系统] 三候选均未连上——检查 PC 端 net_echo_server.py")
+        return None
+
+    conn = await connect_any()
 
     while True:
         for e in pygame.event.get():
@@ -67,8 +70,15 @@ async def main():
                 return
             egui.event(e)
 
+        # 重连（按钮置位 → 重走候选；旧连接先关）
+        if getattr(hud, "do_reconnect", False):
+            hud.do_reconnect = False
+            if conn is not None:
+                conn.close()
+            conn = await connect_any()
+
         # 发送（按钮置位 → TCP 帧）
-        if getattr(hud, "pending_send", None):
+        if getattr(hud, "pending_send", None) and conn is not None:
             msg = hud.pending_send
             hud.pending_send = None
             conn.send(msg)
