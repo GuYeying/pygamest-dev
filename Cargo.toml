@@ -1,6 +1,6 @@
 [package]
 name = "pygamest-dev"
-version = "0.1.10"
+version = "0.1.11"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "pygamest-dev —— pygame 的 python（开发解释器）：pygame 全内置、零 Rust 工具链"
