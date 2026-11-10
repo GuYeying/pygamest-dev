@@ -25,11 +25,12 @@ async def main():
     check("module 面", all(hasattr(pygame.dialog, n) for n in ("open_file", "save_bytes")))
     check("PickedFile 类型", hasattr(pygame.dialog, "PickedFile"))
 
-    # 交互段说明（真对话框需人工点选——无人值守跑只验自动段；open_file
-    # 桌面端模态阻塞，自动段绝不调用）
-    MANUAL.append("交互验收（桌面）：open_file 弹对话框选任意文件 → 命令行打印 name() 与字节数")
-    MANUAL.append("交互验收（桌面）：save_bytes 写一份文本 → 选位置 → 命令行打印 True")
-    MANUAL.append("Web/Android：v1 同步口显式站桩 ValueError（异步 job API 后续批次）——import 即 AttributeError 不应出现")
+    # 交互段说明（异步面 2026-11-10：open_file/save_bytes = awaitable——
+    # 后台线程跑模态框，帧循环不冻；真对话框需人工点选，自动段不构造）
+    MANUAL.append("交互验收（桌面）：picked = await pygame.dialog.open_file() → 选任意文件 → print(picked.name(), len(picked.read()))")
+    MANUAL.append("交互验收（桌面）：ok = await pygame.dialog.save_bytes('a.txt', b'hi') → 选位置 → print(ok)")
+    MANUAL.append("await 期间帧循环存活（对话框背后画面继续渲染——异步面核心增益）")
+    MANUAL.append("Web/Android：后端站桩 ValueError（robius 桥后续批次）——API 面已就绪")
 
     last = time.time()
     while True:
