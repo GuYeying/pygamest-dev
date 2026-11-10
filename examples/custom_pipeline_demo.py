@@ -78,7 +78,7 @@ async def main():
         x1, y1, 0.0, 1.0, 1.0, 1.0, 1.0,
         x0, y1, 0.0, 1.0, 1.0, 1.0, 1.0,
     ]
-    mesh = ac.mesh("pos3color4", verts, label="demo_mesh")
+    mesh = ac.mesh_builder(["float32x3", "float32x4"], verts, label="demo_mesh")
     # 双会话各持独立 buf + 独立 bind（布局同构——同一 pipeline 复用）
     cam_buf = ac.buffer(64, label="cam_2d")
     cam_buf3 = ac.buffer(64, label="cam_3d")

@@ -44,7 +44,7 @@ async def main():
     rshader = ac.shader(RS, label="diag_rs")
     n = 2048
     pos_out = ac.buffer(n * 8, usage="storage", label="diag_pos")
-    mesh = ac.mesh("inst_pos2", floats=n * 2, label="diag_mesh")
+    mesh = ac.mesh_builder(["float32x2"], floats=n * 2, label="diag_mesh")
     cfg_buf = ac.buffer(16, label="diag_cfg")
     cam_buf = ac.buffer(64, label="diag_cam")
     ind_buf = ac.buffer(16, usage="indirect", label="diag_ind")
