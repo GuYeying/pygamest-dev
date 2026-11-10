@@ -27,6 +27,7 @@ def handle(c, addr):
                 if not chunk:
                     return
                 body += chunk
+            print(f"[echo] {addr} 收到 {len(body)}B: {body[:120]!r}", flush=True)
             payload = b"echo:" + body
             c.sendall(struct.pack(">I", len(payload)) + payload)
     except OSError:
