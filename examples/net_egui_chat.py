@@ -39,17 +39,31 @@ async def main():
     egui.init()
     hud = Hud()
 
-    # 连接（三顺位候选——谁通用谁；重连按钮可反复触发）
+    # 连接（三顺位候选——谁通用谁；重连按钮可反复触发）。等待循环内
+    # **照常渲染 HUD**（egui 打点进度——连接期画面冻结会被误读为阻塞；
+    # TCP 构造/握手本身是后台线程非阻塞）；state=closed（拒绝/不可达）
+    # 即跳出不等满超时——失败候选不烧 5 秒
     async def connect_any():
         for host in HOSTS:
+            hud.state = "connecting"
+            hud.log.append(f"[系统] 尝试 {host} …")
             try:
                 c = pygame.net.TCP(host)
             except Exception:
                 continue
             t0 = time.time()
             while time.time() - t0 < 5.0:
-                if c.state() == "connected":
+                st = c.state()
+                if st != "connecting":
                     break
+                hud.log[-1] = f"[系统] 尝试 {host} … {(time.time()-t0):.1f}s"
+                # 渲染一帧（连接不冻结画面——阻塞观感的根治）
+                for e in pygame.event.get():
+                    egui.event(e)
+                with screen.render() as r:
+                    r.fill((24, 26, 34))
+                    r.draw_ui(hud)
+                pygame.display.flip()
                 await pygame.next_frame()
             if c.state() == "connected":
                 hud.log.append(f"[系统] 已连接 {host}")
@@ -57,7 +71,7 @@ async def main():
                 return c
             c.close()
         hud.state = "closed"
-        hud.log.append("[系统] 三候选均未连上——检查 PC 端 net_echo_server.py")
+        hud.log.append("[系统] 三候选均未连上——点[重连]再试（检查 PC 端 net_echo_server.py）")
         return None
 
     conn = await connect_any()
