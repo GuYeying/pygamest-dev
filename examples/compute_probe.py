@@ -123,7 +123,7 @@ async def main():
     pos_out = ac.buffer(MAXN * 8, usage="storage", label="p3_posout")   # vec2 × MAXN
     # inst_pos2：实例步进网格（容量预留零填充——pos 每帧 GPU 直搬进来）
     # floats = MAXN×2（inst_pos2 = 每实例 vec2 = 8B——此前 MAXN 少算一半）
-    mesh = ac.mesh_builder(["float32x2"], floats=MAXN * 2, label="p3_mesh")
+    mesh = ac.mesh(["float32x2"], floats=MAXN * 2, instance=True, label="p3_mesh")
     cfg_buf = ac.buffer(16, label="p3_cfg")
     cam_buf = ac.buffer(64, label="p3_cam")
     ind_buf = ac.buffer(16, usage="indirect", label="p3_ind")
@@ -191,13 +191,13 @@ async def main():
             t.fill((6, 8, 14))
             pygame.gfxdraw.set_color(t,(255, 0, 255))
             pygame.gfxdraw.rectangle(t, (-399, -299, 798, 598),)  # 原 width=2 描边（gfxdraw 恒 1px）       # 画布边界诊断
-            with t.raw_compute() as p:
+            with screen.raw_compute() as p:
                 p.set_pipeline(cpipe)
                 p.set_bind_group(0, state_bind)
                 p.dispatch(MAXN // 64, 1, 1)                  # shader 端 cfg.n 早退
                 # 连续 pos 平面 → 顶点缓冲（8B/粒子；源 = out_pos 非交错）
                 p.copy_mesh_vertices(mesh, pos_out, hud.n * 8)
-            with t.raw_render() as p:
+            with screen.raw_render() as p:
                 p.set_pipeline(rpipe)
                 p.set_bind_group(0, rbind)
                 p.set_mesh(mesh)

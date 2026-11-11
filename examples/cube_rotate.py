@@ -196,7 +196,7 @@ async def main():
             pygame.gfxdraw.set_transform(rt, M.mat4_translation(-380, 270, 0))
             pygame.gfxdraw.draw_surface(rt, title)
 
-            with rt.raw_render(depth=True) as p:
+            with screen.raw_render(depth=True) as p:
                 p.push_debug_group("textured_cube")
                 p.set_pipeline(pipe)
                 p.set_bind_group(0, bind)

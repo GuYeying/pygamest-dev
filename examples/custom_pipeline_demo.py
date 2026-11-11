@@ -151,7 +151,7 @@ async def main():
             pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(-370, 280, 0)); pygame.gfxdraw.draw_surface(t, title)
             # ── 段 1：2D 正交（对照恒定）——大波纹圆盘（draw_mesh 全量，
             #    免手填顶点范围）+ debug 标注 + 动态状态命令 ──
-            with t.raw_render() as p:
+            with screen.raw_render() as p:
                 p.push_debug_group("ortho_disc")
                 p.set_pipeline(pipe)
                 p.set_bind_group(0, cam_bind)
@@ -162,7 +162,7 @@ async def main():
                 p.pop_debug_group()
             # ── 段 2：3D 透视（动态验证）——同一 mesh，独立 buf3/bind3；
             #    draw_indirect 路径（范围参数在 u32 buffer 内）──
-            with t.raw_render() as p:
+            with screen.raw_render() as p:
                 p.set_pipeline(pipe)
                 p.set_bind_group(0, cam_bind3)
                 p.set_mesh(mesh)

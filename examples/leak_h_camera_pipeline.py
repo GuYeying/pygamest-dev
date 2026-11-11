@@ -107,7 +107,7 @@ async def main():
         if 600 <= frame < 1200:
             with screen.render() as t:
                 t.fill((6, 8, 14))
-                with t.raw_render() as p:
+                with screen.raw_render() as p:
                     p.set_pipeline(pipe_a if frame % 2 == 0 else pipe_b)
                     p.set_bind_group(0, bind)
                     p.set_mesh(mesh_a if frame % 2 == 0 else mesh_b)
@@ -123,7 +123,7 @@ async def main():
                 m = None
             with screen.render() as t:
                 t.fill((6, 8, 14))
-                with t.raw_render() as p:
+                with screen.raw_render() as p:
                     p.set_pipeline(pipe_a)
                     p.set_bind_group(0, bind)
                     p.set_mesh(mesh_a)
