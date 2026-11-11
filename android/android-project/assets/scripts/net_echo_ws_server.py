@@ -60,16 +60,23 @@ def handle(c, addr):
             msg = ws_recv(c)
             if msg is None:
                 break
+            # WS 消息载荷 = 裸帧体（pygame.net Web 端一条 WS 消息即一帧
+            # ——长度前缀是 raw TCP 形态专用，WS 内不含前缀，实测实证）。
+            # 语义对齐 net_echo_server.py（raw TCP 9001）：回声
+            # "echo:" + body（net_test 断言三端一致）。
+            print(f"[ws-echo] {addr} 收到 {len(msg)}B: {msg[:60]!r}", flush=True)
+            payload = b"echo:" + msg
+            reply = payload
             # 回声为二进制帧（opcode 0x2，服务端帧不掩码）
-            n = len(msg)
+            n2 = len(reply)
             head = bytes([0x82])
-            if n < 126:
-                head += bytes([n])
-            elif n < 65536:
-                head += bytes([126]) + struct.pack(">H", n)
+            if n2 < 126:
+                head += bytes([n2])
+            elif n2 < 65536:
+                head += bytes([126]) + struct.pack(">H", n2)
             else:
-                head += bytes([127]) + struct.pack(">Q", n)
-            c.sendall(head + msg)
+                head += bytes([127]) + struct.pack(">Q", n2)
+            c.sendall(head + reply)
     except OSError:
         pass
     print("[ws-echo] closed", addr, flush=True)
