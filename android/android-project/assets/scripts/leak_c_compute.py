@@ -19,7 +19,7 @@ async def main():
     shader = ac.shader(CS, label="diag_cs")
     n = 2048
     pos_out = ac.buffer(n * 8, usage="storage", label="diag_pos")
-    mesh = ac.mesh_builder(["float32x2"], floats=n * 2, label="diag_mesh")
+    mesh = ac.mesh(["float32x2"], floats=n * 2, label="diag_mesh")
     cfg_buf = ac.buffer(16, label="diag_cfg")
     sbind = ac.bind_group([(0, "storage_rw", pos_out), (1, "uniform", cfg_buf)],
                           label="diag_bind")
@@ -29,7 +29,7 @@ async def main():
     while frame < 9000:
         with screen.render() as t:
             t.fill((6, 8, 14))
-            with t.raw_compute() as p:
+            with screen.raw_compute() as p:
                 p.set_pipeline(cpipe)
                 p.set_bind_group(0, sbind)
                 p.dispatch(n // 64, 1, 1)

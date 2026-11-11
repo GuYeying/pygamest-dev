@@ -5,7 +5,6 @@
 # ② 自定义 WGSL 管线（顶点色 × 法线光照 × UV 采样）
 # ③ raw_render 直绘到屏幕
 # 退出：ESC / 关窗。
-import math
 import pygame
 
 WGSL = """
@@ -102,7 +101,7 @@ async def main():
         indices.extend([vi, vi + 1, vi + 2, vi, vi + 2, vi + 3])
         vi += 4
 
-    mesh = ac.mesh_builder(layout, verts, indices=indices, label="cube_mesh")
+    mesh = ac.mesh(layout, verts, indices=indices, label="cube_mesh")
     print("[OK] mesh_builder: 12 格式字段 × 24 顶点 × 36 索引")
 
     # ── ② 管线（引用 mesh 布局的 WGSL）──
@@ -115,7 +114,7 @@ async def main():
     # 但 WGSL 只有 @binding(0) camera——够用
     bind = ac.bind_group([(0, "uniform", cam_buf)], label="cam_bind")
 
-    pipeline = ac.pipeline(shader, mesh.vertex_layout(), cam_buf, label="cube_pipeline")
+    pipeline = ac.pipeline(shader, mesh, [bind], label="cube_pipeline")
 
     # ── ③ 渲染循环（旋转立方体 + 心跳文本）──
     import time as _time
@@ -130,32 +129,25 @@ async def main():
                 return
 
         angle += 0.01
-        # 旋转投影矩阵（简化手写——mat4 相乘走 pygame.math）
-        ca = math.cos(angle)
-        sa = math.sin(angle)
-        # 绕 Y 轴旋转 + 简单透视
-        rot = [
-            ca, 0, sa, 0,
-            0, 1, 0, 0,
-            -sa, 0, ca, 0,
-            0, 0, -3, 1,
-        ]
-        # 透视
-        f = 1.0 / math.tan(math.radians(30))
-        proj = [f, 0, 0, 0, 0, f, 0, 0, 0, 0, 0.1, 1, 0, 0, -0.1, 0]
-        # rot × proj
-        mvp = [0.0] * 16
-        for r_ in range(4):
-            for c_ in range(4):
-                mvp[r_ * 4 + c_] = sum(rot[r_ * 4 + k] * proj[k * 4 + c_] for k in range(4))
-        mvp = [m * 1.2 for m in mvp]
+        # 模型旋转（列主序 Mat4 链——pygame.math 定约；旧手写行主序
+        # 矩阵列主序上传 = 转置错位，立方体被裁剪出屏，2026-11-12 修正）
+        model = pygame.math.mat4_from_quat(
+            pygame.math.quat_from_axis_angle(0.0, 1.0, 0.0, angle))
+        view = pygame.math.mat4_translation(0.0, 0.0, -4.0)
+        cam = pygame.render.camera_perspective(60.0, 800 / 600, 0.1, 100.0).with_view(view)
+        mvp = cam.mvp().mul_mat4(model)
 
         ac.write_buffer(cam_buf, mvp)
 
         with screen.render() as r:
             r.fill((18, 18, 28))
-            # raw_render 自定义管线直绘
-            r.raw_render(pipeline, bind, mesh, 36)
+            # raw_render 自定义管线直绘（2026-11-12 目标级扁平化：
+            # screen.raw_render——旧 4 位置参形态被现行签名静默丢弃，
+            # 本案例自迁移起 cube 才真正上屏）
+            with screen.raw_render() as p:
+                p.set_pipeline(pipeline)
+                p.set_bind_group(0, bind)
+                p.draw_mesh(mesh)
 
             # HUD
             lines = [
