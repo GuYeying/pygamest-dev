@@ -137,7 +137,9 @@ async def main():
         cam = pygame.render.camera_perspective(60.0, 800 / 600, 0.1, 100.0).with_view(view)
         mvp = cam.mvp().mul_mat4(model)
 
-        ac.write_buffer(cam_buf, mvp)
+        # 双参形态 = 引擎自动左乘 present_fit 收进画布（裸 write_buffer
+        # 直写无 letterbox 拟合——非 4:3 表面横向拉伸，2026-11-12 修正）
+        pygame.render.write_camera_mvp(cam_buf, mvp)
 
         with screen.render() as r:
             r.fill((18, 18, 28))
