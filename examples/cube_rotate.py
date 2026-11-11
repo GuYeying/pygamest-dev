@@ -189,6 +189,7 @@ async def main():
         ac.write_buffer(model_buf, model_mat)
 
         with screen.render() as rt:
+            rt.fill((14, 15, 22))
             if frame == 0:
                 st("screen attachment ok", pygame.render.screen_attachment() is not None)
             rt.fill((12, 13, 20))
