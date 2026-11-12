@@ -23,7 +23,8 @@ class HUD(egui.UiBase):
         self.mode = 1            # 起始：横屏比例
         self.want = -1           # >=0 = 主循环应用
         self.info = ""
-
+        self.name = "玩家"
+        
     def draw(self, ui):
         ui.heading("显示模式（单选）")
         for i, (name, _, _, _o) in enumerate(MODES):
@@ -34,6 +35,7 @@ class HUD(egui.UiBase):
         ui.separator()
         ui.label(self.info)
         ui.label("手机：物理面恒全屏 = 画布比例差异（letterbox）")
+        self.name = ui.text_edit(self.name)
 
 
 async def main():
