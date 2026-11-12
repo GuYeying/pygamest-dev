@@ -379,7 +379,10 @@ pub extern "system" fn Java_pygamestdev_PygameRsDev_nativeInitContext(
 // starfish-we 的方向解析器读它做 JNI。
 
 struct UiActivity {
-    vm: jni_sys::JavaVM,
+    /// *mut JavaVM **双层指针原样**（2026-11-12 SIGSEGV 修复：原存解引用
+    /// 后的单层 = 函数表指针，request_orientation_on 按双层再解引用 =
+    /// 把函数表条目当地址读 = 野指针崩溃——任何 set_mode 自动方向必炸）
+    vm: *mut std::ffi::c_void,
     activity: jni_sys::jobject,
 }
 // JNI 裸指针跨线程传递：vm 线程无关（AttachCurrentThread 契约）、
@@ -392,7 +395,7 @@ fn ui_orientation_resolver(name: &str) -> Result<(), starfish_we::WindowError> {
     let guard = UI_ACTIVITY.lock().unwrap_or_else(|p| p.into_inner());
     match *guard {
         Some(ref ui) => starfish_we::request_orientation_on(
-            ui.vm as *mut std::ffi::c_void,
+            ui.vm,
             ui.activity.cast(),
             name,
         ),
@@ -426,8 +429,8 @@ pub extern "system" fn Java_pygamestdev_PygameRsDev_nativeUpdateUiContext(
         if let Some(old) = guard.take() {
             del_ref(env, old.activity);
         }
-        // *mut JavaVM = 双层指针（vm -> 函数表）；存单层（*vm）
-        *guard = Some(UiActivity { vm: *vm, activity: gref });
+        // *mut JavaVM = 双层指针原样透传（request_orientation_on 同款语义）
+        *guard = Some(UiActivity { vm: vm.cast(), activity: gref });
         drop(guard);
         // 方向解析器注册（幂等——同函数指针覆盖无害）
         starfish_we::set_orientation_resolver(ui_orientation_resolver);
