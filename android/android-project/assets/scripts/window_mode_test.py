@@ -9,10 +9,10 @@ import pygame
 import pygame_gui as egui
 
 MODES = [
-    ("竖屏比例", (450, 800), 0, "sensor_portrait"),
-    ("横屏比例", (800, 450), 0, "sensor_landscape"),
-    ("横全屏", (0, 0), pygame.display.FULLSCREEN, "sensor_landscape"),
-    ("竖全屏", (450, 800), pygame.display.FULLSCREEN, "sensor_portrait"),
+    ("竖屏比例", (450, 800), 0, "portrait"),
+    ("横屏比例", (800, 450), 0, "landscape"),
+    ("横全屏", (0, 0), pygame.display.FULLSCREEN, "landscape"),
+    ("竖全屏", (450, 800), pygame.display.FULLSCREEN, "portrait"),
 ]
 
 
@@ -54,7 +54,7 @@ async def main():
 
         # 应用模式切换（会话块外——display 可重开语义）
         if hud.want >= 0:
-            name, size, flags, _orient = MODES[hud.want]
+            name, size, flags, orient = MODES[hud.want]
             # 方向先行（Activity 级旋转——表面尺寸随后变化；嵌入宿主
             # configChanges 含 orientation = 只重表面不重建 Activity）
             try:
