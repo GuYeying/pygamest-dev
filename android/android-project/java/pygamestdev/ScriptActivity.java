@@ -77,6 +77,9 @@ public class ScriptActivity extends Activity implements SurfaceHolder.Callback {
         // ndk-context 绑定（幂等守卫内——直接启动 ScriptActivity 的自动化
         // 路径也齐备；net 权限检查等 JNI 消费方依赖）
         PygameRsDev.initContext(getApplicationContext());
+        // UI Activity 通道（竖屏方向请求——ndk-context 是 app context
+        // 且一次性绑定，setRequestedOrientation 需要 Activity 本体）
+        PygameRsDev.updateUiContext(this);
         prepareFiles();
         PygameRsDev.setBaseDir(getFilesDir().getAbsolutePath());
         // 引擎面包屑落点：优先 /sdcard/Download（用户可见），探测可写
@@ -314,5 +317,12 @@ public class ScriptActivity extends Activity implements SurfaceHolder.Callback {
         } catch (IOException e) {
             return null;
         }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // 场景重建（横竖切换/后台回归）后 Activity 引用刷新
+        PygameRsDev.updateUiContext(this);
     }
 }

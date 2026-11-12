@@ -54,7 +54,7 @@ async def main():
 
         # 应用模式切换（会话块外——display 可重开语义）
         if hud.want >= 0:
-            name, size, flags, orient = MODES[hud.want]
+            name, size, flags, _orient = MODES[hud.want]
             # 方向先行（Activity 级旋转——表面尺寸随后变化；嵌入宿主
             # configChanges 含 orientation = 只重表面不重建 Activity）
             try:

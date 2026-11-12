@@ -28,6 +28,14 @@ public final class PygameRsDev {
 
     private static native void nativeInitContext(android.content.Context ctx);
 
+    /** 更新当前 Activity 本体（竖屏方向请求的 JNI 对象——onResume 调
+     *  this；ndk-context 是 app context + 一次性绑定，转不了方向） */
+    public static void updateUiContext(android.content.Context ctx) {
+        nativeUpdateUiContext(ctx);
+    }
+
+    private static native void nativeUpdateUiContext(android.content.Context ctx);
+
     /** SurfaceView.surfaceCreated → 引擎抓取 ANativeWindow */
     public static native void attachSurface(Surface surface);
 

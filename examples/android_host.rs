@@ -369,6 +369,72 @@ pub extern "system" fn Java_pygamestdev_PygameRsDev_nativeInitContext(
     }
 }
 
+// ── UI Activity 通道（2026-11-12 竖屏支持）──────────────────────────
+// ndk-context 的 context 在本宿主 = Application Context（MainActivity
+// 首启绑定的 app context——ScriptActivity 后续 initContext 被 Java 侧
+// contextBound 守卫挡住，且 ndk-context 本身只允许绑一次）。
+// setRequestedOrientation 定义在 Activity 类上——app context 调必失败
+// （打包 APK 实测根因）。本通道：ScriptActivity.onResume 调
+// updateUiContext(this) 更新本静态（Activity 本体全局引用），
+// starfish-we 的方向解析器读它做 JNI。
+
+struct UiActivity {
+    vm: jni_sys::JavaVM,
+    activity: jni_sys::jobject,
+}
+// JNI 裸指针跨线程传递：vm 线程无关（AttachCurrentThread 契约）、
+// activity 是全局引用（GC 不回收，detach 侧统一 Delete）
+unsafe impl Send for UiActivity {}
+
+static UI_ACTIVITY: std::sync::Mutex<Option<UiActivity>> = std::sync::Mutex::new(None);
+
+fn ui_orientation_resolver(name: &str) -> Result<(), starfish_we::WindowError> {
+    let guard = UI_ACTIVITY.lock().unwrap_or_else(|p| p.into_inner());
+    match *guard {
+        Some(ref ui) => starfish_we::request_orientation_on(
+            ui.vm as *mut std::ffi::c_void,
+            ui.activity.cast(),
+            name,
+        ),
+        None => Err(starfish_we::WindowError::OsError(
+            "set_orientation: UI Activity 未更新（宿主须 onResume 调 updateUiContext）"
+                .into(),
+        )),
+    }
+}
+
+/// 宿主更新当前 Activity（ScriptActivity.onResume → this）——同时注册
+/// starfish-we 方向解析器（首次）。旧全局引用释放。
+#[no_mangle]
+pub extern "system" fn Java_pygamestdev_PygameRsDev_nativeUpdateUiContext(
+    env: jni_sys::JNIEnv,
+    _clazz: jni_sys::jclass,
+    activity: jni_sys::jobject,
+) {
+    unsafe {
+        let env = env as *mut jni_sys::JNIEnv;
+        let get_vm = (*(*env)).GetJavaVM.expect("GetJavaVM missing");
+        let mut vm: *mut jni_sys::JavaVM = std::ptr::null_mut();
+        if get_vm(env, &mut vm) != 0 {
+            starfish_debug::log_error!("[pygamest-dev] updateUiContext: GetJavaVM 失败");
+            return;
+        }
+        let new_ref = (*(*env)).NewGlobalRef.expect("NewGlobalRef missing");
+        let gref = new_ref(env, activity);
+        let del_ref = (*(*env)).DeleteGlobalRef.expect("DeleteGlobalRef missing");
+        let mut guard = UI_ACTIVITY.lock().unwrap_or_else(|p| p.into_inner());
+        if let Some(old) = guard.take() {
+            del_ref(env, old.activity);
+        }
+        // *mut JavaVM = 双层指针（vm -> 函数表）；存单层（*vm）
+        *guard = Some(UiActivity { vm: *vm, activity: gref });
+        drop(guard);
+        // 方向解析器注册（幂等——同函数指针覆盖无害）
+        starfish_we::set_orientation_resolver(ui_orientation_resolver);
+        starfish_debug::log_info!("[pygamest-dev] UI Activity 已更新（方向解析器就绪）");
+    }
+}
+
 /// 注入诊断落盘目录（宿主在 loadCode 前调用一次）。
 ///
 /// 嵌入形态无 glue：stdout 无 logcat 重定向（println 不可见），诊断
