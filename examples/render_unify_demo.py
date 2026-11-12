@@ -52,8 +52,8 @@ async def main():
             rot = pygame.math.quat_from_axis_angle(0.0, 1.0, 0.0, ang)
             world = (
                 pygame.math.mat4_translation(-80, 0, -160)
-                * pygame.math.mat4_from_quat(rot)
-                * pygame.math.mat4_scale(60, 60, 60)
+                @ pygame.math.mat4_from_quat(rot)
+                @ pygame.math.mat4_scale(60, 60, 60)
             )
             pygame.gfxdraw.set_transform(f, world)
             if img is not None:

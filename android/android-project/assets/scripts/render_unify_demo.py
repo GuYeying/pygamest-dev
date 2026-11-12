@@ -42,7 +42,7 @@ async def main():
             pygame.gfxdraw.set_camera(f, pygame.render.camera_ortho(800.0, 600.0))
             pygame.gfxdraw.set_color(f, (120, 255, 120))
             pygame.gfxdraw.filled_circle(f, 250, 150, 30)
-            pygame.gfxdraw.reset_camera(f)
+            pygame.gfxdraw.clear_camera(f)
 
             # ③ 会话级透视相机：3D 空间放置
             pygame.gfxdraw.set_camera(f, pygame.render.camera_perspective(60.0, 800 / 600, 0.1, 100.0))
@@ -52,8 +52,8 @@ async def main():
             rot = pygame.math.quat_from_axis_angle(0.0, 1.0, 0.0, ang)
             world = (
                 pygame.math.mat4_translation(-80, 0, -160)
-                * pygame.math.mat4_from_quat(rot)
-                * pygame.math.mat4_scale(60, 60, 60)
+                @ pygame.math.mat4_from_quat(rot)
+                @ pygame.math.mat4_scale(60, 60, 60)
             )
             pygame.gfxdraw.set_transform(f, world)
             if img is not None:
@@ -68,8 +68,8 @@ async def main():
             pygame.gfxdraw.set_transform(f, pygame.math.mat4_translation(60, 40, -160))
             pygame.gfxdraw.draw_surface(f, label)
 
-            # ④ 回 Auto：中心系十字准星（验证 reset_camera 兜底）
-            pygame.gfxdraw.reset_camera(f)
+            # ④ 回 Auto：中心系十字准星（验证 clear_camera 清除）
+            pygame.gfxdraw.clear_camera(f)
             pygame.gfxdraw.set_color(f, (255, 255, 255))
             pygame.gfxdraw.line(f, -16, 0, 16, 0)
             pygame.gfxdraw.set_color(f, (255, 255, 255))

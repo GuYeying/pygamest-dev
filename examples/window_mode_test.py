@@ -50,6 +50,7 @@ async def main():
                 return
             if e.type == pygame.event.KEYDOWN and e.key == pygame.key.K_ESCAPE:
                 return
+            egui.event(e)   
 
         # 应用模式切换（会话块外——display 可重开语义）
         if hud.want >= 0:
