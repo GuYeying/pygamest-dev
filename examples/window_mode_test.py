@@ -9,10 +9,10 @@ import pygame
 import pygame_gui as egui
 
 MODES = [
-    ("竖屏比例", (450, 800), 0),
-    ("横屏比例", (800, 450), 0),
-    ("横全屏", (0, 0), pygame.display.FULLSCREEN),
-    ("竖全屏", (450, 800), pygame.display.FULLSCREEN),
+    ("竖屏比例", (450, 800), 0, "sensor_portrait"),
+    ("横屏比例", (800, 450), 0, "sensor_landscape"),
+    ("横全屏", (0, 0), pygame.display.FULLSCREEN, "sensor_landscape"),
+    ("竖全屏", (450, 800), pygame.display.FULLSCREEN, "sensor_portrait"),
 ]
 
 
@@ -26,7 +26,7 @@ class HUD(egui.UiBase):
 
     def draw(self, ui):
         ui.heading("显示模式（单选）")
-        for i, (name, _, _) in enumerate(MODES):
+        for i, (name, _, _, _o) in enumerate(MODES):
             checked = ui.checkbox(name, self.mode == i)
             if checked and self.mode != i:
                 self.want = i
@@ -54,7 +54,13 @@ async def main():
 
         # 应用模式切换（会话块外——display 可重开语义）
         if hud.want >= 0:
-            name, size, flags = MODES[hud.want]
+            name, size, flags, orient = MODES[hud.want]
+            # 方向先行（Activity 级旋转——表面尺寸随后变化；嵌入宿主
+            # configChanges 含 orientation = 只重表面不重建 Activity）
+            try:
+                pygame.display.set_orientation(orient)
+            except Exception as ex:
+                print("[wm] set_orientation:", ex)
             if flags:
                 screen = pygame.display.set_mode(size, [flags])
             else:
