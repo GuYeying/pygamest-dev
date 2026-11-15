@@ -60,6 +60,9 @@ tray = ["pygamest/tray"]
 ozz = ["pygamest/ozz"]
 # voxelis = 稀疏体素八叉树（MC 类玩法供数——体素编辑 + mesh 数组出口）
 voxelis = ["pygamest/voxelis"]
+# tilemap = Tiled 编辑器地图（TMX 解析 + per-layer 渲染数组——分层
+# 着色器渲染配套）
+tilemap = ["pygamest/tilemap"]
 
 [dependencies]
 starfish-debug = { git = "https://github.com/GuYeying/starfish" }
