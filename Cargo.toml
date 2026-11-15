@@ -58,6 +58,8 @@ skip-taskbar = ["pygamest/skip-taskbar"]
 tray = ["pygamest/tray"]
 # ozz = 3D 骨骼动画（已入 default——见上 ⚠️ nightly 工具链说明）
 ozz = ["pygamest/ozz"]
+# voxelis = 稀疏体素八叉树（MC 类玩法供数——体素编辑 + mesh 数组出口）
+voxelis = ["pygamest/voxelis"]
 
 [dependencies]
 starfish-debug = { git = "https://github.com/GuYeying/starfish" }
