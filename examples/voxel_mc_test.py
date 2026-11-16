@@ -447,14 +447,42 @@ async def main():
                 p.set_pipeline(vox_pipe[0])
                 p.set_bind_group(0, vox_bind[0])
                 p.draw_mesh(vox_mesh)
-                # 球（平移跟随——rotation 回填无 quat 构造器，v2 接）
+                # 球（平移 + **旋转回填**——Quaternion xyzw 直呼构造 →
+                # mat4_from_quat；物理翻滚碰撞与渲染姿态严格同步）
                 for bh in balls:
                     x, y, z = world.translation(bh)
-                    ac.write_buffer(model_buf, M.mat4_translation(x, y, z))
+                    qx, qy, qz, qw = world.rotation(bh)
+                    ac.write_buffer(
+                        model_buf,
+                        M.mat4_translation(x, y, z)
+                        @ M.mat4_from_quat(M.Quaternion(qx, qy, qz, qw)))
                     p.set_pipeline(ball_pipe)
                     p.set_bind_group(0, ball_bind)
                     p.draw_mesh(ball_mesh)
             draw_hud(rt)
+
+        # 物理数据正确性打点（60 帧一次）：球中心/速度——静止贴面判据
+        # （中心 y ≈ 下方命中面 y + 0.5，容差 ±0.05）
+        if frame == 120 and not balls:
+            launch_ball()   # 自动发射一颗（落地核对打点——无人交互自动触发）
+        if frame % 60 == 0 and balls:
+            vx, vy, vz = world.linvel(balls[0])
+            spd = (vx * vx + vy * vy + vz * vz) ** 0.5
+            x, y, z = world.translation(balls[0])
+            if spd < 0.05:
+                # 体素查询判定（cast_ray 会命中球自身 collider → toi=0，
+                # 非引擎异常）：球心下方 0.6 处的支撑格有体素 → 格顶 =
+                # by+1，球心应 = 格顶 + 0.5
+                bx, bz = int(x // 1), int(z // 1)
+                by = int((y - 0.6) // 1)
+                below = vw.get_voxel(bx, by, bz)
+                if below is not None:
+                    expected = by + 1 + 0.5
+                    ok = abs(y - expected) < 0.06
+                    print(f"[voxel-mc] 落地贴面核对：球心 y={y:.2f} 支撑体素 "
+                          f"{bx,by,bz} 顶面 y={by + 1}（期望球心 {expected:.1f}）→ "
+                          + ("PASS 物理数据正确" if ok else "FAIL 物理数据异常"))
+                    st("球静止贴面（物理数据正确）", ok)
 
         pygame.display.flip()
         frame += 1
