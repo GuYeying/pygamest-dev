@@ -63,6 +63,8 @@ voxelis = ["pygamest/voxelis"]
 # tilemap = Tiled 编辑器地图（TMX 解析 + per-layer 渲染数组——分层
 # 着色器渲染配套）
 tilemap = ["pygamest/tilemap"]
+# multi-window = 多窗口（windows-only——we 白名单编译期把关）
+multi-window = ["pygamest/multi-window"]
 
 [dependencies]
 starfish-debug = { git = "https://github.com/GuYeying/starfish" }
