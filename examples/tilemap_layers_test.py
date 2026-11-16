@@ -154,7 +154,7 @@ async def main():
             print("[tilemap-layers] FAIL", name)
 
     # ── 程序生成 TMX（写盘走 pygame.io 面——裁剪 stdlib 无 open）──
-    pygame.io.write_text("tilemap_layers.tmx", gen_tmx())
+    pass  # TMX 随 payload 预部署（web 无同步 io——预生成文件直读）
 
     # ── 解析（sfx 密文链——dev 宿主明文透传）──
     tm = pygame_tilemap.Tilemap("tilemap_layers.tmx")

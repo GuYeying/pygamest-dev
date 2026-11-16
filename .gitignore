@@ -24,3 +24,5 @@ examples/assets/
 android/android-project/assets/assets/
 io_case
 __probe_case__*
+examples/tilemap_layers.tmx
+examples/leak_j.tmx
