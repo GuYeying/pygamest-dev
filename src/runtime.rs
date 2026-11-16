@@ -154,24 +154,35 @@ pub async fn run<H: Host>(host: &H) -> i32 {
             host_flags |= bit;
         }
     }
-    // ── 建窗（可见；GPU/交换链装配承载于窗口期——百 ms 级）──
-    let t_gpu = Stopwatch::now();
-    log(&format!("[{name}] ③建窗+GPU装配开始（旗标 {host_flags:#b}）"));
-    // 壳窗尺寸：Android 嵌入 = 外部窗口实测值（attach 时记录）——引擎
-    // 表面初始即满屏 1:1，脚本 set_mode 后由 GLES 缩放铺满（用户接受
-    // 语义）；桌面/web = 800×600 惯例
-    #[cfg(target_os = "android")]
-    let (win_w, win_h) = starfish_we::embedded::external_size().unwrap_or((800, 600));
-    #[cfg(not(target_os = "android"))]
-    let (win_w, win_h) = (800u32, 600u32);
-    if let Err(e) = display::set_mode_ex((win_w, win_h), host_flags).await {
-        log_err(&format!("[{name}] set_mode 失败: {e}"));
-        return 1;
+    // ── 建窗+GPU 装配（2026-11-16 拆步装配批次）：桌面 = **脚本期装
+    // 配**（脚本 set_mode 真装配——GpuSettings/SurfaceSettings kwargs
+    // 与 env 三口在此真消费；host_flags 启发式扫描随先行装配退役——
+    // flags 从脚本 set_mode 真值来）；web = 无阻塞模型宿主先行；android
+    // = 嵌入门面 attach 后满屏表面先行（缩放铺满语义）──
+    #[cfg(any(target_arch = "wasm32", target_os = "android"))]
+    {
+        let t_gpu = Stopwatch::now();
+        log(&format!("[{name}] ③建窗+GPU装配开始（旗标 {host_flags:#b}）"));
+        #[cfg(target_os = "android")]
+        let (win_w, win_h) = starfish_we::embedded::external_size().unwrap_or((800, 600));
+        #[cfg(all(not(target_os = "android"), target_arch = "wasm32"))]
+        let (win_w, win_h) = (800u32, 600u32);
+        if let Err(e) = display::set_mode_ex((win_w, win_h), host_flags).await {
+            log_err(&format!("[{name}] set_mode 失败: {e}"));
+            return 1;
+        }
+        log(&format!(
+            "[{name}] ③建窗+GPU装配完 {}ms（创建期旗标 {host_flags:#b}）",
+            t_gpu.ms()
+        ));
     }
-    log(&format!(
-        "[{name}] ③建窗+GPU装配完 {}ms（创建期旗标 {host_flags:#b}）",
-        t_gpu.ms()
-    ));
+    #[cfg(not(any(target_arch = "wasm32", target_os = "android")))]
+    {
+        let _ = &host_flags; // 桌面退役——flags 从脚本 set_mode 真值来
+        log(&format!(
+            "[{name}] ③建窗+GPU装配 = 脚本期（脚本 set_mode 触发——拆步装配定约）"
+        ));
+    }
     log(&format!(
         "[{name}] ④执行 {}（累计 {}ms）",
         req.name,
