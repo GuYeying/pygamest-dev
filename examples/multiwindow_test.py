@@ -5,7 +5,7 @@
 # 退；[multi-win] 逐项断言。
 import pygame
 
-MULTI = pygame.display.MULTIWINDOW
+MULTI = pygame.get_platform() == "windows"
 
 async def main():
     pygame.display.set_caption("multiwindow_test")
@@ -23,8 +23,8 @@ async def main():
             _fail.append(name)
             print("[multi-win] FAIL", name)
 
-    st(f"平台 = {pygame.display.PLATFORM}", True)
-    st(f"MULTIWINDOW = {MULTI}", isinstance(MULTI, bool))
+    st(f"平台 = {pygame.get_platform()}", True)
+    st(f"多窗预判（platform == windows）= {MULTI}", isinstance(MULTI, bool))
 
     if not MULTI:
         # 不支持构建/平台：create_window 必须抛 RuntimeError（用户定约
@@ -63,7 +63,7 @@ async def main():
             rt.fill((26, 32, 44))
             pygame.gfxdraw.set_transform(rt, M.mat4_translation(-300, 220, 0))
             pygame.gfxdraw.draw_surface(rt, hud_text(
-                f"主窗 | MULTIWINDOW={MULTI} | 平台 {pygame.display.PLATFORM}"))
+                f"主窗 | 平台 {pygame.get_platform()} | 多窗={MULTI}"))
 
         if MULTI:
             # 副窗独立会话/flip（双窗同帧）——⚠️ gfxdraw 绘制面多窗 v2

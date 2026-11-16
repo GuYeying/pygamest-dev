@@ -122,7 +122,7 @@ pub async fn run<H: Host>(host: &H) -> i32 {
     let t_font = Stopwatch::now();
     if host.cjk_preload() {
         log(&format!("[{name}] ②字体预载开始"));
-        rpy::testhost::preload_cjk(name).await;
+        rpy::host::preload_cjk(name).await;
         log(&format!("[{name}] ②字体预载完 {}ms", t_font.ms()));
     } else {
         log(&format!(
@@ -142,11 +142,8 @@ pub async fn run<H: Host>(host: &H) -> i32 {
     // 合成链（透明窗）在途帧 ResizeBuffers 失败 → 面解配置崩 ──
     let mut host_flags = 0u32;
     for (token, bit) in [
+        // 窗口语义位（后端位已剔除——走 GpuSettings.backends/env）
         ("TRANSPARENT", display::TRANSPARENT),
-        ("DIRECTX", display::DIRECTX),
-        ("VULKAN", display::VULKAN),
-        ("OPENGLES", display::OPENGLES),
-        ("OPENGL", display::OPENGL),
         ("HIDDEN", display::HIDDEN),
         ("NOFRAME", display::NOFRAME),
     ] {
@@ -188,8 +185,8 @@ pub async fn run<H: Host>(host: &H) -> i32 {
         req.name,
         t0.ms()
     ));
-    // 装配 + 执行统一走 testhost 面（帧桥注入/协程驱动/traceback 全在内）
-    if let Err(e) = rpy::testhost::run_script_in(interp, &req.code, &req.name, req.payload.clone().unwrap_or_default()).await {
+    // 装配 + 执行统一走 host 面（帧桥注入/协程驱动/traceback 全在内）
+    if let Err(e) = rpy::host::run_script_in(interp, &req.code, &req.name, req.payload.clone().unwrap_or_default()).await {
         log_err(&format!("[{name}] {e}"));
         return 1;
     }
