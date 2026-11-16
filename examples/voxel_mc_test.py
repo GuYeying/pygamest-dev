@@ -1,8 +1,14 @@
-# voxel_mc_test —— pygame_voxelis 极简 MC 案例（阶段二验收样张）：
+# voxel_mc_test —— pygame_voxelis 极简 MC 案例（阶段二验收样张，
+# 2026-11-16 优化版）：
 # 稀疏体素地形（VoxWorld 16×16×16 体素/chunk，体素 1.0）+ rapier3d
-# 体素物理（每列 fixed cuboid + 动态立方体发射）+ 射线选择（cast_ray
-# 命中 → 删除/放置）+ mesh_builder 法线光照渲染（voxelis 内建 mesh
-# 数组出口——无 uv，片元按世界坐标/法线程序染色）。
+# 体素物理（表面 cuboid + 动态方块发射）+ 射线选择（cast_ray 命中 →
+# 删除/放置）+ mesh_builder 法线光照渲染。
+# 优化四点：① GameCamera 显式相机接入（perspective + set_camera 定约
+# ——MVP 经 cam.mvp() 内聚 letterbox 直喂 uniform，免 write_camera_mvp
+# 的 fit 双乘）② 球渲染/物理尺寸对齐（mesh scale = 2×collider half
+# ——修复"碰撞体积与渲染网格大小不符"）③ 单块顶点语义 probe（mesh
+# 世界盒 [x,x+1] ≡ collider 盒——证词打点）④ 删除顶层后的露层 collider
+# 增量补挂（消除"mesh 有块物理穿"）。
 # 交互：鼠标拖拽转向 / WASD-QE 漫游 / 左键删 / 右键放 / F 发射方块 /
 # R 重建地形 / ESC 退出。控制台 [voxel-mc] 打点逐项验证。
 import pygame
@@ -10,7 +16,7 @@ import pygame_voxelis
 import pygame_physics as rp3
 
 # 三角函数面 = pygame.math 模块属性（import 子模块需 __path__ 不可用；
-# 属性直取可——cube_rotate 同款）
+# 属性直取——模块级供 fps_view 等顶层函数引用）
 M = pygame.math
 
 # WGSL：顶点 = pos3 + normal3；片元 = 法线光照 + 世界坐标程序染色
@@ -60,8 +66,7 @@ fn fs_main(in: VOut) -> @location(0) vec4<f32> {
 }
 """
 
-# 球体替换形态：动态小立方体 WGSL（model 矩阵 per-frame 更新——平移+
-# 旋转自物理查询回填）
+# 发射方块 WGSL（model 矩阵 per-frame 更新——平移自物理查询回填）
 WGSL_CUBE = """
 struct Camera {
     mvp: mat4x4<f32>,
@@ -101,7 +106,8 @@ fn fs_main(in: VOut) -> @location(0) vec4<f32> {
 }
 """
 
-# 小立方体顶点（pos3+normal3 顺序展开 36 顶点——cube_rotate 模板瘦身）
+# 小立方体顶点（pos3+normal3 顺序展开 36 顶点；±0.5 = 单位 1.0 宽
+# ——发射方块 collider half=0.5，渲染 scale 1.0 即物理一致）
 CUBE_VERTS = [
     # 前 +z
     -0.5, -0.5,  0.5,  0, 0, 1,   0.5, -0.5,  0.5,  0, 0, 1,   0.5, 0.5,  0.5,  0, 0, 1,
@@ -123,8 +129,8 @@ CUBE_VERTS = [
     -0.5, -0.5,  0.5,  0,-1, 0,   0.5, -0.5, -0.5,  0,-1, 0,   0.5, -0.5,  0.5,  0,-1, 0,
 ]
 
-# FPS view 矩阵（手写 look_at——pygame.math 无 look_at 面；yaw/pitch 驱动）
-# 三角取 pygame.math 模块函数（裁剪版 stdlib 无 math——2026-11-10 补齐面）
+# FPS view 矩阵（手写 look_at——yaw/pitch 驱动；返回 Mat4 直配 GameCamera
+# with_view；三角取 pygame.math 模块函数——裁剪版 stdlib 无 math）
 def fps_view(eye, yaw_deg, pitch_deg):
     yaw = M.radians(yaw_deg)
     pitch = M.radians(pitch_deg)
@@ -157,7 +163,6 @@ async def main():
     screen = pygame.display.set_mode((1024, 640))
     cjk = pygame.font.Font("cjk", 15)
     ac = pygame.render.access()
-    M = pygame.math
     frame = 0
     _fail = []
 
@@ -170,8 +175,21 @@ async def main():
 
     # ── 体素世界（16³/chunk，体素 1.0）+ 地形 ──
     vw = pygame_voxelis.VoxWorld(4, 16.0)
-    st("VoxWorld 构造", vw is not None and vw.voxel_size() == 1.0)
+    st("VoxWorld 构造", vw is not None)
     st("voxel_size 换算", abs(vw.voxel_size() - 1.0) < 1e-5)
+
+    # ── 单块顶点语义 probe（碰撞对齐证词）：体素 (0,0,0) 世界盒 =
+    # [0,1]³ ≡ collider（中心 +0.5、half 0.5）——绑定层公式 chunk
+    # offset + CUBE ±half_voxel + 0.5 中心偏移的落地验证 ──
+    probe = pygame_voxelis.VoxWorld(4, 16.0)
+    probe.set_voxel(0, 0, 0, 1)
+    pv, _pn, _pi = probe.generate_mesh()
+    pmin = (min(pv[0::3]), min(pv[1::3]), min(pv[2::3]))
+    pmax = (max(pv[0::3]), max(pv[1::3]), max(pv[2::3]))
+    ok = (abs(pmin[0]) < 1e-4 and abs(pmin[1]) < 1e-4 and abs(pmin[2]) < 1e-4
+          and abs(pmax[0] - 1.0) < 1e-4 and abs(pmax[1] - 1.0) < 1e-4
+          and abs(pmax[2] - 1.0) < 1e-4)
+    st(f"单块 mesh 盒 {tuple(round(x,3) for x in pmin)}..{tuple(round(x,3) for x in pmax)} ≡ collider [0,1]³", ok)
 
     height = [[4 + int(2.0 * M.sin(x * 0.4) * M.cos(z * 0.3))
                for z in range(16)] for x in range(16)]
@@ -195,26 +213,31 @@ async def main():
     # ── 物理（表面体素 cuboid + 射线选择）──
     world = rp3.PhysicsWorld3D(gravity=(0, -9.81, 0))
     col_bodies = {}                          # (x,y,z) → body handle（表面块+放置块）
+    # add_collider(key)：增量 collider（表面块/放置块/露层补挂共用——
+    # 中心 +0.5 half 0.5 ≡ mesh 世界盒 [x,x+1]，渲染物理对齐）
+    def add_collider(key):
+        x, y, z = key
+        b = rp3.RigidBodyBuilder3D("fixed",
+                                   translation=(x + 0.5, y + 0.5, z + 0.5))
+        c = rp3.ColliderBuilder3D("cuboid", hx=0.5, hy=0.5, hz=0.5, friction=0.8)
+        col_bodies[key] = world.insert(b, c)[0]
+
     for x in range(16):
         for z in range(16):
             h = height[x][z]
-            # 只给每列顶层块放 collider（内部块打不到/走不进——案例级
-            # 近似；删除顶层后露出的下一层不带 collider，v2 补增量）
-            key = (x, h - 1, z)
-            b = rp3.RigidBodyBuilder3D("fixed",
-                                       translation=(x + 0.5, h - 0.5, z + 0.5))
-            c = rp3.ColliderBuilder3D("cuboid", hx=0.5, hy=0.5, hz=0.5, friction=0.8)
-            col_bodies[key] = world.insert(b, c)[0]
+            add_collider((x, h - 1, z))      # 每列顶层块（内部块打不到）
 
     # 时序契约：insert 后须至少 step 一次方可 cast_ray（broad_phase 时序）
     world.step_frame(1.0 / 60.0)
     hit = world.cast_ray((8.0, 8.0, 8.0), (0.0, -1.0, 0.0), None)
     st("cast_ray 命中地面", hit is not None and hit[1] > 0.0)
 
-    # ── 相机（FPS 漫游）──
+    # ── 相机（GameCamera 显式定约——perspective letterbox 内聚）──
     eye = [8.0, 9.0, 22.0]
     yaw, pitch = 0.0, -12.0
-    proj = pygame.render.camera_perspective(58.0, 1024 / 640, 0.1, 300.0)
+    cam = pygame.render.game_camera_perspective(
+        58.0, 1024, 640, 1024, 640, 0.1, 300.0)
+    screen.set_camera(cam)                   # 会话级显式相机（空档自动面）
     cam_buf = ac.buffer(64, label="cam_buf")
     model_buf = ac.buffer(64, label="model_buf")
 
@@ -246,7 +269,8 @@ async def main():
     st("generate_mesh 出口", tri_count > 0)
     print(f"[voxel-mc] 地形 mesh：{tri_count} 三角形")
 
-    # ── 发射方块（动态立方体 ×N——物理 + mesh model 矩阵跟随）──
+    # ── 发射方块（动态立方体——collider half 0.5 ≡ 渲染 scale 1.0，
+    # 尺寸严格对齐；物理验证核心样张）──
     ball_mesh = ac.mesh(["float32x3", "float32x3"], CUBE_VERTS, label="ball_mesh")
     ball_bind = ac.bind_group([
         (0, "uniform", cam_buf),
@@ -256,7 +280,7 @@ async def main():
                             cull="back", blend="opaque",
                             depth_mode="standard", depth_write=True,
                             label="ball_pipe")
-    balls = []                               # (body_handle,)
+    balls = []                               # body handle 流
 
     def launch_ball():
         yaw_r = M.radians(yaw)
@@ -267,7 +291,7 @@ async def main():
         start = (eye[0] + d[0], eye[1] + d[1], eye[2] + d[2])
         b = rp3.RigidBodyBuilder3D("dynamic", translation=start,
                                    linvel=(d[0] * 9.0, d[1] * 9.0, d[2] * 9.0))
-        c = rp3.ColliderBuilder3D("cuboid", hx=0.3, hy=0.3, hz=0.3,
+        c = rp3.ColliderBuilder3D("cuboid", hx=0.5, hy=0.5, hz=0.5,
                                   density=1.5, restitution=0.2, friction=0.6)
         balls.append(world.insert(b, c)[0])
 
@@ -307,19 +331,22 @@ async def main():
         bh = col_bodies.pop(key, None)
         if bh is not None:
             world.remove_body(bh)
+        # 露层补挂：正下方有体素则给新暴露面补 collider（消除
+        # "mesh 有块物理穿"——增量近似，仅直下方向）
+        below = (key[0], key[1] - 1, key[2])
+        if vw.get_voxel(*below) is not None and below not in col_bodies:
+            add_collider(below)
         return True
 
     def place_voxel(key):
         if vw.get_voxel(*key) is not None:
             return False
         vw.set_voxel(key[0], key[1], key[2], 2)
-        b = rp3.RigidBodyBuilder3D("fixed",
-                                   translation=(key[0] + 0.5, key[1] + 0.5, key[2] + 0.5))
-        c = rp3.ColliderBuilder3D("cuboid", hx=0.5, hy=0.5, hz=0.5, friction=0.8)
-        col_bodies[key] = world.insert(b, c)[0]
+        add_collider(key)
         return True
 
     dragging = False
+    last_pos = None                       # 拖拽差分锚（Event 无 rel——x/y 差分自算）
     text_cache = {}
 
     def hud_text(s, color=(210, 214, 224)):
@@ -355,11 +382,7 @@ async def main():
                     for x in range(16):
                         for z in range(16):
                             h = height[x][z]
-                            b = rp3.RigidBodyBuilder3D(
-                                "fixed", translation=(x + 0.5, h - 0.5, z + 0.5))
-                            c = rp3.ColliderBuilder3D(
-                                "cuboid", hx=0.5, hy=0.5, hz=0.5, friction=0.8)
-                            col_bodies[(x, h - 1, z)] = world.insert(b, c)[0]
+                            add_collider((x, h - 1, z))
                     world.step_frame(1.0 / 60.0)   # 时序契约（cast_ray 前置）
                     vox_mesh, tri_count = rebuild_voxel_mesh()
                     info = "地形已重置"
@@ -387,8 +410,10 @@ async def main():
                 if e.button == 1:
                     dragging = False
             elif e.type == pygame.event.MOUSEMOTION and dragging:
-                yaw += e.rel[0] * 0.35
-                pitch = max(-85.0, min(85.0, pitch + e.rel[1] * 0.35))
+                if last_pos is not None:
+                    yaw += (e.x - last_pos[0]) * 0.35
+                    pitch = max(-85.0, min(85.0, pitch + (e.y - last_pos[1]) * 0.35))
+                last_pos = (e.x, e.y)
 
         # 漫游（WASD 平移 + QE 升降——get_pressed 视图，Key unhashable）
         pressed = pygame.key.get_pressed()
@@ -410,10 +435,11 @@ async def main():
         if pressed.get(pygame.key.K_e):
             eye[1] += speed
 
-        # 物理 + 球位姿回填
+        # 物理 + GameCamera MVP（with_view 每帧替换——letterbox 内聚直
+        # 喂 uniform，免 write_camera_mvp 的 fit 组合双乘）
         world.step_frame(1.0 / 60.0)
-        mvp = proj.with_view(fps_view(eye, yaw, pitch)).mvp()
-        pygame.render.write_camera_mvp(cam_buf, mvp)
+        cam = cam.with_view(fps_view(eye, yaw, pitch))
+        ac.write_buffer(cam_buf, cam.mvp())
 
         with screen.render() as rt:
             rt.fill((28, 34, 46))

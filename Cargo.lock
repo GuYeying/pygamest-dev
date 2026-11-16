@@ -4812,7 +4812,7 @@ dependencies = [
  "ndk-context",
  "pygamest",
  "starfish-debug",
- "starfish-dialog",
+ "starfish-dialog 0.9.73 (git+https://github.com/GuYeying/starfish)",
  "starfish-io",
  "starfish-pygame",
  "starfish-std",
@@ -6174,13 +6174,12 @@ dependencies = [
 [[package]]
 name = "starfish-audio"
 version = "0.9.73"
-source = "git+https://github.com/GuYeying/starfish#48ecdff77998771662ab309805fc019d8cc5895a"
 dependencies = [
  "bytemuck",
  "cpal",
  "log",
  "starfish-debug",
- "starfish-dialog",
+ "starfish-dialog 0.9.73",
  "starfish-io",
  "starfish-permission",
  "symphonia",
@@ -6192,10 +6191,26 @@ dependencies = [
 [[package]]
 name = "starfish-debug"
 version = "0.9.73"
-source = "git+https://github.com/GuYeying/starfish#48ecdff77998771662ab309805fc019d8cc5895a"
 dependencies = [
  "log",
  "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "starfish-dialog"
+version = "0.9.73"
+dependencies = [
+ "jni 0.21.1",
+ "js-sys",
+ "log",
+ "rfd 0.15.4",
+ "robius-android-env",
+ "robius-file-picker",
+ "starfish-debug",
+ "starfish-permission",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
  "web-sys",
 ]
 
@@ -6220,7 +6235,6 @@ dependencies = [
 [[package]]
 name = "starfish-font"
 version = "0.9.73"
-source = "git+https://github.com/GuYeying/starfish#48ecdff77998771662ab309805fc019d8cc5895a"
 dependencies = [
  "bytemuck",
  "glam 0.33.11",
@@ -6233,7 +6247,6 @@ dependencies = [
 [[package]]
 name = "starfish-gamepad"
 version = "0.9.73"
-source = "git+https://github.com/GuYeying/starfish#48ecdff77998771662ab309805fc019d8cc5895a"
 dependencies = [
  "gilrs",
  "js-sys",
@@ -6244,7 +6257,6 @@ dependencies = [
 [[package]]
 name = "starfish-gfx"
 version = "0.9.73"
-source = "git+https://github.com/GuYeying/starfish#48ecdff77998771662ab309805fc019d8cc5895a"
 dependencies = [
  "bytemuck",
  "glam 0.33.11",
@@ -6255,7 +6267,6 @@ dependencies = [
 [[package]]
 name = "starfish-io"
 version = "0.9.73"
-source = "git+https://github.com/GuYeying/starfish#48ecdff77998771662ab309805fc019d8cc5895a"
 dependencies = [
  "js-sys",
  "ndk",
@@ -6269,7 +6280,6 @@ dependencies = [
 [[package]]
 name = "starfish-net"
 version = "0.9.73"
-source = "git+https://github.com/GuYeying/starfish#48ecdff77998771662ab309805fc019d8cc5895a"
 dependencies = [
  "js-sys",
  "starfish-debug",
@@ -6281,7 +6291,6 @@ dependencies = [
 [[package]]
 name = "starfish-permission"
 version = "0.9.73"
-source = "git+https://github.com/GuYeying/starfish#48ecdff77998771662ab309805fc019d8cc5895a"
 dependencies = [
  "jni 0.21.1",
  "js-sys",
@@ -6297,7 +6306,6 @@ dependencies = [
 [[package]]
 name = "starfish-pygame"
 version = "0.9.73"
-source = "git+https://github.com/GuYeying/starfish#48ecdff77998771662ab309805fc019d8cc5895a"
 dependencies = [
  "bytemuck",
  "chacha20poly1305",
@@ -6312,7 +6320,7 @@ dependencies = [
  "sha2",
  "starfish-audio",
  "starfish-debug",
- "starfish-dialog",
+ "starfish-dialog 0.9.73",
  "starfish-font",
  "starfish-gamepad",
  "starfish-gfx",
@@ -6333,7 +6341,6 @@ dependencies = [
 [[package]]
 name = "starfish-render"
 version = "0.9.73"
-source = "git+https://github.com/GuYeying/starfish#48ecdff77998771662ab309805fc019d8cc5895a"
 dependencies = [
  "bytemuck",
  "glam 0.33.11",
@@ -6351,7 +6358,6 @@ dependencies = [
 [[package]]
 name = "starfish-std"
 version = "0.9.73"
-source = "git+https://github.com/GuYeying/starfish#48ecdff77998771662ab309805fc019d8cc5895a"
 dependencies = [
  "console_error_panic_hook",
  "pollster",
@@ -6364,7 +6370,6 @@ dependencies = [
 [[package]]
 name = "starfish-time"
 version = "0.9.73"
-source = "git+https://github.com/GuYeying/starfish#48ecdff77998771662ab309805fc019d8cc5895a"
 dependencies = [
  "web-sys",
 ]
@@ -6372,7 +6377,6 @@ dependencies = [
 [[package]]
 name = "starfish-video"
 version = "0.9.73"
-source = "git+https://github.com/GuYeying/starfish#48ecdff77998771662ab309805fc019d8cc5895a"
 dependencies = [
  "gstreamer",
  "gstreamer-app",
@@ -6402,7 +6406,6 @@ dependencies = [
 [[package]]
 name = "starfish-we"
 version = "0.9.73"
-source = "git+https://github.com/GuYeying/starfish#48ecdff77998771662ab309805fc019d8cc5895a"
 dependencies = [
  "android-activity",
  "jni-sys 0.3.1",
