@@ -277,9 +277,6 @@ async def main():
                 True, (180, 200, 180)))
 
         pygame.display.flip()
-        if frame == 30:
-            pygame.image.save(screen, 'fluid_frame.bmp')
-        frame += 1
         if frame == 60:
             st("60 帧三渲同屏稳定", True)
         if frame == 300:
