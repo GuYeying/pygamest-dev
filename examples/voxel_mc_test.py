@@ -356,6 +356,7 @@ async def main():
     last_pos = None                       # 拖拽差分锚（Event 无 rel——x/y 差分自算）
     debug_on = False                      # D 键：collider 线框叠加（对齐检查）
     dbg_draw = rp3.DebugDraw3D()
+    dbg_renderer = rp3.DebugLinesRenderer3D()   # 相机由 set_mvp 直写（默认构造即可）
     text_cache = {}
 
     def hud_text(s, color=(210, 214, 224)):
@@ -472,15 +473,11 @@ async def main():
                     p.set_bind_group(0, ball_bind)
                     p.draw_mesh(ball_mesh)
             if debug_on:
-                # collider 线框叠加（D 键——对齐检查：线框与体素 mesh 应
-                # 逐块重合；renderer 相机与 fps 相机同步重建）
-                d = mouse_ray()
+                # collider 线框叠加（D 键——set_mvp 绝对对齐：与主管线
+                # 喂同一个 cam.mvp()，投影/view/near/far 全同）
                 sink = rp3.LineSink3D()
                 rp3.collect3d(world, dbg_draw, sink)
-                dbg_renderer = rp3.DebugLinesRenderer3D(
-                    eye=(eye[0], eye[1], eye[2]),
-                    target=(eye[0] + d[0], eye[1] + d[1], eye[2] + d[2]),
-                    fov=0.8378)          # ≈48° 弧度——与 GameCamera 同视场
+                dbg_renderer.set_mvp(cam.mvp())
                 rt.draw_debug_3d(dbg_renderer, sink)
             draw_hud(rt)
 
