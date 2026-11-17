@@ -8,6 +8,8 @@
 # 控制台 [fluid-test] 逐项断言。
 import pygame
 import pygame_physics as pp
+
+M = pygame.math
 import pygame_voxelis
 
 W, H = 800, 600
@@ -58,12 +60,47 @@ SPHERE = [
 ]
 
 
+def fps_view(eye, yaw_deg, pitch_deg):
+    yaw = M.radians(yaw_deg)
+    pitch = M.radians(pitch_deg)
+    fx = M.cos(pitch) * M.sin(yaw)
+    fy = M.sin(pitch)
+    fz = -M.cos(pitch) * M.cos(yaw)
+    f = (fx, fy, fz)                       # 前向（单位——三角恒等式保证）
+    up0 = (0.0, 1.0, 0.0)
+    s0 = (fy * up0[2] - fz * up0[1],
+          fz * up0[0] - fx * up0[2],
+          fx * up0[1] - fy * up0[0])       # right = f × up（模 = cos(pitch)
+                                            # ≠ 1——**必须归一化**，否则
+                                            # pitch 越大横竖缩放越失配 =
+                                            # 旋转画面拉伸畸变，2026-11-17
+                                            # 用户实测报障根因）
+    sn = (s0[0] * s0[0] + s0[1] * s0[1] + s0[2] * s0[2]) ** 0.5
+    s = (s0[0] / sn, s0[1] / sn, s0[2] / sn)
+    u = (s[1] * fz - s[2] * fy,
+         s[2] * fx - s[0] * fz,
+         s[0] * fy - s[1] * fx)            # true up = s × f（s⊥f 双单位
+                                            # → u 自动单位）
+    ex, ey, ez = eye
+    # 视图基（行主视觉——标准 view 行向量）→ 列主展开（from_cols_array
+    # 列主序契约：out[c*4+r] = m[r*4+c]）
+    m = [
+        s[0], s[1], s[2], -s[0] * ex - s[1] * ey - s[2] * ez,
+        u[0], u[1], u[2], -u[0] * ex - u[1] * ey - u[2] * ez,
+        -f[0], -f[1], -f[2], f[0] * ex + f[1] * ey + f[2] * ez,
+        0.0, 0.0, 0.0, 1.0,
+    ]
+    cols = [m[r * 4 + c] for c in range(4) for r in range(4)]
+    return M.mat4_from_cols_array(cols)
+
+
+
+
 async def main():
     pygame.display.set_caption("fluid_test")
     screen = pygame.display.set_mode((800, 600))
     cjk = pygame.font.Font("cjk", 15)
     ac = pygame.render.access()
-    M = pygame.math
     frame = 0
     _fail = []
 
@@ -128,11 +165,9 @@ async def main():
     # 相机（斜 45° 俯瞰槽）
     cam = pygame.render.game_camera_perspective(
         50.0, W, H, W, H, 0.1, 100.0)
-    cam = cam.with_view(M.mat4_from_cols_array(
-        [1, 0, 0, 0, 0, 0.707, 0.707, 0, 0, -0.707, 0.707, 0,
-         0, -3.5, 9.0, 1]))
+    cam = cam.with_view(fps_view((0.0, 4.0, 9.0), 0.0, -25.0))
     screen.set_camera(cam)
-    pygame.render.write_camera_mvp(cam_buf, cam.mvp())
+    pygame.render.write_camera_mvp(cam_buf, cam.mvp())  # 初始——循环内静态相机恒定
 
     # 三渲开关（F1/F2/F3——debug 事件控制演示）
     solid_debug = False      # F1: rapier solid 线框
@@ -242,6 +277,8 @@ async def main():
                 True, (180, 200, 180)))
 
         pygame.display.flip()
+        if frame == 30:
+            pygame.image.save(screen, 'fluid_frame.bmp')
         frame += 1
         if frame == 60:
             st("60 帧三渲同屏稳定", True)
