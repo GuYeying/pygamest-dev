@@ -26,3 +26,5 @@ io_case
 __probe_case__*
 examples/tilemap_layers.tmx
 examples/leak_j.tmx
+pygamecraft.zip
+release指令.txt
