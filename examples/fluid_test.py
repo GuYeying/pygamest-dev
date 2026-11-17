@@ -1,13 +1,14 @@
 # fluid_test —— pygame_physics 流体（salva SPH）标准场景（2026-11-17
 # solid/fluid 分层重构验收样张）：容器壁壳 + 水柱下落 + DFSPH 压力求
-# 解 + instanced 球渲染（粒子出口 → GPU 粒子通路）。
-# 按键：F1=solid 调试线框（rigid 线框）/ F2=流体粒子高亮切换（debug
-# 事件控制演示）/ 空格=注入一波新流体 / ESC 退出。
+# 解 + **三渲同屏**（体素 mesh + rapier solid 线框 + salva 流体粒子球
+# ——F1=solid 线框 / F2=流体粒子高亮 / F3=体素 mesh 按键切换）+
+# 空格=注入一波新流体 / G=调度器 fluid 开关切换 / ESC 退出。
 # 调度器：pygame_physics.scheduler_status() 实时读 / scheduler_enable
 # ("fluid", False) 运行时暂停流体推进（solid 照常）——1 键切换演示。
 # 控制台 [fluid-test] 逐项断言。
 import pygame
 import pygame_physics as pp
+import pygame_voxelis
 
 W, H = 800, 600
 
@@ -73,6 +74,16 @@ async def main():
             _fail.append(name)
             print("[fluid-test] FAIL", name)
 
+    # ── 体素世界（场景主体——槽体两侧的墙）──
+    vw = pygame_voxelis.VoxWorld(4, 16.0)
+    # 槽体两侧墙（x=1 与 x=7 两列，z 4..8）
+    for z in range(4, 9):
+        for y in range(0, 3):
+            vw.set_voxel(1, y, z, 1)
+            vw.set_voxel(7, y, z, 1)
+    vox_mesh_out = vw.generate_mesh()
+    st("体素 mesh 出口", len(vox_mesh_out[0]) > 0)
+
     # ── solid 世界（地面 + 侧壁——fluid 粒子被约束在槽内）──
     solid = pp.PhysicsWorld3D(gravity=(0, -9.81, 0))
     solid.insert(
@@ -123,8 +134,27 @@ async def main():
     screen.set_camera(cam)
     pygame.render.write_camera_mvp(cam_buf, cam.mvp())
 
-    fluid_debug = False
-    solid_debug = False
+    # 三渲开关（F1/F2/F3——debug 事件控制演示）
+    solid_debug = False      # F1: rapier solid 线框
+    fluid_debug = False      # F2: 流体粒子高亮
+    vox_on = True            # F3: 体素 mesh 显示
+
+    # 体素 mesh 管线（同 WGSL——binding 1 恒单位阵填充）
+    vox_model = ac.buffer(64, label="vox_model")   # WGSL 声明 binding 1——恒单位阵
+    vox_mesh = ac.mesh(["float32x3", "float32x3"], vox_mesh_out[0], label="vox_mesh")
+    vox_bind = ac.bind_group([
+        (0, "uniform", cam_buf),
+        (1, "uniform", vox_model),
+    ], label="vox_bind")
+    vox_pipe = ac.pipeline(shader, vox_mesh, [vox_bind], cull="back",
+                           blend="opaque", depth_mode="standard",
+                           depth_write=True, label="vox_pipe")
+
+    # solid 调试线（rapier 线框——DebugLinesRenderer3D + collect3d）
+    dbg_draw = pp.DebugDraw3D()
+    dbg_sink = pp.LineSink3D()
+    dbg_renderer = pp.DebugLinesRenderer3D(
+        eye=(0.0, 4.0, 9.0), target=(0.0, 1.0, 0.0), fov=0.873)  # ≈50°
 
     while True:
         for e in pygame.event.get():
@@ -137,12 +167,18 @@ async def main():
                     solid_debug = not solid_debug
                 if e.key == pygame.key.K_F2:
                     fluid_debug = not fluid_debug
+                if e.key == pygame.key.K_F3:
+                    vox_on = not vox_on
                 if e.key == pygame.key.K_SPACE:
                     # 注入一波新流体（顶部随机位置）
                     fh2 = fw.add_fluid_cuboid(
                         (-0.3 + (frame % 7) * 0.1, 3.0, -0.3),
                         (0.6, 0.4, 0.6))
                     print(f"[fluid-test] 注入流体 handle={fh2}")
+                if e.key == pygame.key.K_g:
+                    cur = pp.scheduler_status().get("fluid")
+                    pp.scheduler_enable("fluid", not cur)
+                    print(f"[fluid-test] 调度器 fluid → {not cur}")
 
         # 物理（solid + fluid 各自 step；调度器可运行时暂停任一）
         solid.step_frame(1.0 / 60.0)
@@ -153,11 +189,16 @@ async def main():
         with screen.render() as rt:
             rt.fill((16, 20, 30))
             with screen.raw_render(depth=True) as p:
-                p.set_pipeline(pipe)
-                p.set_bind_group(0, bind)
-                p.draw_mesh(sphere_mesh)
-                # 流体粒子 instanced 球（位置由 GPU 通路外部注入——
-                # v1 直接逐粒子 draw：200 粒子 @ 60fps 可承受）
+                # ① 体素 mesh（场景墙——F3 切换）
+                if vox_on:
+                    p.set_pipeline(vox_pipe)
+                    p.set_bind_group(0, vox_bind)
+                    p.draw_mesh(vox_mesh)
+                # ② solid 线框（F1 切换——rapier collider 线框叠加）
+                if solid_debug:
+                    pp.collect3d(solid, dbg_draw, dbg_sink)
+                    rt.draw_debug_3d(dbg_renderer, dbg_sink)
+                # ③ 流体粒子球（每帧逐粒子 draw——200 粒子可承受）
                 for i in range(len(positions) // 3):
                     x = positions[i * 3]
                     y = positions[i * 3 + 1]
@@ -171,7 +212,8 @@ async def main():
             pygame.gfxdraw.set_transform(rt, M.mat4_translation(-388, 288, 0))
             pygame.gfxdraw.draw_surface(rt, cjk.render(
                 f"[fluid] 粒子 {len(positions) // 3} | F1 solid线框={solid_debug} "
-                f"F2 流体高亮={fluid_debug} 空格=注水", True, (200, 210, 230)))
+                f"F2 流体={fluid_debug} F3 体素={vox_on} 空格=注水",
+                True, (200, 210, 230)))
             pygame.gfxdraw.set_transform(rt, M.mat4_translation(-388, 268, 0))
             pygame.gfxdraw.draw_surface(rt, cjk.render(
                 f"调度器: {pp.scheduler_status()}（G 键切 fluid 开关）",
@@ -180,7 +222,7 @@ async def main():
         pygame.display.flip()
         frame += 1
         if frame == 60:
-            st("60 帧流体模拟稳定", True)
+            st("60 帧三渲同屏稳定", True)
         if frame == 300:
             pos_check = fw.fluid_particles(fh)
             st("300 帧粒子数据出口有效",

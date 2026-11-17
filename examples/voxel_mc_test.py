@@ -13,6 +13,7 @@
 # R 重建地形 / ESC 退出。控制台 [voxel-mc] 打点逐项验证。
 import pygame
 import pygame_voxelis
+import pygame_physics as rp3  # noqa: 已有 rp3 别名（流体面 pp 同库）
 import pygame_physics as rp3
 
 # 三角函数面 = pygame.math 模块属性（import 子模块需 __path__ 不可用；
@@ -369,7 +370,10 @@ async def main():
 
     dragging = False
     last_pos = None                       # 拖拽差分锚（Event 无 rel——x/y 差分自算）
-    debug_on = False                      # D 键：collider 线框叠加（对齐检查）
+    debug_on = False                      # T 键：collider 线框叠加（对齐检查）
+    fluid_on = False                      # F2 键：流体元素开关（水柱注入）
+    fluid_world = None                    # 惰性创建（首次 F2 时）
+    fluid_fh = None
     dbg_draw = rp3.DebugDraw3D()
     dbg_renderer = rp3.DebugLinesRenderer3D()   # 相机由 set_mvp 直写（默认构造即可）
     text_cache = {}
@@ -384,7 +388,7 @@ async def main():
         pygame.gfxdraw.set_transform(rt, M.mat4_translation(-500, 308, 0))
         pygame.gfxdraw.draw_surface(rt, hud_text(
             f"[voxel_mc] 体素 mesh {tri_count} 三角 | chunk {vw.chunk_count()} | "
-            f"球 {len(balls)} | WASD漫游 QE升降 拖拽=转向+俯仰 左删右放 F发射 R重置 T碰撞体显示"))
+            f"球 {len(balls)} | WASD漫游 QE升降 拖拽=转向+俯仰 左删右放 F发射 R重置 T碰撞体显示 F2流体"))
         pygame.gfxdraw.set_transform(rt, M.mat4_translation(-500, 288, 0))
         pygame.gfxdraw.draw_surface(rt, hud_text(
             info + (" | T:collider线框 ON" if debug_on else ""), (255, 220, 90)))
@@ -400,6 +404,13 @@ async def main():
                     launch_ball()
                 if e.key == pygame.key.K_t:
                     debug_on = not debug_on
+                if e.key == pygame.key.K_F2:
+                    fluid_on = not fluid_on
+                    if fluid_on and fluid_world is None:
+                        fluid_world = rp3.FluidWorld(particle_radius=0.1)
+                        fluid_fh = fluid_world.add_fluid_cuboid(
+                            (-0.4, 4.0, -0.4), (0.8, 2.0, 0.8))
+                        print('[voxel_mc] 流体已注入（160 粒子水柱）')
                 if e.key == pygame.key.K_r:
                     for bh in list(col_bodies.values()):
                         world.remove_body(bh)
@@ -479,6 +490,8 @@ async def main():
         # 物理 + GameCamera MVP（with_view 每帧替换——letterbox 内聚直
         # 喂 uniform，免 write_camera_mvp 的 fit 组合双乘）
         world.step_frame(1.0 / 60.0)
+        if fluid_on and fluid_world is not None:
+            fluid_world.step(1.0 / 60.0)
         cam = cam.with_view(fps_view(eye, yaw, pitch))
         ac.write_buffer(cam_buf, cam.mvp())
 
@@ -500,6 +513,20 @@ async def main():
                     p.set_pipeline(ball_pipe)
                     p.set_bind_group(0, bind)
                     p.draw_mesh(ball_mesh)
+                # 流体粒子球（F2 开——salva 粒子出口 → instanced 球）
+                if fluid_on and fluid_world is not None:
+                    fpos, _fv = fluid_world.fluid_particles(fluid_fh)
+                    fmodel = ac.buffer(64, label="fluid_model_f")
+                    fbind = ac.bind_group([
+                        (0, "uniform", cam_buf),
+                        (1, "uniform", fmodel),
+                    ], label="fluid_model_bind")
+                    for i in range(len(fpos) // 3):
+                        fx = fpos[i * 3]; fy = fpos[i * 3 + 1]; fz = fpos[i * 3 + 2]
+                        ac.write_buffer(fmodel, M.mat4_translation(fx, fy, fz))
+                        p.set_pipeline(ball_pipe)
+                        p.set_bind_group(0, fbind)
+                        p.draw_mesh(ball_mesh)
             if debug_on:
                 # collider 线框叠加（D 键——set_mvp 绝对对齐：与主管线
                 # 喂同一个 cam.mvp()，投影/view/near/far 全同）

@@ -65,6 +65,8 @@ voxelis = ["pygamest/voxelis"]
 tilemap = ["pygamest/tilemap"]
 # multi-window = 多窗口（windows-only——we 白名单编译期把关）
 multi-window = ["pygamest/multi-window"]
+# fluid = 流体物理（salva3d SPH——solid/fluid 分层重构第二批）
+fluid = ["pygamest/fluid"]
 
 [dependencies]
 starfish-debug = { git = "https://github.com/GuYeying/starfish" }
