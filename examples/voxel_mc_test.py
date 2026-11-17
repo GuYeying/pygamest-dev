@@ -369,10 +369,10 @@ async def main():
         pygame.gfxdraw.set_transform(rt, M.mat4_translation(-500, 308, 0))
         pygame.gfxdraw.draw_surface(rt, hud_text(
             f"[voxel_mc] 体素 mesh {tri_count} 三角 | chunk {vw.chunk_count()} | "
-            f"球 {len(balls)} | WASD+QE 漫游 拖拽转向 左删 右放 F 发射 R 重置"))
+            f"球 {len(balls)} | WASD+QE 漫游 拖拽=转向 ↑↓=俯仰 左删右放 F发射 R重置 T线框"))
         pygame.gfxdraw.set_transform(rt, M.mat4_translation(-500, 288, 0))
         pygame.gfxdraw.draw_surface(rt, hud_text(
-            info + (" | D:collider线框 ON" if debug_on else ""), (255, 220, 90)))
+            info + (" | T:collider线框 ON" if debug_on else ""), (255, 220, 90)))
 
     while True:
         for e in pygame.event.get():
@@ -383,7 +383,7 @@ async def main():
                     return
                 if e.key == pygame.key.K_f:
                     launch_ball()
-                if e.key == pygame.key.K_d:
+                if e.key == pygame.key.K_t:
                     debug_on = not debug_on
                 if e.key == pygame.key.K_r:
                     for bh in list(col_bodies.values()):
@@ -425,7 +425,6 @@ async def main():
             elif e.type == pygame.event.MOUSEMOTION and dragging:
                 if last_pos is not None:
                     yaw += (e.x - last_pos[0]) * 0.35
-                    pitch = max(-85.0, min(85.0, pitch + (e.y - last_pos[1]) * 0.35))
                 last_pos = (e.x, e.y)
 
         # 漫游（WASD 平移 + QE 升降——get_pressed 视图，Key unhashable）
@@ -447,6 +446,11 @@ async def main():
             eye[1] -= speed
         if pressed.get(pygame.key.K_e):
             eye[1] += speed
+        # 俯仰 = 方向键 Up/Down（拖拽已不管 pitch——防手部斜向漂移）
+        if pressed.get(pygame.key.K_UP):
+            pitch = min(85.0, pitch + 1.2)
+        if pressed.get(pygame.key.K_DOWN):
+            pitch = max(-85.0, pitch - 1.2)
 
         # 物理 + GameCamera MVP（with_view 每帧替换——letterbox 内聚直
         # 喂 uniform，免 write_camera_mvp 的 fit 组合双乘）
