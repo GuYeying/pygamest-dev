@@ -384,7 +384,7 @@ async def main():
         pygame.gfxdraw.set_transform(rt, M.mat4_translation(-500, 308, 0))
         pygame.gfxdraw.draw_surface(rt, hud_text(
             f"[voxel_mc] 体素 mesh {tri_count} 三角 | chunk {vw.chunk_count()} | "
-            f"球 {len(balls)} | WASD漫游 ZC升降 拖拽=转向 ↑↓/QE=俯仰 左删右放 F发射 R重置 T线框"))
+            f"球 {len(balls)} | WASD漫游 QE升降 拖拽=转向+俯仰 左删右放 F发射 R重置 T线框"))
         pygame.gfxdraw.set_transform(rt, M.mat4_translation(-500, 288, 0))
         pygame.gfxdraw.draw_surface(rt, hud_text(
             info + (" | T:collider线框 ON" if debug_on else ""), (255, 220, 90)))
@@ -448,8 +448,12 @@ async def main():
                 if e.button == 1:
                     dragging = False
             elif e.type == pygame.event.MOUSEMOTION and dragging:
+                # 拖拽 = 转向 + 俯仰（FPS 全形态——x 差分 yaw / y 差分
+                # pitch，用户定约 2026-11-17）
                 if last_pos is not None:
                     yaw += (e.x - last_pos[0]) * 0.35
+                    pitch = max(-85.0, min(85.0,
+                                           pitch + (e.y - last_pos[1]) * 0.35))
                 last_pos = (e.x, e.y)
 
         # 漫游（WASD 平移 + QE 升降——get_pressed 视图，Key unhashable）
@@ -467,15 +471,10 @@ async def main():
             eye[0] -= right[0] * speed; eye[2] -= right[2] * speed
         if pressed.get(pygame.key.K_d):
             eye[0] += right[0] * speed; eye[2] += right[2] * speed
-        if pressed.get(pygame.key.K_z):
+        if pressed.get(pygame.key.K_q):
             eye[1] -= speed
-        if pressed.get(pygame.key.K_c):
+        if pressed.get(pygame.key.K_e):
             eye[1] += speed
-        # 俯仰 = ↑↓ **或** Q/E（双键位——部分键盘/焦点下方向键不可达）
-        if pressed.get(pygame.key.K_UP) or pressed.get(pygame.key.K_q):
-            pitch = min(85.0, pitch + 1.2)
-        if pressed.get(pygame.key.K_DOWN) or pressed.get(pygame.key.K_e):
-            pitch = max(-85.0, pitch - 1.2)
 
         # 物理 + GameCamera MVP（with_view 每帧替换——letterbox 内聚直
         # 喂 uniform，免 write_camera_mvp 的 fit 组合双乘）
