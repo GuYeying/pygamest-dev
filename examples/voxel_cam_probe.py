@@ -20,7 +20,7 @@ def fps_view(eye, yaw_deg, pitch_deg):
           fx * up0[1] - fy * up0[0])
     sn = (s0[0] * s0[0] + s0[1] * s0[1] + s0[2] * s0[2]) ** 0.5
     s = (s0[0] / sn, s0[1] / sn, s0[2] / sn)
-    u = (s[1] * fz - s[2] * fx,
+    u = (s[1] * fz - s[2] * fy,
          s[2] * fx - s[0] * fz,
          s[0] * fy - s[1] * fx)
     ex, ey, ez = eye
