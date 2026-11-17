@@ -384,7 +384,7 @@ async def main():
         pygame.gfxdraw.set_transform(rt, M.mat4_translation(-500, 308, 0))
         pygame.gfxdraw.draw_surface(rt, hud_text(
             f"[voxel_mc] 体素 mesh {tri_count} 三角 | chunk {vw.chunk_count()} | "
-            f"球 {len(balls)} | WASD漫游 QE升降 拖拽=转向+俯仰 左删右放 F发射 R重置 T线框"))
+            f"球 {len(balls)} | WASD漫游 QE升降 拖拽=转向+俯仰 左删右放 F发射 R重置 T碰撞体显示"))
         pygame.gfxdraw.set_transform(rt, M.mat4_translation(-500, 288, 0))
         pygame.gfxdraw.draw_surface(rt, hud_text(
             info + (" | T:collider线框 ON" if debug_on else ""), (255, 220, 90)))
