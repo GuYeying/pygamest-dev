@@ -233,6 +233,10 @@ async def main():
         for z in range(16):
             h = height[x][z]
             add_collider((x, h - 1, z))      # 每列顶层块（内部块打不到）
+        # 石块样本 collider（值 2 两块——build_terrain 放在列顶层之上，
+        # 列循环只挂到 h-1 顶层，这两块漏挂 = 渲染有块物理穿透 bug）
+        add_collider((3, height[3][3], 3))
+        add_collider((5, height[5][5], 5))
 
     # 时序契约：insert 后须至少 step 一次方可 cast_ray（broad_phase 时序）
     world.step_frame(1.0 / 60.0)
@@ -380,7 +384,7 @@ async def main():
         pygame.gfxdraw.set_transform(rt, M.mat4_translation(-500, 308, 0))
         pygame.gfxdraw.draw_surface(rt, hud_text(
             f"[voxel_mc] 体素 mesh {tri_count} 三角 | chunk {vw.chunk_count()} | "
-            f"球 {len(balls)} | WASD+QE 漫游 拖拽=转向 ↑↓=俯仰 左删右放 F发射 R重置 T线框"))
+            f"球 {len(balls)} | WASD漫游 ZC升降 拖拽=转向 ↑↓/QE=俯仰 左删右放 F发射 R重置 T线框"))
         pygame.gfxdraw.set_transform(rt, M.mat4_translation(-500, 288, 0))
         pygame.gfxdraw.draw_surface(rt, hud_text(
             info + (" | T:collider线框 ON" if debug_on else ""), (255, 220, 90)))
@@ -409,6 +413,8 @@ async def main():
                     for x in range(16):
                         for z in range(16):
                             h = height[x][z]
+                            add_collider((3, height[3][3], 3))
+                            add_collider((5, height[5][5], 5))
                             add_collider((x, h - 1, z))
                     world.step_frame(1.0 / 60.0)   # 时序契约（cast_ray 前置）
                     vox_mesh, tri_count = rebuild_voxel_mesh()
@@ -461,14 +467,14 @@ async def main():
             eye[0] -= right[0] * speed; eye[2] -= right[2] * speed
         if pressed.get(pygame.key.K_d):
             eye[0] += right[0] * speed; eye[2] += right[2] * speed
-        if pressed.get(pygame.key.K_q):
+        if pressed.get(pygame.key.K_z):
             eye[1] -= speed
-        if pressed.get(pygame.key.K_e):
+        if pressed.get(pygame.key.K_c):
             eye[1] += speed
-        # 俯仰 = 方向键 Up/Down（拖拽已不管 pitch——防手部斜向漂移）
-        if pressed.get(pygame.key.K_UP):
+        # 俯仰 = ↑↓ **或** Q/E（双键位——部分键盘/焦点下方向键不可达）
+        if pressed.get(pygame.key.K_UP) or pressed.get(pygame.key.K_q):
             pitch = min(85.0, pitch + 1.2)
-        if pressed.get(pygame.key.K_DOWN):
+        if pressed.get(pygame.key.K_DOWN) or pressed.get(pygame.key.K_e):
             pitch = max(-85.0, pitch - 1.2)
 
         # 物理 + GameCamera MVP（with_view 每帧替换——letterbox 内聚直
