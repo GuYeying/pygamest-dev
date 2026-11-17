@@ -137,14 +137,21 @@ def fps_view(eye, yaw_deg, pitch_deg):
     fx = M.cos(pitch) * M.sin(yaw)
     fy = M.sin(pitch)
     fz = -M.cos(pitch) * M.cos(yaw)
-    f = (fx, fy, fz)                       # 前向
+    f = (fx, fy, fz)                       # 前向（单位——三角恒等式保证）
     up0 = (0.0, 1.0, 0.0)
-    s = (fy * up0[2] - fz * up0[1],
-         fz * up0[0] - fx * up0[2],
-         fx * up0[1] - fy * up0[0])        # right = f × up
+    s0 = (fy * up0[2] - fz * up0[1],
+          fz * up0[0] - fx * up0[2],
+          fx * up0[1] - fy * up0[0])       # right = f × up（模 = cos(pitch)
+                                            # ≠ 1——**必须归一化**，否则
+                                            # pitch 越大横竖缩放越失配 =
+                                            # 旋转画面拉伸畸变，2026-11-17
+                                            # 用户实测报障根因）
+    sn = (s0[0] * s0[0] + s0[1] * s0[1] + s0[2] * s0[2]) ** 0.5
+    s = (s0[0] / sn, s0[1] / sn, s0[2] / sn)
     u = (s[1] * fz - s[2] * fx,
          s[2] * fx - s[0] * fz,
-         s[0] * fy - s[1] * fx)            # true up = s × f
+         s[0] * fy - s[1] * fx)            # true up = s × f（s⊥f 双单位
+                                            # → u 自动单位）
     ex, ey, ez = eye
     # 视图基（行主视觉——标准 view 行向量）→ 列主展开（from_cols_array
     # 列主序契约：out[c*4+r] = m[r*4+c]）
@@ -229,7 +236,7 @@ async def main():
 
     # 时序契约：insert 后须至少 step 一次方可 cast_ray（broad_phase 时序）
     world.step_frame(1.0 / 60.0)
-    hit = world.cast_ray((8.0, 8.0, 8.0), (0.0, -1.0, 0.0), None)
+    hit = world.cast_ray_filtered((8.0, 8.0, 8.0), (0.0, -1.0, 0.0), None, "only_fixed")
     st("cast_ray 命中地面", hit is not None and hit[1] > 0.0)
 
     # ── 相机（GameCamera 显式定约——perspective letterbox 内聚）──
@@ -307,7 +314,7 @@ async def main():
 
     def pick_voxel():
         d = mouse_ray()
-        hit = world.cast_ray(tuple(eye), d, None)
+        hit = world.cast_ray_filtered(tuple(eye), d, None, "only_fixed")
         if hit is None:
             return None
         toi = hit[1]
@@ -347,6 +354,8 @@ async def main():
 
     dragging = False
     last_pos = None                       # 拖拽差分锚（Event 无 rel——x/y 差分自算）
+    debug_on = False                      # D 键：collider 线框叠加（对齐检查）
+    dbg_draw = rp3.DebugDraw3D()
     text_cache = {}
 
     def hud_text(s, color=(210, 214, 224)):
@@ -361,7 +370,8 @@ async def main():
             f"[voxel_mc] 体素 mesh {tri_count} 三角 | chunk {vw.chunk_count()} | "
             f"球 {len(balls)} | WASD+QE 漫游 拖拽转向 左删 右放 F 发射 R 重置"))
         pygame.gfxdraw.set_transform(rt, M.mat4_translation(-500, 288, 0))
-        pygame.gfxdraw.draw_surface(rt, hud_text(info, (255, 220, 90)))
+        pygame.gfxdraw.draw_surface(rt, hud_text(
+            info + (" | D:collider线框 ON" if debug_on else ""), (255, 220, 90)))
 
     while True:
         for e in pygame.event.get():
@@ -372,6 +382,8 @@ async def main():
                     return
                 if e.key == pygame.key.K_f:
                     launch_ball()
+                if e.key == pygame.key.K_d:
+                    debug_on = not debug_on
                 if e.key == pygame.key.K_r:
                     for bh in list(col_bodies.values()):
                         world.remove_body(bh)
@@ -459,6 +471,17 @@ async def main():
                     p.set_pipeline(ball_pipe)
                     p.set_bind_group(0, ball_bind)
                     p.draw_mesh(ball_mesh)
+            if debug_on:
+                # collider 线框叠加（D 键——对齐检查：线框与体素 mesh 应
+                # 逐块重合；renderer 相机与 fps 相机同步重建）
+                d = mouse_ray()
+                sink = rp3.LineSink3D()
+                rp3.collect3d(world, dbg_draw, sink)
+                dbg_renderer = rp3.DebugLinesRenderer3D(
+                    eye=(eye[0], eye[1], eye[2]),
+                    target=(eye[0] + d[0], eye[1] + d[1], eye[2] + d[2]),
+                    fov=1.0123)          # ≈58° 弧度——与 GameCamera 同视场
+                rt.draw_debug_3d(dbg_renderer, sink)
             draw_hud(rt)
 
         # 物理数据正确性打点（60 帧一次）：球中心/速度——静止贴面判据
