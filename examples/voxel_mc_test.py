@@ -243,7 +243,7 @@ async def main():
     eye = [8.0, 9.0, 22.0]
     yaw, pitch = 0.0, -12.0
     cam = pygame.render.game_camera_perspective(
-        58.0, 1024, 640, 1024, 640, 0.1, 300.0)
+        48.0, 1024, 640, 1024, 640, 0.1, 300.0)
     screen.set_camera(cam)                   # 会话级显式相机（空档自动面）
     cam_buf = ac.buffer(64, label="cam_buf")
     model_buf = ac.buffer(64, label="model_buf")
@@ -480,7 +480,7 @@ async def main():
                 dbg_renderer = rp3.DebugLinesRenderer3D(
                     eye=(eye[0], eye[1], eye[2]),
                     target=(eye[0] + d[0], eye[1] + d[1], eye[2] + d[2]),
-                    fov=1.0123)          # ≈58° 弧度——与 GameCamera 同视场
+                    fov=0.8378)          # ≈48° 弧度——与 GameCamera 同视场
                 rt.draw_debug_3d(dbg_renderer, sink)
             draw_hud(rt)
 
