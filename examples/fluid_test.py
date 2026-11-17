@@ -139,6 +139,20 @@ async def main():
     fluid_debug = False      # F2: 流体粒子高亮
     vox_on = True            # F3: 体素 mesh 显示
 
+    # 每粒子独立 model uniform + bind（粒子数固定——add_fluid_cuboid
+    # 一次性建 160 粒子；空格注水追加时惰性扩容）
+    particle_uniforms = []
+
+    def ensure_particle_uniforms(count):
+        while len(particle_uniforms) < count:
+            i = len(particle_uniforms)
+            b = ac.buffer(64, label=f"fluid_model_{i}")
+            bd = ac.bind_group([
+                (0, "uniform", cam_buf),
+                (1, "uniform", b),
+            ], label=f"fluid_model_bind_{i}")
+            particle_uniforms.append((b, bd))
+
     # 体素 mesh 管线（同 WGSL——binding 1 恒单位阵填充）
     vox_model = ac.buffer(64, label="vox_model")   # WGSL 声明 binding 1——恒单位阵
     vox_mesh = ac.mesh(["float32x3", "float32x3"], vox_mesh_out[0], label="vox_mesh")
@@ -185,6 +199,7 @@ async def main():
         fw.step(1.0 / 60.0)
 
         positions, _vel = fw.fluid_particles(fh)
+        ensure_particle_uniforms(len(positions) // 3)
 
         with screen.render() as rt:
             rt.fill((16, 20, 30))
@@ -199,13 +214,20 @@ async def main():
                     pp.collect3d(solid, dbg_draw, dbg_sink)
                     rt.draw_debug_3d(dbg_renderer, dbg_sink)
                 # ③ 流体粒子球（每帧逐粒子 draw——200 粒子可承受）
+                # ⚠️ 每粒子**独立 model uniform**（记录-回放模型：write 立
+                # 即生效、draw 回放时读 buffer——共享 buf = 全部粒子叠在
+                # 最后粒子的位置 = "没有渲染画面"假象；与 voxel_mc 多球
+                # 叠影同款根因，2026-11-17 修复）
                 for i in range(len(positions) // 3):
                     x = positions[i * 3]
                     y = positions[i * 3 + 1]
                     z = positions[i * 3 + 2]
-                    ac.write_buffer(model_buf, M.mat4_translation(x, y, z))
+                    if i >= len(particle_uniforms):
+                        break
+                    buf_i, bind_i = particle_uniforms[i]
+                    ac.write_buffer(buf_i, M.mat4_translation(x, y, z))
                     p.set_pipeline(pipe)
-                    p.set_bind_group(0, bind)
+                    p.set_bind_group(0, bind_i)
                     p.draw_mesh(sphere_mesh)
 
             # HUD
