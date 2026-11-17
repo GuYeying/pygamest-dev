@@ -278,16 +278,21 @@ async def main():
 
     # ── 发射方块（动态立方体——collider half 0.5 ≡ 渲染 scale 1.0，
     # 尺寸严格对齐；物理验证核心样张）──
+    # ⚠️ 每球**独立 model uniform + bind**（2026-11-17 修复：RawPass 是
+    # 记录-回放（draw 排程到 present 收口执行），而 write_buffer 立即
+    # 生效——共享一个 model_buf 时回放读到的是**最后一次写入**的矩阵，
+    # 多球全部叠在同一位置 = "上次发射的消失了"的假象（物理体其实
+    # 都在）。独立 buffer 后每球矩阵各自定格，互不覆盖）
     ball_mesh = ac.mesh(["float32x3", "float32x3"], CUBE_VERTS, label="ball_mesh")
-    ball_bind = ac.bind_group([
+    ball_bind0 = ac.bind_group([
         (0, "uniform", cam_buf),
         (1, "uniform", model_buf),
     ], label="ball_bind")
-    ball_pipe = ac.pipeline(cube_shader, ball_mesh, [ball_bind],
+    ball_pipe = ac.pipeline(cube_shader, ball_mesh, [ball_bind0],
                             cull="back", blend="opaque",
                             depth_mode="standard", depth_write=True,
                             label="ball_pipe")
-    balls = []                               # body handle 流
+    balls = []          # (body_handle, model_buf, bind) 流
 
     def launch_ball():
         yaw_r = M.radians(yaw)
@@ -300,7 +305,13 @@ async def main():
                                    linvel=(d[0] * 9.0, d[1] * 9.0, d[2] * 9.0))
         c = rp3.ColliderBuilder3D("cuboid", hx=0.5, hy=0.5, hz=0.5,
                                   density=1.5, restitution=0.2, friction=0.6)
-        balls.append(world.insert(b, c)[0])
+        bh = world.insert(b, c)[0]
+        mbuf = ac.buffer(64, label=f"ball_model_{len(balls)}")
+        bind = ac.bind_group([
+            (0, "uniform", cam_buf),
+            (1, "uniform", mbuf),
+        ], label=f"ball_bind_{len(balls)}")
+        balls.append((bh, mbuf, bind))
 
     # ── 射线交互（删除/放置 + collider 同步 + remesh）──
     info = ""
@@ -389,6 +400,9 @@ async def main():
                     for bh in list(col_bodies.values()):
                         world.remove_body(bh)
                     col_bodies.clear()
+                    for bh, _mb, _bd in balls:
+                        world.remove_body(bh)
+                    balls.clear()
                     vw.clear()
                     build_terrain()
                     # 表面 collider 重建（R 全量重置——放置块一并清）
@@ -398,7 +412,12 @@ async def main():
                             add_collider((x, h - 1, z))
                     world.step_frame(1.0 / 60.0)   # 时序契约（cast_ray 前置）
                     vox_mesh, tri_count = rebuild_voxel_mesh()
-                    info = "地形已重置"
+                    info = "地形+视角已重置"
+                    # 视角同步归位（pitch 残留低俯角 = "旋转看起来绕斜轴"
+                    # 的观感来源——R 全量重置含视角）
+                    eye[0], eye[1], eye[2] = 8.0, 9.0, 22.0
+                    yaw = 0.0
+                    pitch = -12.0
             elif e.type == pygame.event.MOUSEBUTTONDOWN:
                 if e.button == 1:
                     dragging = True
@@ -464,17 +483,17 @@ async def main():
                 p.set_pipeline(vox_pipe[0])
                 p.set_bind_group(0, vox_bind[0])
                 p.draw_mesh(vox_mesh)
-                # 球（平移 + **旋转回填**——Quaternion xyzw 直呼构造 →
-                # mat4_from_quat；物理翻滚碰撞与渲染姿态严格同步）
-                for bh in balls:
+                # 球（平移 + **旋转回填**——每球独立 model uniform，
+                # 回放时矩阵各自定格不互覆盖；Quaternion xyzw 直呼构造）
+                for bh, mbuf, bind in balls:
                     x, y, z = world.translation(bh)
                     qx, qy, qz, qw = world.rotation(bh)
                     ac.write_buffer(
-                        model_buf,
+                        mbuf,
                         M.mat4_translation(x, y, z)
                         @ M.mat4_from_quat(M.Quaternion(qx, qy, qz, qw)))
                     p.set_pipeline(ball_pipe)
-                    p.set_bind_group(0, ball_bind)
+                    p.set_bind_group(0, bind)
                     p.draw_mesh(ball_mesh)
             if debug_on:
                 # collider 线框叠加（D 键——set_mvp 绝对对齐：与主管线
@@ -490,9 +509,9 @@ async def main():
         if frame == 120 and not balls:
             launch_ball()   # 自动发射一颗（落地核对打点——无人交互自动触发）
         if frame % 60 == 0 and balls:
-            vx, vy, vz = world.linvel(balls[0])
+            vx, vy, vz = world.linvel(balls[0][0])
             spd = (vx * vx + vy * vy + vz * vz) ** 0.5
-            x, y, z = world.translation(balls[0])
+            x, y, z = world.translation(balls[0][0])
             if spd < 0.05:
                 # 体素查询判定（cast_ray 会命中球自身 collider → toi=0，
                 # 非引擎异常）：球心下方 0.6 处的支撑格有体素 → 格顶 =
