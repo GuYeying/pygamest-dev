@@ -190,6 +190,8 @@ async def main():
 
     # 体素 mesh 管线（同 WGSL——binding 1 恒单位阵填充）
     vox_model = ac.buffer(64, label="vox_model")   # WGSL 声明 binding 1——恒单位阵
+    # **必须写单位矩阵**——恒零 model 会把顶点全部塌到原点（体素墙不可见根因）
+    ac.write_buffer(vox_model, M.mat4_identity())
     vox_mesh = ac.mesh(["float32x3", "float32x3"], vox_mesh_out[0], label="vox_mesh")
     vox_bind = ac.bind_group([
         (0, "uniform", cam_buf),
