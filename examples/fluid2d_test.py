@@ -282,12 +282,27 @@ async def main():
                         p.set_pipeline(block_pipe)
                         p.set_bind_group(0, bind_i)
                         p.draw_mesh(block_mesh)
-            # ③ solid 线框（T 切换——py 手绘：body 位姿四角 blit 拼边，
-            # 换算系数与方块管线同域——绝对对齐）
+            # ③ solid 线框（T 切换——**composed 矩阵域直绘**：set_transform
+            # 烘焙 present_fit() @ cam.mvp()（与橙片 cam_buf 同矩阵）+ 顶点
+            # 世界米——与管线数学同域绝对对齐，绕开 blit/gfxdraw 像素换算
+            # 的全部语义黑盒）
             if solid_debug:
-                pygame.gfxdraw.set_transform(t, M.mat4_identity())
+                composed = pygame.render.present_fit() @ cam.mvp()
+                pygame.gfxdraw.set_transform(t, composed)
+                pts = []
                 for wb_handle, wb_hx, wb_hy in wire_bodies:
-                    draw_wire_box(t, wb_handle, wb_hx, wb_hy)
+                    bx, by = solid.translation(wb_handle)
+                    bang = solid.rotation(wb_handle)
+                    ca, sa = M.cos(bang), M.sin(bang)
+                    c4 = [(bx + lx * ca - ly * sa, by + lx * sa + ly * ca)
+                          for lx, ly in ((wb_hx, wb_hy), (-wb_hx, wb_hy),
+                                         (-wb_hx, -wb_hy), (wb_hx, -wb_hy))]
+                    for i in range(4):
+                        pts.append(c4[i])
+                        pts.append(c4[(i + 1) % 4])
+                pygame.gfxdraw.set_transform(t, composed)
+                pygame.gfxdraw.set_color(t, (255, 220, 40))
+                t.vertices("lines", pts, (255, 220, 40))
 
             # HUD
             pygame.gfxdraw.set_transform(t, M.mat4_translation(-388, 288, 0))
