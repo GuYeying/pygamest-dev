@@ -147,11 +147,6 @@ async def main():
     dbg_draw = pp.DebugDraw()
     dbg_sink = pp.LineSink()
     dbg_renderer = pp.DebugLinesRenderer(ppm=60.0)
-    # 跟随全局显式相机（draw 前同步 engine 全局 MVP = game_camera_ortho
-    # 同源矩阵——线框与粒子/方块绝对对齐。默认 ppm 相机是独立映射
-    # （60px/单位 vs ortho 的 75px/单位），高物分离/水平漂移 = 两相机
-    # 几何不一致（2026-11-18 用户截图诊断）
-    dbg_renderer.follow_global_camera(True)
 
     solid_debug = True   # T 键切换（默认开——碰撞对齐目视验收）
     drops = []           # 动态方块句柄（F 键投放——自由落体砸水）
@@ -253,9 +248,12 @@ async def main():
                         p.set_pipeline(block_pipe)
                         p.set_bind_group(0, bind_i)
                         p.draw_mesh(block_mesh)
-            # ③ solid 线框（T 切换——2D ppm 相机会话级 draw_debug）
+            # ③ solid 线框（T 切换——set_mvp 直写 ortho 相机矩阵：线框
+            # 与粒子/方块同源同矩阵绝对对齐；自带 ppm 相机是独立映射
+            # （60px/单位 vs ortho 75px/单位）= 两相机几何不一致根因）
             if solid_debug:
                 pp.collect(solid, dbg_draw, dbg_sink)
+                dbg_renderer.set_mvp(cam.mvp())
                 t.draw_debug(dbg_renderer, dbg_sink)
 
             # HUD
