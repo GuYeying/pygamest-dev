@@ -1,0 +1,338 @@
+# fluid2d_test —— pygame_physics 2D 流体×刚体碰撞标准场景（2026-11-18，
+# fluid2d 轴验收样张）：**静态刚体 × 2D 流体**——rapier 2D 斜面 + 大
+# 地面（PhysicsWorld）经 FluidWorld2D.step(dt, solid) 耦合步进
+# （DynamicContactSampling 硬投影——与 3D 同源语义，salva2d/salva3d
+# 同一上游 src），水柱从斜面高端滑落 → 摊开 → 静置。
+# **2D 流体 debug 渲染**：instanced quad 片元圆判（渲染半径
+# 1.4×粒子半径——视觉重叠连贯表面）+ game_camera_ortho 正交相机；
+# T 键 = 2D solid 线框（**py 手绘**——blit 链 + write_camera_mvp 组合
+# 系数（dump 第一手值）绕开 DebugLinesRenderer overlay 链——其相机
+# 写入对本链不生效（红鲱鱼/二分/收口复写三重实验实证，2026-11-18），
+# overlay viewport 语义挂账 v2）。
+# 空格=注水 / F=投放动态小立方体（自由落体砸水——观测流体被排开的
+# 水花形态与刚体穿行）/ ESC 退出。控制台 [fluid2d-test] 逐项断言。
+import pygame
+import pygame_physics as pp
+
+M = pygame.math
+
+W, H = 800, 600
+
+WGSL = """
+struct Camera { mvp: mat4x4<f32>, };
+struct Model { model: mat4x4<f32>, };
+@group(0) @binding(0) var<uniform> camera: Camera;
+@group(0) @binding(1) var<uniform> model: Model;
+struct VIn {
+    @location(0) pos: vec2<f32>,
+    @location(1) uv: vec2<f32>,
+}
+struct VOut {
+    @builtin(position) pos: vec4<f32>,
+    @location(0) uv: vec2<f32>,
+}
+@vertex
+fn vs_main(v: VIn) -> VOut {
+    var o: VOut;
+    let wp = model.model * vec4<f32>(v.pos, 0.0, 1.0);
+    o.pos = camera.mvp * wp;
+    o.uv = v.uv;
+    return o;
+}
+@fragment
+fn fs_main(in: VOut) -> @location(0) vec4<f32> {
+    // 2D 圆判（quad 片元到中心距离 > 半径 discard——水蓝填充，中心亮
+    // 边缘暗微立体；渲染半边 0.14 = 1.4×粒子半径视觉重叠）
+    let d = length(in.uv - vec2<f32>(0.5, 0.5));
+    if (d > 0.5) { discard; }
+    let l = 0.6 + 0.4 * clamp((0.5 - d) * 4.0, 0.0, 1.0);
+    return vec4<f32>(vec3<f32>(0.25, 0.5, 0.9) * l, 1.0);
+}
+"""
+
+# 动态方块 WGSL（灰橙方片——无圆判，自由落体刚体渲染）
+BLOCK_WGSL = WGSL.replace("""    let d = length(in.uv - vec2<f32>(0.5, 0.5));
+    if (d > 0.5) { discard; }
+    let l = 0.6 + 0.4 * clamp((0.5 - d) * 4.0, 0.0, 1.0);
+    return vec4<f32>(vec3<f32>(0.25, 0.5, 0.9) * l, 1.0);""", """    let l = 0.75;
+    return vec4<f32>(vec3<f32>(0.95, 0.55, 0.25) * l, 1.0);""")
+
+# instanced 单元圆片（quad 半边 0.10 = 粒子半径——DC 投影粒子中心
+# 距表面仅 ~0.01，渲染半径 > 粒子半径会让贴面圆过半嵌入线框 = 穿模
+# 观感（2026-11-18 用户截图反馈）；半径=粒子半径为标准 SPH 渲染形态
+QUAD = [
+    -0.10, -0.10, 0.0, 0.0, 0.10, -0.10, 1.0, 0.0, 0.10, 0.10, 1.0, 1.0,
+    -0.10, -0.10, 0.0, 0.0, 0.10, 0.10, 1.0, 1.0, -0.10, 0.10, 0.0, 1.0,
+]
+
+
+# instanced 单元方块（动态刚体渲染单元——半边 0.15 对应 collider）
+BLOCK = [
+    -0.15, -0.15, 0.0, 0.0, 0.15, -0.15, 1.0, 0.0, 0.15, 0.15, 1.0, 1.0,
+    -0.15, -0.15, 0.0, 0.0, 0.15, 0.15, 1.0, 1.0, -0.15, 0.15, 0.0, 1.0,
+]
+
+
+def mat2d(x, y, ang):
+    # 2D 位姿矩阵（绕 z 旋转 + 平移——列主 16 元素）
+    c = M.cos(ang)
+    s = M.sin(ang)
+    return M.mat4_from_cols_array(
+        [c, s, 0, 0, -s, c, 0, 0, 0, 0, 1, 0, x, y, 0, 1])
+
+
+async def main():
+    pygame.display.set_caption("fluid2d_test")
+    screen = pygame.display.set_mode((800, 600))
+    cjk = pygame.font.Font("cjk", 15)
+    ac = pygame.render.access()
+    frame = 0
+    _fail = []
+
+    def st(name, cond):
+        if cond:
+            print("[fluid2d-test] PASS", name)
+        else:
+            _fail.append(name)
+            print("[fluid2d-test] FAIL", name)
+
+    # ── solid 世界（rapier 2D 静态刚体——**碰撞主角**）──
+    # 地面（大平面）+ 斜面（rotation 单弧度标量，+x 端翘起）。耦合注册
+    # 按 collider 位姿每步重采样——旋转刚体开箱即用
+    wire_bodies = []   # (handle, hx, hy)——py 手绘线框登记表
+    solid = pp.PhysicsWorld(gravity=(0, -9.81))
+    solid.insert(
+        pp.RigidBodyBuilder("fixed", translation=(0, -0.25)),
+        pp.ColliderBuilder("cuboid", hx=6.0, hy=0.25, friction=0.5),
+    )
+    solid.insert(
+        pp.RigidBodyBuilder("fixed", translation=(0.5, 1.2), rotation=0.35),
+        pp.ColliderBuilder("cuboid", hx=1.6, hy=0.12, friction=0.1),
+    )
+    # 线框登记：地面 + 斜面（fixed；dynamic 方块 F 键投放时另行登记）
+    wire_bodies += [(0, 6.0, 0.25), (1, 1.6, 0.12)]
+    solid.step_frame(1.0 / 60.0)   # 时序契约（查询前必步进一次）
+
+    # ── fluid 世界（salva2d DFSPH——粒子半径 0.1；XSPH 粘性默认挂）──
+    fw = pp.FluidWorld2D(particle_radius=0.1)
+    st("FluidWorld2D 构造", fw is not None)
+    st("particle_radius 0.1", abs(fw.particle_radius() - 0.1) < 1e-6)
+
+    # 水柱：1.4×1.2 矩形水（spacing 0.2 → 42 粒子），位于斜面高端上方
+    fh = fw.add_fluid_cuboid((1.2, 2.6), (1.4, 1.2))
+    n = fw.fluid_particle_count(fh)
+    st(f"水柱粒子数 {n} > 30", n > 30)
+
+    # ── instanced 渲染管线（quad 圆判 → GPU 通路）──
+    cam_buf = ac.buffer(64, label="cam2d_buf")
+    quad_mesh = ac.mesh(["float32x2", "float32x2"], QUAD, label="quad2d_mesh")
+    shader = ac.shader(WGSL, label="fluid2d_shader")
+
+    # 正交相机（世界 14×8 原点居中 → 800×600 窗口；ortho 签名全 u32）
+    cam = pygame.render.game_camera_ortho(14, 8, W, H)
+    screen.set_camera(cam)
+    pygame.render.write_camera_mvp(cam_buf, cam.mvp())  # 静态相机恒定
+
+    # 每粒子独立 model uniform + bind（记录-回放模型惯例——共享 buf =
+    # 全部粒子叠最后粒子位置；惰性扩容跟上注水）
+    particle_uniforms = []
+
+    def ensure_particle_uniforms(count):
+        while len(particle_uniforms) < count:
+            i = len(particle_uniforms)
+            b = ac.buffer(64, label=f"fluid2d_model_{i}")
+            bd = ac.bind_group([
+                (0, "uniform", cam_buf),
+                (1, "uniform", b),
+            ], label=f"fluid2d_bind_{i}")
+            particle_uniforms.append((b, bd))
+
+    pipe = None   # 首帧粒子数就绪后建
+
+    # solid 线框（**py 手绘**——insert 登记 (handle, hx, hy)，每帧按
+    # body 位姿手算四角 blit 拼边。系数 = cam.mvp() 单世界拟合（2026-
+    # 11-18 present_fit 显式相机恒等化后：x=y=57.14px/米，原双拟合
+    # 43.53 退役）、原点 = 画布中心）
+    SX = 57.142857
+    SY = 57.142857
+
+    def draw_wire_box(t, handle, hx, hy):
+        x, y = solid.translation(handle)
+        ang = solid.rotation(handle)
+        ca, sa = M.cos(ang), M.sin(ang)
+        corners = []
+        for lx, ly in ((hx, hy), (-hx, hy), (-hx, -hy), (hx, -hy)):
+            corners.append(w2px(x + lx * ca - ly * sa, y + lx * sa + ly * ca))
+        n = 14
+        for i in range(4):
+            x1, y1 = corners[i]
+            x2, y2 = corners[(i + 1) % 4]
+            for k in range(n):
+                mx = x1 + (x2 - x1) * k / n
+                my = y1 + (y2 - y1) * k / n
+                dot = pygame.Surface((7, 7))
+                dot.fill((255, 220, 40))
+                pygame.gfxdraw.set_transform(t, M.mat4_translation(
+                    int(mx) - 2 - 400, int(my) - 2 - 300, 0))
+                pygame.gfxdraw.draw_surface(t, dot)
+
+    def w2px(x, y):
+        # y 不翻转（实测 set_transform blit 链 y 与管线同向——原
+        # 300-y×SY 公式产生上下翻转，2026-11-18 用户目视）
+        return (400.0 + x * SX, 300.0 + y * SY)
+
+    solid_debug = True   # T 键切换（默认开——碰撞对齐目视验收）
+    drops = []           # 动态方块句柄（F 键投放——自由落体砸水）
+
+    # 方块渲染管线（BLOCK_WGSL 灰橙方片 + per-body uniform 惰性扩容）
+    block_mesh = ac.mesh(["float32x2", "float32x2"], BLOCK, label="block2d_mesh")
+    block_shader = ac.shader(BLOCK_WGSL, label="block2d_shader")
+    block_uniforms = []
+
+    def ensure_block_uniforms(count):
+        while len(block_uniforms) < count:
+            i = len(block_uniforms)
+            b = ac.buffer(64, label=f"block2d_model_{i}")
+            bd = ac.bind_group([
+                (0, "uniform", cam_buf),
+                (1, "uniform", b),
+            ], label=f"block2d_bind_{i}")
+            block_uniforms.append((b, bd))
+
+    block_pipe = None
+
+    while True:
+        for e in pygame.event.get():
+            if e.type == pygame.event.QUIT:
+                return
+            if e.type == pygame.event.KEYDOWN:
+                if e.key == pygame.key.K_ESCAPE:
+                    return
+                if e.key == pygame.key.K_t:
+                    solid_debug = not solid_debug
+                if e.key == pygame.key.K_SPACE:
+                    fh2 = fw.add_fluid_cuboid(
+                        (1.0 + (frame % 5) * 0.08, 3.6), (0.5, 0.4))
+                    print(f"[fluid2d-test] 注入流体 handle={fh2}")
+                if e.key == pygame.key.K_f:
+                    x = -1.5 + (frame % 5) * 0.6
+                    h = solid.insert(
+                        pp.RigidBodyBuilder(
+                            "dynamic", translation=(x, 3.8)),
+                        pp.ColliderBuilder("cuboid", hx=0.15, hy=0.15))[0]
+                    drops.append(h)
+                    wire_bodies.append((h, 0.15, 0.15))
+                    print(f"[fluid2d-test] 投放方块 handle={h} @x={x}")
+
+        # 物理（solid + fluid 耦合步进——**本案例核心**）
+        solid.step_frame(1.0 / 60.0)
+        fw.step(1.0 / 60.0, solid)
+
+        if frame == 1:
+            bc = fw.boundary_count()
+            st(f"耦合边界注册 {bc} >= 2", bc >= 2)
+
+        positions, _vel = fw.fluid_particles(fh)
+        count = len(positions) // 2
+        ensure_particle_uniforms(count)
+        if pipe is None and count > 0:
+            model_buf = ac.buffer(64, label="model2d_template")
+            bind = ac.bind_group([
+                (0, "uniform", cam_buf),
+                (1, "uniform", model_buf),
+            ], label="fluid2d_bind")
+            pipe = ac.pipeline(shader, quad_mesh, [bind], cull="back",
+                               blend="opaque", depth_mode="standard",
+                               depth_write=True, label="fluid2d_pipe")
+
+        with screen.render() as t:
+            t.fill((16, 20, 30))
+            # ① 2D 流体粒子圆（raw 段——instanced quad 圆判管线）
+            with screen.raw_render(depth=True) as p:
+                for i in range(count):
+                    x = positions[i * 2]
+                    y = positions[i * 2 + 1]
+                    buf_i, bind_i = particle_uniforms[i]
+                    ac.write_buffer(buf_i, M.mat4_translation(x, y, 0.0))
+                    p.set_pipeline(pipe)
+                    p.set_bind_group(0, bind_i)
+                    p.draw_mesh(quad_mesh)
+            # ② 动态方块（F 键投放——translation/rotation 读回 → 2D
+            # 位姿矩阵；落水穿行时流体粒子被 DC 投影排开 = 水花观测）
+            if drops:
+                ensure_block_uniforms(len(drops))
+                if block_pipe is None:
+                    model_buf = ac.buffer(64, label="block2d_template")
+                    bind = ac.bind_group([
+                        (0, "uniform", cam_buf),
+                        (1, "uniform", model_buf),
+                    ], label="block2d_bind")
+                    block_pipe = ac.pipeline(block_shader, block_mesh,
+                                             [bind], cull="back",
+                                             blend="opaque",
+                                             depth_mode="standard",
+                                             depth_write=True,
+                                             label="block2d_pipe")
+                with screen.raw_render(depth=True) as p:
+                    for i, h in enumerate(drops):
+                        x, y = solid.translation(h)
+                        ang = solid.rotation(h)
+                        buf_i, bind_i = block_uniforms[i]
+                        ac.write_buffer(buf_i, mat2d(x, y, ang))
+                        p.set_pipeline(block_pipe)
+                        p.set_bind_group(0, bind_i)
+                        p.draw_mesh(block_mesh)
+            # ③ solid 线框（T 切换——**composed 矩阵域直绘**：set_transform
+            # 烘焙 present_fit() @ cam.mvp()（与橙片 cam_buf 同矩阵）+ 顶点
+            # 世界米——与管线数学同域绝对对齐，绕开 blit/gfxdraw 像素换算
+            # 的全部语义黑盒）
+            if solid_debug:
+                composed = pygame.render.present_fit() @ cam.mvp()
+                pygame.gfxdraw.set_transform(t, composed)
+                pts = []
+                for wb_handle, wb_hx, wb_hy in wire_bodies:
+                    bx, by = solid.translation(wb_handle)
+                    bang = solid.rotation(wb_handle)
+                    ca, sa = M.cos(bang), M.sin(bang)
+                    c4 = [(bx + lx * ca - ly * sa, by + lx * sa + ly * ca)
+                          for lx, ly in ((wb_hx, wb_hy), (-wb_hx, wb_hy),
+                                         (-wb_hx, -wb_hy), (wb_hx, -wb_hy))]
+                    for i in range(4):
+                        pts.append(c4[i])
+                        pts.append(c4[(i + 1) % 4])
+                pygame.gfxdraw.set_transform(t, composed)
+                pygame.gfxdraw.set_color(t, (255, 220, 40))
+                t.vertices("lines", pts, (255, 220, 40))
+
+            # HUD
+            pygame.gfxdraw.set_transform(t, M.mat4_translation(-388, 288, 0))
+            pygame.gfxdraw.draw_surface(t, cjk.render(
+                f"[fluid2d] 粒子 {count} 方块 {len(drops)} | T 线框={solid_debug} "
+                f"空格=注水 F=投放方块", True, (200, 210, 230)))
+            pygame.gfxdraw.set_transform(t, M.mat4_translation(-388, 268, 0))
+            pygame.gfxdraw.draw_surface(t, cjk.render(
+                f"2D 轴: physics2d + fluid2d（salva2d DC 耦合）",
+                True, (180, 200, 180)))
+
+        pygame.display.flip()
+        if frame == 60:
+            st("60 帧刚体×流体耦合渲染稳定", True)
+        if frame == 300:
+            pos, vel = fw.fluid_particles(fh)
+            n2 = len(pos)
+            mn_y = min(pos[1::2]) if n2 else -99.0
+            mn_x = min(pos[0::2]) if n2 else 99.0
+            mx_s = max((vel[i]**2 + vel[i+1]**2) ** 0.5
+                       for i in range(0, len(vel), 2)) if n2 else 99.0
+            # 未穿地（地面顶 y=0）+ 滑落交互（越过斜面中线——XSPH 粘性
+            # 下蜂蜜状慢速成团滑落）+ 静置衰减（能量正常耗散）
+            st(f"300 帧未穿地 min_y={mn_y:.3f} > -0.4", mn_y > -0.4)
+            st(f"300 帧滑落交互 min_x={mn_x:.3f} < 0", mn_x < 0)
+            st(f"300 帧静置衰减 max_spd={mx_s:.2f} < 2.0", mx_s < 2.0)
+            st("300 帧粒子数据出口有效", n2 == len(positions) and count > 0)
+            print("[fluid2d-test] SUMMARY",
+                  "PASS" if not _fail else "FAIL " + str(_fail))
+        if frame > 3600:
+            return
+        await pygame.next_frame()
+        frame += 1
