@@ -65,8 +65,16 @@ voxelis = ["pygamest/voxelis"]
 tilemap = ["pygamest/tilemap"]
 # multi-window = 多窗口（windows-only——we 白名单编译期把关）
 multi-window = ["pygamest/multi-window"]
-# fluid = 流体物理（salva3d SPH——solid/fluid 分层重构第二批）
+# fluid / fluid2d / fluid3d = 流体物理（salva SPH；fluid2d = salva2d
+# 2D 轴 / fluid3d = fluid 旧名的轴语义正名——两者同义，逐步退役）。
+# 特殊 feature 定则（2026-11-18）：tray/skip-taskbar/click-through/
+# multi-window 全 opt-in 不入 default——跨平台不足（tray 三桌面实装
+# 但依赖重 + web/mobile 站桩，用户裁决"也没必要"；skip-taskbar Linux
+# Wayland 协议无解；click-through 仅 Win；multi-window compile_error
+# 白名单仅 windows——入 default 即炸跨目标构建）。
 fluid = ["pygamest/fluid"]
+fluid2d = ["pygamest/fluid2d"]
+fluid3d = ["pygamest/fluid3d"]
 
 [dependencies]
 starfish-debug = { git = "https://github.com/GuYeying/starfish" }
