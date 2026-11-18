@@ -150,11 +150,11 @@ async def main():
     pipe = None   # 首帧粒子数就绪后建
 
     # solid 线框（**py 手绘**——insert 登记 (handle, hx, hy)，每帧按
-    # body 位姿手算四角 blit 拼边。系数 = write_camera_mvp 组合矩阵
-    # dump 第一手值：x 57.14px/米、y 43.53px/米（GameCamera 非均匀 y）、
-    # 原点 = 画布中心）
+    # body 位姿手算四角 blit 拼边。系数 = cam.mvp() 单世界拟合（2026-
+    # 11-18 present_fit 显式相机恒等化后：x=y=57.14px/米，原双拟合
+    # 43.53 退役）、原点 = 画布中心）
     SX = 57.142857
-    SY = 43.534413
+    SY = 57.142857
 
     def draw_wire_box(t, handle, hx, hy):
         x, y = solid.translation(handle)
