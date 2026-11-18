@@ -170,14 +170,16 @@ async def main():
             for k in range(n):
                 mx = x1 + (x2 - x1) * k / n
                 my = y1 + (y2 - y1) * k / n
-                dot = pygame.Surface((4, 4))
-                dot.fill((255, 170, 60))
+                dot = pygame.Surface((7, 7))
+                dot.fill((255, 220, 40))
                 pygame.gfxdraw.set_transform(t, M.mat4_translation(
                     int(mx) - 2 - 400, int(my) - 2 - 300, 0))
                 pygame.gfxdraw.draw_surface(t, dot)
 
     def w2px(x, y):
-        return (400.0 + x * SX, 300.0 - y * SY)
+        # y 不翻转（实测 set_transform blit 链 y 与管线同向——原
+        # 300-y×SY 公式产生上下翻转，2026-11-18 用户目视）
+        return (400.0 + x * SX, 300.0 + y * SY)
 
     solid_debug = True   # T 键切换（默认开——碰撞对齐目视验收）
     drops = []           # 动态方块句柄（F 键投放——自由落体砸水）
