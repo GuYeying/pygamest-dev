@@ -181,11 +181,6 @@ async def main():
         # 300-y×SY 公式产生上下翻转，2026-11-18 用户目视）
         return (400.0 + x * SX, 300.0 + y * SY)
 
-    # 临时双开：debug renderer 链分支走向定案（ddg 打点）
-    dbg_draw = pp.DebugDraw()
-    dbg_sink = pp.LineSink()
-    dbg_renderer = pp.DebugLinesRenderer(ppm=60.0)
-
     solid_debug = True   # T 键切换（默认开——碰撞对齐目视验收）
     drops = []           # 动态方块句柄（F 键投放——自由落体砸水）
 
@@ -226,6 +221,7 @@ async def main():
                             "dynamic", translation=(x, 3.8)),
                         pp.ColliderBuilder("cuboid", hx=0.15, hy=0.15))[0]
                     drops.append(h)
+                    wire_bodies.append((h, 0.15, 0.15))
                     print(f"[fluid2d-test] 投放方块 handle={h} @x={x}")
 
         # 物理（solid + fluid 耦合步进——**本案例核心**）
@@ -286,14 +282,12 @@ async def main():
                         p.set_pipeline(block_pipe)
                         p.set_bind_group(0, bind_i)
                         p.draw_mesh(block_mesh)
-            # ③ solid 线框（T 切换——rapier 2D debug 渲染，已对齐）
+            # ③ solid 线框（T 切换——py 手绘：body 位姿四角 blit 拼边，
+            # 换算系数与方块管线同域——绝对对齐）
             if solid_debug:
-                pp.collect(solid, dbg_draw, dbg_sink)
-                dbg_renderer.set_mvp(cam.mvp())
-                t.draw_debug(dbg_renderer, dbg_sink)
-                pp.collect(solid, dbg_draw, dbg_sink)
-                dbg_renderer.set_mvp(cam.mvp())
-                t.draw_debug(dbg_renderer, dbg_sink)
+                pygame.gfxdraw.set_transform(t, M.mat4_identity())
+                for wb_handle, wb_hx, wb_hy in wire_bodies:
+                    draw_wire_box(t, wb_handle, wb_hx, wb_hy)
 
             # HUD
             pygame.gfxdraw.set_transform(t, M.mat4_translation(-388, 288, 0))
