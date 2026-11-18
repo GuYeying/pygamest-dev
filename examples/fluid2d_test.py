@@ -6,7 +6,8 @@
 # **2D 流体 debug 渲染**：instanced quad 片元圆判（渲染半径
 # 1.4×粒子半径——视觉重叠连贯表面）+ game_camera_ortho 正交相机；
 # T 键 = 2D solid 线框（DebugLinesRenderer ppm 相机 + t.draw_debug）。
-# 空格=注水 / ESC 退出。控制台 [fluid2d-test] 逐项断言。
+# 空格=注水 / F=投放动态小立方体（自由落体砸水——观测流体被排开的
+# 水花形态与刚体穿行）/ ESC 退出。控制台 [fluid2d-test] 逐项断言。
 import pygame
 import pygame_physics as pp
 
@@ -46,6 +47,13 @@ fn fs_main(in: VOut) -> @location(0) vec4<f32> {
 }
 """
 
+# 动态方块 WGSL（灰橙方片——无圆判，自由落体刚体渲染）
+BLOCK_WGSL = WGSL.replace("""    let d = length(in.uv - vec2<f32>(0.5, 0.5));
+    if (d > 0.5) { discard; }
+    let l = 0.6 + 0.4 * clamp((0.5 - d) * 4.0, 0.0, 1.0);
+    return vec4<f32>(vec3<f32>(0.25, 0.5, 0.9) * l, 1.0);""", """    let l = 0.75;
+    return vec4<f32>(vec3<f32>(0.95, 0.55, 0.25) * l, 1.0);""")
+
 # instanced 单元圆片（quad 半边 0.10 = 粒子半径——DC 投影粒子中心
 # 距表面仅 ~0.01，渲染半径 > 粒子半径会让贴面圆过半嵌入线框 = 穿模
 # 观感（2026-11-18 用户截图反馈）；半径=粒子半径为标准 SPH 渲染形态
@@ -53,6 +61,21 @@ QUAD = [
     -0.10, -0.10, 0.0, 0.0, 0.10, -0.10, 1.0, 0.0, 0.10, 0.10, 1.0, 1.0,
     -0.10, -0.10, 0.0, 0.0, 0.10, 0.10, 1.0, 1.0, -0.10, 0.10, 0.0, 1.0,
 ]
+
+
+# instanced 单元方块（动态刚体渲染单元——半边 0.15 对应 collider）
+BLOCK = [
+    -0.15, -0.15, 0.0, 0.0, 0.15, -0.15, 1.0, 0.0, 0.15, 0.15, 1.0, 1.0,
+    -0.15, -0.15, 0.0, 0.0, 0.15, 0.15, 1.0, 1.0, -0.15, 0.15, 0.0, 1.0,
+]
+
+
+def mat2d(x, y, ang):
+    # 2D 位姿矩阵（绕 z 旋转 + 平移——列主 16 元素）
+    c = M.cos(ang)
+    s = M.sin(ang)
+    return M.mat4_from_cols_array(
+        [c, s, 0, 0, -s, c, 0, 0, 0, 0, 1, 0, x, y, 0, 1])
 
 
 async def main():
@@ -126,6 +149,24 @@ async def main():
     dbg_renderer = pp.DebugLinesRenderer(ppm=60.0)
 
     solid_debug = True   # T 键切换（默认开——碰撞对齐目视验收）
+    drops = []           # 动态方块句柄（F 键投放——自由落体砸水）
+
+    # 方块渲染管线（BLOCK_WGSL 灰橙方片 + per-body uniform 惰性扩容）
+    block_mesh = ac.mesh(["float32x2", "float32x2"], BLOCK, label="block2d_mesh")
+    block_shader = ac.shader(BLOCK_WGSL, label="block2d_shader")
+    block_uniforms = []
+
+    def ensure_block_uniforms(count):
+        while len(block_uniforms) < count:
+            i = len(block_uniforms)
+            b = ac.buffer(64, label=f"block2d_model_{i}")
+            bd = ac.bind_group([
+                (0, "uniform", cam_buf),
+                (1, "uniform", b),
+            ], label=f"block2d_bind_{i}")
+            block_uniforms.append((b, bd))
+
+    block_pipe = None
 
     while True:
         for e in pygame.event.get():
@@ -140,6 +181,14 @@ async def main():
                     fh2 = fw.add_fluid_cuboid(
                         (1.0 + (frame % 5) * 0.08, 3.6), (0.5, 0.4))
                     print(f"[fluid2d-test] 注入流体 handle={fh2}")
+                if e.key == pygame.key.K_f:
+                    x = -1.5 + (frame % 5) * 0.6
+                    h = solid.insert(
+                        pp.RigidBodyBuilder(
+                            "dynamic", translation=(x, 3.8)),
+                        pp.ColliderBuilder("cuboid", hx=0.15, hy=0.15))[0]
+                    drops.append(h)
+                    print(f"[fluid2d-test] 投放方块 handle={h} @x={x}")
 
         # 物理（solid + fluid 耦合步进——**本案例核心**）
         solid.step_frame(1.0 / 60.0)
@@ -174,7 +223,32 @@ async def main():
                     p.set_pipeline(pipe)
                     p.set_bind_group(0, bind_i)
                     p.draw_mesh(quad_mesh)
-            # ② solid 线框（T 切换——2D ppm 相机会话级 draw_debug）
+            # ② 动态方块（F 键投放——translation/rotation 读回 → 2D
+            # 位姿矩阵；落水穿行时流体粒子被 DC 投影排开 = 水花观测）
+            if drops:
+                ensure_block_uniforms(len(drops))
+                if block_pipe is None:
+                    model_buf = ac.buffer(64, label="block2d_template")
+                    bind = ac.bind_group([
+                        (0, "uniform", cam_buf),
+                        (1, "uniform", model_buf),
+                    ], label="block2d_bind")
+                    block_pipe = ac.pipeline(block_shader, block_mesh,
+                                             [bind], cull="back",
+                                             blend="opaque",
+                                             depth_mode="standard",
+                                             depth_write=True,
+                                             label="block2d_pipe")
+                with screen.raw_render(depth=True) as p:
+                    for i, h in enumerate(drops):
+                        x, y = solid.translation(h)
+                        ang = solid.rotation(h)
+                        buf_i, bind_i = block_uniforms[i]
+                        ac.write_buffer(buf_i, mat2d(x, y, ang))
+                        p.set_pipeline(block_pipe)
+                        p.set_bind_group(0, bind_i)
+                        p.draw_mesh(block_mesh)
+            # ③ solid 线框（T 切换——2D ppm 相机会话级 draw_debug）
             if solid_debug:
                 pp.collect(solid, dbg_draw, dbg_sink)
                 t.draw_debug(dbg_renderer, dbg_sink)
@@ -182,8 +256,8 @@ async def main():
             # HUD
             pygame.gfxdraw.set_transform(t, M.mat4_translation(-388, 288, 0))
             pygame.gfxdraw.draw_surface(t, cjk.render(
-                f"[fluid2d] 粒子 {count} | T solid线框={solid_debug} "
-                f"空格=注水", True, (200, 210, 230)))
+                f"[fluid2d] 粒子 {count} 方块 {len(drops)} | T 线框={solid_debug} "
+                f"空格=注水 F=投放方块", True, (200, 210, 230)))
             pygame.gfxdraw.set_transform(t, M.mat4_translation(-388, 268, 0))
             pygame.gfxdraw.draw_surface(t, cjk.render(
                 f"2D 轴: physics2d + fluid2d（salva2d DC 耦合）",
