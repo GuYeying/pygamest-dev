@@ -243,23 +243,13 @@ async def main():
         if frame % 10 == 0 and total_count() < CAP:
             jx = 0.35 * M.sin(frame * 0.73)
             jz = 0.35 * M.cos(frame * 0.61)
-            nh = fw.add_fluid_cuboid((jx, 1.62, jz), (0.2, 0.42, 0.2))
-            handles.append(nh)
-            print('[fluid3d] emit handle', nh, 'total', total_count())
-            pp3, _ = fw.fluid_particles(nh)
-            print('[fluid3d]   sample pos', [round(v, 2) for v in pp3[:6]])
+            handles.append(fw.add_fluid_cuboid((jx, 1.62, jz), (0.2, 0.42, 0.2)))
         positions = []
         for h in handles:
             p, _v = fw.fluid_particles(h)
             positions.extend(p)
         count = len(positions) // 3
         ensure(count)
-        if frame % 60 == 0:
-            ys = []
-            for h in handles:
-                pp_, _ = fw.fluid_particles(h)
-                ys.append(round(pp_[1], 2) if len(pp_) >= 3 else '-')
-            print('[fluid3d] t', frame, 'handle first-y:', ys, 'total', count)
 
         # 相机（第三人称环绕 + 俯角）
         t_sec = frame / 60.0
