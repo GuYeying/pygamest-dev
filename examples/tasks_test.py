@@ -15,6 +15,10 @@ async def slow_load():
     await pygame.tasks.sleep(0.5)          # 30 帧
     return "asset"
 
+async def bad_load(res_name):
+    await pygame.tasks.sleep(0.2)
+    raise ValueError("资源缺失: " + res_name)
+
 async def hung():
     while True:
         await pygame.next_frame()          # 永不完成（wait_for 超时对象）
@@ -71,6 +75,22 @@ async def main():
     await pygame.tasks.sleep(0.2)
     tk2.cancel()
     st("cancel 终止任务", tk2.done and tk2.cancelled)
+
+    # ⑦ 失败定位（异常存档 + re-raise + 任务命名——资源加载失败场景）
+    t = pygame.tasks.spawn(bad_load("assets/hero.png"), "hero_load")
+    await pygame.tasks.sleep(0.5)
+    st("任务失败存档 failed()/exception()", t.failed() and t.exception() is not None)
+    st("失败定位 = 任务名", t.name == "hero_load")
+    try:
+        await t.wait()
+        st("await 任务重抛异常", False)
+    except ValueError as e:
+        st("await 任务重抛异常", "hero.png" in str(e))
+    try:
+        await T.gather(worker("ok", 10), bad_load("b"))
+        st("gather 首异常重抛", False)
+    except ValueError:
+        st("gather 首异常重抛", True)
 
     print("[tasks-test] SUMMARY", "PASS" if not _fail else "FAIL " + str(_fail))
 
