@@ -101,7 +101,7 @@ async def main():
 
     dbg_draw = pp.DebugDraw()
     dbg_sink = pp.LineSink()
-    dbg_renderer = pp.DebugLinesRenderer(ppm=60.0)
+    dbg_renderer = pp.DebugLinesRenderer()
 
     frame = 0
     while frame < 3600:

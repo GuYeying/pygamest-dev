@@ -153,7 +153,7 @@ async def main():
     # gfxdraw 手绘迁回——两段式修复后 overlay 相机写入已实证生效）
     dbg_sink = pp.LineSink()
     pixel_cam = pygame.render.game_camera_ortho(800, 600, 800, 600)
-    dbg_renderer = pp.DebugLinesRenderer(ppm=60.0)
+    dbg_renderer = pp.DebugLinesRenderer()
 
     solid_debug = True   # T 键切换（默认开——碰撞对齐目视验收）
     drops = []           # 动态方块句柄（F 键投放——自由落体砸水）

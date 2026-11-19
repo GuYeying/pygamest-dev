@@ -1,6 +1,6 @@
 # pygame_physics 对接专项测试（渲染对接 v1；原 pygame.rapier，2026-10-24 升格）
 # 控制台 [rapier-test] 逐项断言 + 落体调试线样张上屏（视觉验收：
-# 地面横线 + 三球下落碰撞——世界原点居中、y 向上、ppm=60）
+# 地面横线 + 三球下落碰撞——世界原点居中、y 向上、，跟随 Screen.camera）
 # 接口风格 = rapier 原生词汇（不 pygame 化）；绘制 = 会话排程形态
 # `t.draw_debug(renderer, sink)`（与 egui 的 t.draw_ui 同一渲染行为）
 import pygame
@@ -102,9 +102,9 @@ async def main():
     # 调试三件套 + 相机
     draw = rp.DebugDraw()                       # 缺省 = 形状 + 接触位
     sink = rp.LineSink()
-    renderer = rp.DebugLinesRenderer(ppm=60.0)
+    renderer = rp.DebugLinesRenderer()
 
-    label = cjk.render("pygame_physics 落体 + DebugLinesRenderer 叠加通道（原点居中 y↑ ppm=60）",
+    label = cjk.render("pygame_physics 落体 + DebugLinesRenderer 叠加通道（原点居中 y↑，跟随 Screen.camera）",
                        True, (200, 200, 200))
 
     # ── 帧循环（事件 → step → collect → 游戏会话 + t.draw_debug 排程 → flip）
