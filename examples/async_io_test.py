@@ -44,7 +44,13 @@ async def main():
     # ── 测试分片生成（启动一次——8×16MB 全零，write 覆盖幂等）──
     big_path = "assets/big_single.bin"
     if not pygame.io.exists(big_path):
-        pygame.io.write(big_path, bytes(BIG_BYTES))   # 128MB 全零单文件
+        # 生成段 try/except（**wasm 退化**——io.write 的 wasm 分支 Err，
+        # 无法同步生成大文件：wasm 的测试文件由 build.py 预置到
+        # web/assets，fetch 同 origin 下载承载）
+        try:
+            pygame.io.write(big_path, bytes(BIG_BYTES))   # 128MB 全零单文件
+        except Exception as ex:
+            print("[aiot] 大文件生成跳过（wasm/只读承载）:", ex, flush=True)
 
     hud = Hud()
     hud.path = "assets/big_single.bin"

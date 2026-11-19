@@ -18,6 +18,7 @@
 """
 
 import argparse
+import os
 import re
 import subprocess
 import sys
@@ -313,6 +314,14 @@ def main():
             dst.parent.mkdir(parents=True, exist_ok=True)
             dst.write_bytes(src.read_bytes())
             print(f"[OK] CJK 字体部署: {dst}")
+
+    # 大文件预置（async_io_test 的 wasm 对照资产——128MB 全零单文件；
+    # 已存在跳过——wasm 的 io.write 退化 Err 无法生成，预置承载）
+    big = WEB / "assets" / "big_single.bin"
+    if not big.is_file():
+        big.parent.mkdir(parents=True, exist_ok=True)
+        big.write_bytes(bytes(128 * 1024 * 1024))
+        print(f"[OK] 大文件预置: {big} (128MB)")
 
     print("[OK] web/index.html + python.js + python_bg.wasm")
     print("=== 游戏部署 ===")

@@ -328,24 +328,56 @@ async def main():
                 M.sin(pitch_r),
                 -M.cos(pitch_r) * M.cos(yaw_r))
 
+    def dda_traverse(o, d, max_dist=64.0):
+        # **Amanatides-Woo voxel traversal**（数学精确——无 ε 猜测）：
+        # 从 o 沿 d 逐格步进，命中首个有体素的格；返回
+        # (命中格, 进入面法线, 步进序列)——放置格 = 命中格 + 法线
+        dl = (d[0] ** 2 + d[1] ** 2 + d[2] ** 2) ** 0.5
+        if dl == 0:
+            return None
+        dn = (d[0] / dl, d[1] / dl, d[2] / dl)
+        x, y, z = int(o[0] // 1), int(o[1] // 1), int(o[2] // 1)
+        step = (1 if dn[0] > 0 else -1,
+                1 if dn[1] > 0 else -1,
+                1 if dn[2] > 0 else -1)
+
+        def axis_init(p, dd, s):
+            if dd == 0:
+                return float("inf"), float("inf")
+            edge = p + (1 if s > 0 else 0)          # 下一格边界（整数坐标）
+            t_max = (edge - p) / dd                 # 到边界的射线参数 t
+            return (t_max if t_max >= 0 else 0.0), abs(1.0 / dd)
+
+        tx, dtx = axis_init(o[0], dn[0], step[0])
+        ty, dty = axis_init(o[1], dn[1], step[1])
+        tz, dtz = axis_init(o[2], dn[2], step[2])
+        normal = None
+        t = 0.0
+        while t <= max_dist:
+            if vw.get_voxel(x, y, z) is not None:
+                return ((x, y, z), normal, t)
+            if tx < ty and tx < tz:
+                x += step[0]; t = tx; tx += dtx; normal = (-step[0], 0, 0)
+            elif ty < tz:
+                y += step[1]; t = ty; ty += dty; normal = (0, -step[1], 0)
+            else:
+                z += step[2]; t = tz; tz += dtz; normal = (0, 0, -step[2])
+        return None
+
     def pick_voxel():
         d = mouse_ray()
-        hit = world.cast_ray_filtered(tuple(eye), d, None, "only_fixed")
-        if hit is None:
+        r = dda_traverse(eye, d)
+        if r is None:
             return None
-        toi = hit[1]
-        px = eye[0] + d[0] * toi
-        py = eye[1] + d[1] * toi
-        pz = eye[2] + d[2] * toi
-        # 命中点 ± ε·dir → 内侧格（删）/ 外侧格（放）——`// 1` 向负无穷
-        # 取整 = floor（math 模块缺席，整除语义替代）
-        inside = (int((px - d[0] * 0.05) // 1),
-                  int((py - d[1] * 0.05) // 1),
-                  int((pz - d[2] * 0.05) // 1))
-        outside = (int((px + d[0] * 0.05) // 1),
-                   int((py + d[1] * 0.05) // 1),
-                   int((pz + d[2] * 0.05) // 1))
-        return inside, outside, (px, py, pz)
+        inside, normal, t = r
+        # 放置格 = 命中格 + 进入面法线（数学正确——外侧即命中面背侧）
+        outside = (inside[0] + normal[0], inside[1] + normal[1],
+                   inside[2] + normal[2]) if normal else (
+            int((eye[0] + d[0] * (t - 0.05)) // 1),
+            int((eye[1] + d[1] * (t - 0.05)) // 1),
+            int((eye[2] + d[2] * (t - 0.05)) // 1))
+        hp = (eye[0] + d[0] * t, eye[1] + d[1] * t, eye[2] + d[2] * t)
+        return inside, outside, hp, normal
 
     def remove_voxel(key):
         if vw.get_voxel(*key) is None:
@@ -440,19 +472,21 @@ async def main():
                     dragging = True
                     picked = pick_voxel()
                     if picked:
-                        inside, outside, p = picked
+                        inside, outside, p, normal = picked
                         if remove_voxel(inside):
                             vox_mesh, tri_count = rebuild_voxel_mesh()
-                            info = f"删 {inside} @({p[0]:.1f},{p[1]:.1f},{p[2]:.1f})"
+                            info = (f"删 {inside} @({p[0]:.1f},{p[1]:.1f},{p[2]:.1f})"
+                                    f" 法线{normal}")
                         else:
                             info = f"删 {inside} 落空（air）"
                 elif e.button == 3:
                     picked = pick_voxel()
                     if picked:
-                        inside, outside, p = picked
+                        inside, outside, p, normal = picked
                         if place_voxel(outside):
                             vox_mesh, tri_count = rebuild_voxel_mesh()
-                            info = f"放 {outside} @({p[0]:.1f},{p[1]:.1f},{p[2]:.1f})"
+                            info = (f"放 {outside} @({p[0]:.1f},{p[1]:.1f},{p[2]:.1f})"
+                                    f" 法线{normal}")
                         else:
                             info = f"放 {outside} 落空（已有方块）"
             elif e.type == pygame.event.MOUSEBUTTONUP:
