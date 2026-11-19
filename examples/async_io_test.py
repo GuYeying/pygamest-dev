@@ -89,13 +89,12 @@ async def main():
         if hud.want == "async" and job is None:
             hud.want = None
             hud.state = "异步中"
-            job = pygame.tasks.spawn(chunk_loader([hud.path], hud))
+            job = pygame.tasks.spawn(chunk_loader(hud.path, hud))
         elif hud.want == "blocking":
             hud.want = None
             hud.state = "阻塞中（画面冻结）"
             t0 = SW()
-            for p in [hud.path]:
-                pygame.io.read(p)          # 同步全读——画面冻结
+            pygame.io.read(hud.path)          # 同步全读——画面冻结
             blocking_ms = t0.ms()
             if blocking_ms > max_dt:
                 max_dt = blocking_ms       # 冻结段计入最大帧间
@@ -129,8 +128,8 @@ async def main():
 
             # 进度条（异步中）
             if "异步中" in hud.state and "|" in hud.state:
-                done_parts = int(hud.state.split("|")[1])
-                w = int(500 * done_parts / PARTS)
+                done_pct = int(hud.state.split("|")[1])
+                w = int(500 * done_pct / 100)
                 pygame.gfxdraw.set_color(t, (80, 200, 140))
                 pygame.gfxdraw.box(t, (-250, -180, w, 24))
             pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(0, 0, 0))
@@ -143,13 +142,19 @@ async def main():
         frame += 1
 
 
-async def chunk_loader(paths, hud):   # paths = [单文件]（fetch 内部分块）
-    # 分帧加载协程：每帧读一片 + await 挂起——画面持续推进
+async def chunk_loader(path, hud):
+    # **coroutine 形态**（无 yield——async gen 在 RP 驱动有病态）：
+    # pygame.io.io_read_chunk 同步区间读（每帧一块，块级毫秒级不超
+    # 帧预算）+ await next_frame 挂起交出控制权——画面持续推进
     t0 = SW()
     got = 0
-    for p in paths:
-        data = await pygame.io.fetch(p)   # 挂起一帧（本片读 16MB）
+    total = pygame.io.io_size(path)
+    off = 0
+    chunk = 8 * 1024 * 1024
+    while off < total:
+        data = pygame.io.io_read_chunk(path, off, n if False else min(chunk, total - off))
         got += len(data)
-        hud.state = f"异步中|{i + 1}"
-        await pygame.next_frame()
-    return t0.ms(), got
+        off += n if False else min(chunk, total - off)
+        hud.state = f"异步中|{off * 100 // total}"
+        await pygame.next_frame()                  # 挂起一帧（画面推进）
+    hud.async_ms = t0.ms()
