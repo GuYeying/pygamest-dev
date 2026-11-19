@@ -1,5 +1,6 @@
 # fluid_test —— pygame_physics 流体×刚体碰撞标准场景（2026-11-18 重写，
-# rapier coupling 第三批验收样张）：**静态刚体 × 流体碰撞**——rapier
+# rapier coupling 第三批验收样张；2026-11-19 注水聚合修复 + F 键
+# dynamic 刚体投放）：**静态刚体 × 流体碰撞**——rapier
 # fixed 斜面 + 大地面（solid 世界）经 FluidWorld.step(dt, solid) 耦合
 # 步进（collider 增量注册为 salva 边界——DynamicContactSampling 硬投影
 # ：侵入粒子每步推出表面 + 法向速度消除；旋转 collider 开箱即用），
@@ -111,6 +112,35 @@ SPHERE = [
     0.0736, 0.1191, 0.0, 0.53, 0.85, 0.0, 0.14, 0.0, 0.0, 1.0, 0.0, 0.0, 0.1133, 0.07, -0.0433, 0.81, 0.5, -0.31, 0.1133, 0.07, 0.0433, 0.81, 0.5, 0.31,
 ]
 
+# 单元立方体（半边 0.15——dynamic 刚体渲染；36 顶点 = 12 三角，pos3+nrm3）
+CUBE = [
+    # -Z 面
+    -0.15, -0.15, -0.15, 0.0, 0.0, -1.0, 0.15, -0.15, -0.15, 0.0, 0.0, -1.0,
+    0.15, 0.15, -0.15, 0.0, 0.0, -1.0, -0.15, -0.15, -0.15, 0.0, 0.0, -1.0,
+    0.15, 0.15, -0.15, 0.0, 0.0, -1.0, -0.15, 0.15, -0.15, 0.0, 0.0, -1.0,
+    # +Z 面
+    -0.15, -0.15, 0.15, 0.0, 0.0, 1.0, 0.15, 0.15, 0.15, 0.0, 0.0, 1.0,
+    0.15, -0.15, 0.15, 0.0, 0.0, 1.0, -0.15, -0.15, 0.15, 0.0, 0.0, 1.0,
+    -0.15, 0.15, 0.15, 0.0, 0.0, 1.0, 0.15, 0.15, 0.15, 0.0, 0.0, 1.0,
+    # -X 面
+    -0.15, -0.15, -0.15, -1.0, 0.0, 0.0, -0.15, 0.15, 0.15, -1.0, 0.0, 0.0,
+    -0.15, -0.15, 0.15, -1.0, 0.0, 0.0, -0.15, -0.15, -0.15, -1.0, 0.0, 0.0,
+    -0.15, 0.15, 0.15, -1.0, 0.0, 0.0, -0.15, 0.15, -0.15, -1.0, 0.0, 0.0,
+    # +X 面
+    0.15, -0.15, -0.15, 1.0, 0.0, 0.0, 0.15, -0.15, 0.15, 1.0, 0.0, 0.0,
+    0.15, 0.15, 0.15, 1.0, 0.0, 0.0, 0.15, -0.15, -0.15, 1.0, 0.0, 0.0,
+    0.15, 0.15, 0.15, 1.0, 0.0, 0.0, 0.15, 0.15, -0.15, 1.0, 0.0, 0.0,
+    # -Y 面
+    -0.15, -0.15, -0.15, 0.0, -1.0, 0.0, -0.15, -0.15, 0.15, 0.0, -1.0, 0.0,
+    0.15, -0.15, 0.15, 0.0, -1.0, 0.0, -0.15, -0.15, -0.15, 0.0, -1.0, 0.0,
+    0.15, -0.15, 0.15, 0.0, -1.0, 0.0, 0.15, -0.15, -0.15, 0.0, -1.0, 0.0,
+    # +Y 面
+    -0.15, 0.15, -0.15, 0.0, 1.0, 0.0, 0.15, 0.15, 0.15, 0.0, 1.0, 0.0,
+    -0.15, 0.15, 0.15, 0.0, 1.0, 0.0, -0.15, 0.15, -0.15, 0.0, 1.0, 0.0,
+    0.15, 0.15, 0.15, 0.0, 1.0, 0.0, 0.15, 0.15, -0.15, 0.0, 1.0, 0.0,
+    0.15, 0.15, -0.15, 0.0, 1.0, 0.0, -0.15, 0.15, -0.15, 0.0, 1.0, 0.0,
+]
+
 
 def fps_view(eye, yaw_deg, pitch_deg):
     yaw = M.radians(yaw_deg)
@@ -183,6 +213,7 @@ async def main():
     # 水柱：0.7×0.8×0.7 方块水（spacing 0.2 → 36 粒子），位于斜面
     # 高端（+x 翘起端）上方——倒下后沿斜面滑向 -x 端摊开静置
     fh = fw.add_fluid_cuboid((1.2, 2.6, -0.35), (0.7, 0.8, 0.7))
+    handles = [fh]   # 全句柄聚合（空格注水 = 新 fluid 句柄——渲染枚举全量）
     n = fw.fluid_particle_count(fh)
     st(f"水柱粒子数 {n} > 30", n > 30)
 
@@ -220,6 +251,22 @@ async def main():
     dbg_renderer = pp.DebugLinesRenderer3D()  # 相机由 set_mvp 直写
 
     solid_debug = True   # T 键切换（默认开——碰撞对齐目视验收）
+    drops = []           # F 键投放的 dynamic 刚体（×流体耦合验证）
+
+    # 刚体渲染（cube mesh 复用 fluid 管线 layout——pos3+nrm3 同构；
+    # per-body uniform 惰性扩容同粒子同款）
+    cube_mesh = ac.mesh(["float32x3", "float32x3"], CUBE, label="cube_mesh")
+    block_uniforms = []
+
+    def ensure_block_uniforms(count):
+        while len(block_uniforms) < count:
+            i = len(block_uniforms)
+            b = ac.buffer(64, label=f"block_model_{i}")
+            bd = ac.bind_group([
+                (0, "uniform", cam_buf),
+                (1, "uniform", b),
+            ], label=f"block_model_bind_{i}")
+            block_uniforms.append((b, bd))
 
     while True:
         for e in pygame.event.get():
@@ -231,11 +278,24 @@ async def main():
                 if e.key == pygame.key.K_t:
                     solid_debug = not solid_debug
                 if e.key == pygame.key.K_SPACE:
-                    # 注入一波新流体（斜面高端上方随机位置）
+                    # 注入一波新流体（斜面高端上方随机位置；新句柄入
+                    # handles 聚合——渲染枚举全量）
                     fh2 = fw.add_fluid_cuboid(
                         (1.1 + (frame % 5) * 0.08, 3.4, -0.3),
                         (0.5, 0.4, 0.5))
+                    handles.append(fh2)
                     print(f"[fluid-test] 注入流体 handle={fh2}")
+                if e.key == pygame.key.K_f:
+                    # 投放 dynamic 刚体（**dynamic×流体耦合验证**——
+                    # bb46a1b 开放：DC 位置投影推开粒子、刚体沉底）
+                    x = 0.6 + (frame % 4) * 0.35
+                    h = solid.insert(
+                        pp.RigidBodyBuilder3D(
+                            "dynamic", translation=(x, 2.6, 0.0)),
+                        pp.ColliderBuilder3D("cuboid",
+                                             hx=0.15, hy=0.15, hz=0.15))[0]
+                    drops.append(h)
+                    print(f"[fluid-test] 投放方块 handle={h} @x={x}")
                 if e.key == pygame.key.K_g:
                     cur = pp.scheduler_status().get("fluid")
                     pp.scheduler_enable("fluid", not cur)
@@ -252,7 +312,10 @@ async def main():
             bc = fw.boundary_count()
             st(f"耦合边界注册 {bc} >= 2", bc >= 2)
 
-        positions, _vel = fw.fluid_particles(fh)
+        positions = []
+        for h in handles:
+            p, _v = fw.fluid_particles(h)
+            positions.extend(p)
         count = len(positions) // 3
         ensure_particle_uniforms(count)
         if pipe is None and count > 0:
@@ -285,12 +348,23 @@ async def main():
                     p.set_pipeline(pipe)
                     p.set_bind_group(0, bind_i)
                     p.draw_mesh(sphere_mesh)
+                # ③ dynamic 刚体立方体（F 投放——同管线 layout 直绘
+                # cube_mesh；DC 单向耦合：粒子被推开、刚体沉底）
+                if drops:
+                    ensure_block_uniforms(len(drops))
+                    for i, h in enumerate(drops):
+                        x, y, z = solid.translation(h)
+                        buf_i, bind_i = block_uniforms[i]
+                        ac.write_buffer(buf_i, M.mat4_translation(x, y, z))
+                        p.set_pipeline(pipe)
+                        p.set_bind_group(0, bind_i)
+                        p.draw_mesh(cube_mesh)
 
             # HUD
             pygame.gfxdraw.set_transform(rt, M.mat4_translation(-388, 288, 0))
             pygame.gfxdraw.draw_surface(rt, cjk.render(
-                f"[fluid] 粒子 {count} | T solid线框={solid_debug} "
-                f"空格=注水", True, (200, 210, 230)))
+                f"[fluid] 粒子 {count} 刚体 {len(drops)} | T solid线框={solid_debug} "
+                f"空格=注水 F=投放刚体", True, (200, 210, 230)))
             pygame.gfxdraw.set_transform(rt, M.mat4_translation(-388, 268, 0))
             pygame.gfxdraw.draw_surface(rt, cjk.render(
                 f"调度器: {pp.scheduler_status()}（G 键切 fluid 开关）",

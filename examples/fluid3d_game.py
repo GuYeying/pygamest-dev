@@ -279,12 +279,13 @@ async def main():
         with screen.render() as rt:
             rt.fill((10, 12, 18))
             with screen.raw_render(depth=True) as p:
-                # 水槽线框（rapier 边界 collect——隔帧一次省带宽）
-                if frame % 2 == 0:
-                    sink = pp.LineSink3D()
-                    pp.collect3d(solid, dbg_draw, sink)
-                    dbg_renderer.set_mvp(cam_m.mvp())
-                    rt.draw_debug_3d(dbg_renderer, sink)
+                # 水槽线框（rapier 边界 collect——**每帧**绘制：曾隔帧
+                # frame % 2"省带宽"= 30Hz 闪烁，2026-11-19 用户实测根修；
+                # sink 每帧局部新建 + vbo/ibo 逐帧覆写）
+                sink = pp.LineSink3D()
+                pp.collect3d(solid, dbg_draw, sink)
+                dbg_renderer.set_mvp(cam_m.mvp())
+                rt.draw_debug_3d(dbg_renderer, sink)
                 # ① 液体核心球（不透明深度写入）
                 if core_pipe is not None:
                     p.set_pipeline(core_pipe)
