@@ -37,7 +37,11 @@ fn fs_main(in: VOut) -> @location(0) vec4<f32> {
     let rim = pow(1.0 - max(dot(n, v), 0.0), 3.0);
     let spec = pow(max(dot(reflect(-normalize(vec3<f32>(0.3, 1.0, 0.35)), n), v), 0.0), 48.0);
     let col = base * (0.4 + 0.6 * nl) + vec3<f32>(0.25, 0.75, 1.0) * rim * 0.55 + vec3<f32>(1.0) * spec * 0.55;
-    return vec4<f32>(col, 1.0);
+    // **视深归一写入 alpha**（screen-space 流体管线输入——depth01 供
+    // bilateral 平滑与法线重建；near=0.5 far=60 与主相机参数一致）
+    let vd = length(in.wpos - eye.pos.xyz);
+    let d01 = clamp((vd - 0.5) / 59.5, 0.0, 1.0);
+    return vec4<f32>(col, d01);
 }
 """
 
@@ -67,6 +71,76 @@ fn fs_main(in: VOut) -> @location(0) vec4<f32> {
     return vec4<f32>(vec3<f32>(0.20, 0.60, 1.0) * a, a);
 }
 """
+
+WGSL_FLUID_FS = """
+struct FluidParams {
+    texel: vec2<f32>,      // 1/宽, 1/高
+    tan_half: f32,         // tan(fov_y/2)
+    aspect: f32,
+    near: f32,
+    far: f32,
+    light: vec3<f32>,
+    bg: vec3<f32>,
+};
+@group(0) @binding(0) var tex: texture_2d<f32>;
+@group(0) @binding(1) var samp: sampler;
+@group(0) @binding(2) var<uniform> fp: FluidParams;
+struct VIn { @location(0) pos: vec2<f32>, @location(1) uv: vec2<f32> }
+struct VOut { @builtin(position) pos: vec4<f32>, @location(0) uv: vec2<f32> }
+@vertex
+fn vs_main(v: VIn) -> VOut {
+    var o: VOut;
+    o.pos = vec4<f32>(v.pos, 0.0, 1.0);
+    o.uv = v.uv;
+    return o;
+}
+// 米制视深反推（d01 → 米）——与球 pass 的 depth01 编码互逆
+fn d01_to_meters(d01: f32) -> f32 {
+    return d01 * (fp.far - fp.near) + fp.near;
+}
+@fragment
+fn fs_main(in: VOut) -> @location(0) vec4<f32> {
+    let d0 = textureSampleLevel(tex, samp, in.uv, 0.0).a;
+    // 背景（离屏 alpha=0 = 无液体——输出主屏背景色）
+    if (d0 < 0.004) {
+        return vec4<f32>(fp.bg, 1.0);
+    }
+    // **5×5 bilateral**（深度差高斯权重——球边缘深度跳变不跨边平滑）
+    var sum = 0.0;
+    var wsum = 0.0;
+    for (var dy: i32 = -2; dy <= 2; dy++) {
+        for (var dx: i32 = -2; dx <= 2; dx++) {
+            let uv2 = in.uv + vec2<f32>(f32(dx), f32(dy)) * fp.texel;
+            let sd = textureSampleLevel(tex, samp, uv2, 0.0).a;
+            let dd = (sd - d0) * 12.0;
+            let sp = exp(-f32(dx * dx + dy * dy) * 0.15);
+            let w = sp * exp(-dd * dd);
+            sum += sd * w;
+            wsum += w;
+        }
+    }
+    let sm = select(d0, sum / max(wsum, 0.0001), wsum > 0.0);
+    // 米制视深反推 → 视空间位置 → 法线重建（屏幕空间梯度）
+    let vz = d01_to_meters(sm);
+    let t = fp.tan_half;
+    let px = (in.uv.x - 0.5) * 2.0 * t * fp.aspect * vz;
+    let py = (0.5 - in.uv.y) * 2.0 * t * vz;
+    let pos = vec3<f32>(px, py, -vz);
+    let n = normalize(cross(dpdx(pos), dpdy(pos)));
+    let nf = select(n, -n, n.z > 0.0);
+    // 流体着色（方向光+菲涅尔+深度色渐变）
+    let L = normalize(fp.light);
+    let nl = max(dot(nf, L), 0.0);
+    let V = normalize(-pos);
+    let fres = pow(1.0 - max(dot(nf, V), 0.0), 3.0) * 0.6;
+    let hgt = clamp((sm - fp.near) / (fp.far * 0.3), 0.0, 1.0);
+    let base = mix(vec3<f32>(0.02, 0.10, 0.22), vec3<f32>(0.15, 0.55, 0.85), hgt);
+    let spec = pow(max(dot(reflect(-L, nf), V), 0.0), 40.0) * 0.5;
+    let col = base * (0.35 + 0.65 * nl) + vec3<f32>(0.3, 0.75, 1.0) * fres + vec3<f32>(1.0) * spec;
+    return vec4<f32>(col, 1.0);
+}
+"""
+
 
 # 单元球（半径 0.14 icosphere——fluid_test 同源；模型缩放定视觉半径）
 SPHERE = [-0.0736, 0.1191, 0.0, -0.53, 0.85, 0.0, -0.1133, 0.07, 0.0433, -0.81, 0.5, 0.31, -0.0433, 0.1133, 0.07, -0.31, 0.81, 0.5, -0.1133, 0.07, 0.0433, -0.81, 0.5, 0.31,
@@ -224,6 +298,21 @@ async def main():
     core_pipe = None
     glow_pipe = None
 
+    # ── screen-space 流体管线资源（v3.2——离屏 depth 面 + 全屏
+    # bilateral/法线重建/着色 pass）──
+    fluid_surf = pygame.Surface((800, 600), depth_buffer=True)   # 离屏面（depth_buffer=True——render_depth 用）
+    quad_fs = ac.mesh(["float32x2", "float32x2"],
+                      [-1.0, -1.0, 0.0, 0.0, 1.0, -1.0, 1.0, 0.0,
+                       1.0, 1.0, 1.0, 1.0, -1.0, 1.0, 0.0, 1.0],
+                      label="quad_fs")
+    fluid_shader = ac.shader(WGSL_FLUID_FS, label="fluid_fs_shader")
+    fluid_fp = ac.buffer(64, label="fluid_fp")
+    fluid_bind = ac.bind_group([(0, "texture", fluid_surf),
+                                (1, "sampler", None),
+                                (2, "uniform", fluid_fp)],
+                               label="fluid_bind")
+    fluid_pipe = ac.pipeline(fluid_shader, quad_fs, [fluid_bind],
+                             cull="none", blend="opaque", label="fluid_ss_pipe")
     pixel_cam = pygame.render.game_camera_ortho(800, 600, 800, 600)
     dbg_renderer = pp.DebugLinesRenderer3D()
     dbg_draw = pp.DebugDraw3D()
@@ -277,9 +366,32 @@ async def main():
                                     blend="additive", depth_mode="standard",
                                     depth_write=False, label="liq_glow_pipe")
 
+        # ── Pass 1：粒子球深度编码 → 离屏 fluid_surf（alpha = 视深01）──
+        # screen-space 流体管线（v3.2——球间融合成连续液体表面替代单球
+        # 观感）：球 pass 输出视深归一到 alpha，主屏全屏 pass 做 bilateral
+        # 平滑 + 法线重建 + 流体着色
+        with fluid_surf.render() as ft:
+            ft.fill((0, 0, 0, 0))
+            p = ft.raw_render(depth=True)
+            if core_pipe is not None:
+                p.set_pipeline(core_pipe)
+                for i in range(count):
+                    x = positions[i * 3]
+                    y = positions[i * 3 + 1]
+                    z = positions[i * 3 + 2]
+                    ac.write_buffer(core_uniforms[i][0],
+                                    M.mat4_translation(x, y, z) @ M.mat4_scale(0.92, 0.92, 0.92))
+                    p.set_bind_group(0, core_uniforms[i][1])
+                    p.draw_mesh(sphere_mesh)
+
         with screen.render() as rt:
             rt.fill((10, 12, 18))
-            with screen.raw_render(depth=True) as p:
+            # ── Pass 2：主屏全屏流体 pass（bilateral 平滑 + 法线重建 +
+            # 流体着色——采样 fluid_surf 的 alpha 视深）──
+            with screen.raw_render() as p:
+                p.set_pipeline(fluid_pipe)
+                p.set_bind_group(0, fluid_bind)
+                p.draw_mesh(quad_fs)
                 # 水槽线框（rapier 边界 collect——**每帧**绘制：曾隔帧
                 # frame % 2"省带宽"= 30Hz 闪烁，2026-11-19 用户实测根修；
                 # sink 每帧局部新建 + vbo/ibo 逐帧覆写）
@@ -287,28 +399,6 @@ async def main():
                 pp.collect3d(solid, dbg_draw, sink)
                 dbg_renderer.set_mvp(cam_m.mvp())
                 rt.draw_debug_3d(dbg_renderer, sink)
-                # ① 液体核心球（不透明深度写入）
-                if core_pipe is not None:
-                    p.set_pipeline(core_pipe)
-                    for i in range(count):
-                        x = positions[i * 3]
-                        y = positions[i * 3 + 1]
-                        z = positions[i * 3 + 2]
-                        ac.write_buffer(core_uniforms[i][0],
-                                        M.mat4_translation(x, y, z) @ M.mat4_scale(0.92, 0.92, 0.92))
-                        p.set_bind_group(0, core_uniforms[i][1])
-                        p.draw_mesh(sphere_mesh)
-                # ② 加性光晕壳（1.5×，深度测试开/写关）
-                if glow_pipe is not None:
-                    p.set_pipeline(glow_pipe)
-                    for i in range(count):
-                        x = positions[i * 3]
-                        y = positions[i * 3 + 1]
-                        z = positions[i * 3 + 2]
-                        ac.write_buffer(glow_uniforms[i][0],
-                                        M.mat4_translation(x, y, z) @ M.mat4_scale(1.42, 1.42, 1.42))
-                        p.set_bind_group(0, glow_uniforms[i][1])
-                        p.draw_mesh(sphere_mesh)
 
             # HUD（段级显式像素相机——v3.1 全显式：None 段 = NDC，像素
             # 域必须声明；画毕 clear_camera 交还段状态）
