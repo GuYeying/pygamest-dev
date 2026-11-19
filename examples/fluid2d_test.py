@@ -188,10 +188,17 @@ async def main():
                         (1.0 + (frame % 5) * 0.08, 3.6), (0.5, 0.4))
                     print(f"[fluid2d-test] 注入流体 handle={fh2}")
                 if e.key == pygame.key.K_f:
+                    # 投放高度 2.4（水面 2.0 上方 0.4——入水速度 ~2.8 m/s；
+                    # 曾 3.8 = 入水 ~7 m/s，DC 采样 60Hz 下单步位移 > 粒子
+                    # 间距 40%，排开呈冲击爆开、水花形态不可辨——2026-11-19
+                    # 量化实证：包络展宽 0..1.8 → -1.9..3.7 = 排开存在）
+                    # ⚠️ DC 耦合语义 = **单向**（刚体是移动边界——粒子被
+                    # 推开，刚体不受浮力/拖拽反作用）：方块入水后继续
+                    # 加速沉底 = 语义现状，观测对象是排开水花与绕流
                     x = -1.5 + (frame % 5) * 0.6
                     h = solid.insert(
                         pp.RigidBodyBuilder(
-                            "dynamic", translation=(x, 3.8)),
+                            "dynamic", translation=(x, 2.4)),
                         pp.ColliderBuilder("cuboid", hx=0.15, hy=0.15))[0]
                     drops.append(h)
                     print(f"[fluid2d-test] 投放方块 handle={h} @x={x}")
