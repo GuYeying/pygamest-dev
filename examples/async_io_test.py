@@ -12,7 +12,7 @@ class SW:
     def ms(self): return pygame.time.get_ticks() - self.t0
 
 PARTS = 8
-PART_BYTES = 16 * 1024 * 1024  # 每片 16MB（8 片 = 128MB——卡顿可辨）
+BIG_BYTES = 128 * 1024 * 1024  # 单文件 128MB（fetch 自动分块流式 v3.1）
 
 
 class Hud(egui.UiBase):
@@ -21,6 +21,7 @@ class Hud(egui.UiBase):
         self.state = "待机"
         self.info = "选按钮开始对照"
         self.want = None
+        self.async_ms = -1.0
 
     def draw(self, ui):
         ui.heading("异步 IO A/B 对照（tasks 分帧 vs 同步阻塞）")
@@ -41,15 +42,12 @@ async def main():
     cjk = pygame.font.Font("cjk", 15)
 
     # ── 测试分片生成（启动一次——8×16MB 全零，write 覆盖幂等）──
-    zero = bytes(PART_BYTES)
-    paths = []
-    for i in range(PARTS):
-        p = f"assets/big_part_{i}.bin"
-        pygame.io.write(p, zero)
-        paths.append(p)
+    big_path = "assets/big_single.bin"
+    if not pygame.io.exists(big_path):
+        pygame.io.write(big_path, bytes(BIG_BYTES))   # 128MB 全零单文件
 
     hud = Hud()
-    hud.path = "assets/big_part_0.bin"
+    hud.path = "assets/big_single.bin"
 
     frame = 0
     fps_ms = 16.7
@@ -91,12 +89,12 @@ async def main():
         if hud.want == "async" and job is None:
             hud.want = None
             hud.state = "异步中"
-            job = pygame.tasks.spawn(chunk_loader(paths, hud))
+            job = pygame.tasks.spawn(chunk_loader([hud.path], hud))
         elif hud.want == "blocking":
             hud.want = None
             hud.state = "阻塞中（画面冻结）"
             t0 = SW()
-            for p in paths:
+            for p in [hud.path]:
                 pygame.io.read(p)          # 同步全读——画面冻结
             blocking_ms = t0.ms()
             if blocking_ms > max_dt:
@@ -104,10 +102,11 @@ async def main():
             hud.state = "阻塞完成"
             hud.info = f"阻塞加载耗时 {blocking_ms:.0f} ms（期间画面冻结、FPS=0）"
 
-        # 异步任务收割
+        # 异步任务收割（耗时读 hud.async_ms——**不碰 job.result**，
+        # RP 委派链恢复值坑定约）
         if job is not None and job.done:
-            async_ms = job.result[0]
             job = None
+            async_ms = hud.async_ms
             hud.state = "异步完成"
             hud.info = (f"异步加载总耗时 {async_ms:.0f} ms（分 {PARTS} 帧——"
                         f"期间 FPS 未归零）")
@@ -144,11 +143,11 @@ async def main():
         frame += 1
 
 
-async def chunk_loader(paths, hud):
+async def chunk_loader(paths, hud):   # paths = [单文件]（fetch 内部分块）
     # 分帧加载协程：每帧读一片 + await 挂起——画面持续推进
     t0 = SW()
     got = 0
-    for i, p in enumerate(paths):
+    for p in paths:
         data = await pygame.io.fetch(p)   # 挂起一帧（本片读 16MB）
         got += len(data)
         hud.state = f"异步中|{i + 1}"

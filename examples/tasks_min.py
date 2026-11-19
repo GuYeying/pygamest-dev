@@ -1,25 +1,28 @@
-# tasks_min —— spawn 失败任务最小复现（失败存档/re-raise/命名）
+# tasks_min —— tasks 等待定约示范（RP 委派链恢复值坑规避）：
+# spawn 任务的 **return 值会丢**（RP yield from 委派链恢复值传播坑，
+# 恢复值恒 None）——**结果用引用承载**（hud 属性/全局容器/完成表），
+# 轮询 done 后读引用；**不用 await t 取返回值**（委派形态炸
+# NoneType not callable——挂账）。任务等待正道 = gather（任务表
+# tick 驱动零委派，tasks_test 实证）。
 import pygame
 
-async def bad_load(res_name):
-    await pygame.tasks.sleep(0.2)
-    return "LOADED-" + res_name
+async def load_part(p):
+    data = await pygame.io.fetch(p)
+    return len(data)
 
 async def main():
     pygame.display.set_mode((400, 300))
-    t = pygame.tasks.spawn(bad_load("assets/hero.png"), "hero_load")
-    await pygame.tasks.sleep(0.5)
-    print("[min] gather form:", flush=True)
-    r = await pygame.tasks.gather(bad_load("assets/hero.png"))
-    print("[min] gather r =", r, flush=True)
-    print("[min] t type =", type(t).__name__, flush=True)
-    print("[min] t =", t, flush=True)
-    print("[min] failed attr =", t.failed, flush=True)
-    print("[min] failed() =", t.failed(), flush=True)
-    print("[min] ex =", t.exception(), "name =", t.name, flush=True)
-    try:
-        await t.wait()
-        print("[min] await ok (Task awaitable)", flush=True)
-    except BaseException as e:
-        print("[min] caught:", type(e).__name__, e, flush=True)
-    print("[min] END", flush=True)
+    pygame.io.write("assets/t.bin", bytes(20 * 1024 * 1024))
+    got_box = []                          # 引用承载（不走 return）
+    t = pygame.tasks.spawn(loader(got_box, "assets/t.bin"))
+    for i in range(20):
+        await pygame.tasks.sleep(0.2)
+        if t.done:
+            print("[m] done got =", got_box[0] if got_box else None,
+                  "ex =", t.exception(), flush=True)
+            break
+    print("[m] DONE", flush=True)
+
+async def loader(out, p):
+    data = await pygame.io.fetch(p)
+    out.append(len(data))
