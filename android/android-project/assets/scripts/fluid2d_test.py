@@ -5,10 +5,10 @@
 # 同一上游 src），水柱从斜面高端滑落 → 摊开 → 静置。
 # **2D 流体 debug 渲染**：instanced quad 片元圆判（渲染半径
 # 1.4×粒子半径——视觉重叠连贯表面）+ game_camera_ortho 正交相机；
-# T 键 = 2D solid 线框（**py 手绘**——blit 链 + write_camera_mvp 组合
-# 系数（dump 第一手值）绕开 DebugLinesRenderer overlay 链——其相机
-# 写入对本链不生效（红鲱鱼/二分/收口复写三重实验实证，2026-11-18），
-# overlay viewport 语义挂账 v2）。
+# T 键 = 2D solid 线框（**rapier2d DebugLinesRenderer 标准链**——
+# collect 全量 collider 形状 + set_mvp 与主管线同矩阵绝对对齐；
+# 2026-11-18 自 gfxdraw 手绘迁回——两段式渲染域修复后 overlay 相机
+# 写入已实证生效，fluid2d_debug_calib 同链三平台验收通过）。
 # 空格=注水 / F=投放动态小立方体（自由落体砸水——观测流体被排开的
 # 水花形态与刚体穿行）/ ESC 退出。控制台 [fluid2d-test] 逐项断言。
 import pygame
@@ -98,8 +98,8 @@ async def main():
 
     # ── solid 世界（rapier 2D 静态刚体——**碰撞主角**）──
     # 地面（大平面）+ 斜面（rotation 单弧度标量，+x 端翘起）。耦合注册
-    # 按 collider 位姿每步重采样——旋转刚体开箱即用
-    wire_bodies = []   # (handle, hx, hy)——py 手绘线框登记表
+    # 按 collider 位姿每步重采样——旋转刚体开箱即用；线框由
+    # DebugLinesRenderer collect 全量 collider 自动绘制（零登记）
     solid = pp.PhysicsWorld(gravity=(0, -9.81))
     solid.insert(
         pp.RigidBodyBuilder("fixed", translation=(0, -0.25)),
@@ -109,8 +109,6 @@ async def main():
         pp.RigidBodyBuilder("fixed", translation=(0.5, 1.2), rotation=0.35),
         pp.ColliderBuilder("cuboid", hx=1.6, hy=0.12, friction=0.1),
     )
-    # 线框登记：地面 + 斜面（fixed；dynamic 方块 F 键投放时另行登记）
-    wire_bodies += [(0, 6.0, 0.25), (1, 1.6, 0.12)]
     solid.step_frame(1.0 / 60.0)   # 时序契约（查询前必步进一次）
 
     # ── fluid 世界（salva2d DFSPH——粒子半径 0.1；XSPH 粘性默认挂）──
@@ -149,37 +147,12 @@ async def main():
 
     pipe = None   # 首帧粒子数就绪后建
 
-    # solid 线框（**py 手绘**——insert 登记 (handle, hx, hy)，每帧按
-    # body 位姿手算四角 blit 拼边。系数 = cam.mvp() 单世界拟合（2026-
-    # 11-18 present_fit 显式相机恒等化后：x=y=57.14px/米，原双拟合
-    # 43.53 退役）、原点 = 画布中心）
-    SX = 57.142857
-    SY = 57.142857
-
-    def draw_wire_box(t, handle, hx, hy):
-        x, y = solid.translation(handle)
-        ang = solid.rotation(handle)
-        ca, sa = M.cos(ang), M.sin(ang)
-        corners = []
-        for lx, ly in ((hx, hy), (-hx, hy), (-hx, -hy), (hx, -hy)):
-            corners.append(w2px(x + lx * ca - ly * sa, y + lx * sa + ly * ca))
-        n = 14
-        for i in range(4):
-            x1, y1 = corners[i]
-            x2, y2 = corners[(i + 1) % 4]
-            for k in range(n):
-                mx = x1 + (x2 - x1) * k / n
-                my = y1 + (y2 - y1) * k / n
-                dot = pygame.Surface((7, 7))
-                dot.fill((255, 220, 40))
-                pygame.gfxdraw.set_transform(t, M.mat4_translation(
-                    int(mx) - 2 - 400, int(my) - 2 - 300, 0))
-                pygame.gfxdraw.draw_surface(t, dot)
-
-    def w2px(x, y):
-        # y 不翻转（实测 set_transform blit 链 y 与管线同向——原
-        # 300-y×SY 公式产生上下翻转，2026-11-18 用户目视）
-        return (400.0 + x * SX, 300.0 + y * SY)
+    # solid 线框（**rapier2d DebugLinesRenderer 标准链**——collect 全量
+    # collider 形状 + set_mvp 与主管线同矩阵绝对对齐；DebugDraw 每帧新
+    # 建（calib 参照实现同款——回调消费体逐帧重置最稳）；2026-11-18 自
+    # gfxdraw 手绘迁回——两段式修复后 overlay 相机写入已实证生效）
+    dbg_sink = pp.LineSink()
+    dbg_renderer = pp.DebugLinesRenderer(ppm=60.0)
 
     solid_debug = True   # T 键切换（默认开——碰撞对齐目视验收）
     drops = []           # 动态方块句柄（F 键投放——自由落体砸水）
@@ -221,7 +194,6 @@ async def main():
                             "dynamic", translation=(x, 3.8)),
                         pp.ColliderBuilder("cuboid", hx=0.15, hy=0.15))[0]
                     drops.append(h)
-                    wire_bodies.append((h, 0.15, 0.15))
                     print(f"[fluid2d-test] 投放方块 handle={h} @x={x}")
 
         # 物理（solid + fluid 耦合步进——**本案例核心**）
@@ -282,27 +254,14 @@ async def main():
                         p.set_pipeline(block_pipe)
                         p.set_bind_group(0, bind_i)
                         p.draw_mesh(block_mesh)
-            # ③ solid 线框（T 切换——**composed 矩阵域直绘**：set_transform
-            # 烘焙 present_fit() @ cam.mvp()（与橙片 cam_buf 同矩阵）+ 顶点
-            # 世界米——与管线数学同域绝对对齐，绕开 blit/gfxdraw 像素换算
-            # 的全部语义黑盒）
+            # ③ solid 线框（T 切换——**rapier2d DebugLinesRenderer 标准链**：
+            # collect 全量 collider 形状 + set_mvp 与主管线同矩阵绝对对齐
+            # + overlay 通道绘制；DebugDraw 每帧新建逐帧重置）
             if solid_debug:
-                composed = pygame.render.present_fit() @ cam.mvp()
-                pygame.gfxdraw.set_transform(t, composed)
-                pts = []
-                for wb_handle, wb_hx, wb_hy in wire_bodies:
-                    bx, by = solid.translation(wb_handle)
-                    bang = solid.rotation(wb_handle)
-                    ca, sa = M.cos(bang), M.sin(bang)
-                    c4 = [(bx + lx * ca - ly * sa, by + lx * sa + ly * ca)
-                          for lx, ly in ((wb_hx, wb_hy), (-wb_hx, wb_hy),
-                                         (-wb_hx, -wb_hy), (wb_hx, -wb_hy))]
-                    for i in range(4):
-                        pts.append(c4[i])
-                        pts.append(c4[(i + 1) % 4])
-                pygame.gfxdraw.set_transform(t, composed)
-                pygame.gfxdraw.set_color(t, (255, 220, 40))
-                t.vertices("lines", pts, (255, 220, 40))
+                dbg = pp.DebugDraw()
+                pp.collect(solid, dbg, dbg_sink)
+                dbg_renderer.set_mvp(cam.mvp())
+                t.draw_debug(dbg_renderer, dbg_sink)
 
             # HUD
             pygame.gfxdraw.set_transform(t, M.mat4_translation(-388, 288, 0))
@@ -332,7 +291,7 @@ async def main():
             st("300 帧粒子数据出口有效", n2 == len(positions) and count > 0)
             print("[fluid2d-test] SUMMARY",
                   "PASS" if not _fail else "FAIL " + str(_fail))
-        if frame > 3600:
+        if frame > 36000000:
             return
         await pygame.next_frame()
         frame += 1

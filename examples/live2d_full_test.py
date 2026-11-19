@@ -32,6 +32,7 @@ def raises(fn):
 async def main():
     # 注入式渲染需要 GPU 会话与产物面——先建窗
     screen = pygame.display.set_mode((800, 600))
+    screen.set_camera(pygame.render.game_camera_ortho(800, 600, 800, 600))
     buf = pygame.Surface((800, 600))
     buf2 = pygame.Surface((800, 600))
 

@@ -75,6 +75,7 @@ async def main():
     if len(sys.argv) >= 3:   # Android 壳附加的实测屏幕尺寸（argv[-2:]）
         w, h = int(sys.argv[-2]), int(sys.argv[-1])
     screen = pygame.display.set_mode((w, h), FULLSCREEN)
+    screen.set_camera(pygame.render.game_camera_ortho(w, h, w, h))
     cjk = pygame.font.Font("cjk", 20)
     game_state = {"size": [w, h]}
     _fail = []

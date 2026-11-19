@@ -68,7 +68,7 @@ async def main():
         angle += 0.01
         with screen.render() as rt:
             rt.fill((14, 16, 24))
-            cam = pygame.render.camera_perspective(55.0, 800 / 600, 0.1, 100.0)
+            cam = pygame.render.game_camera_perspective(55.0, 800, 600, 800, 600, 0.1, 100.0)
             cam = cam.with_view(M.mat4_translation(0.0, 1.0, -5.0))
             pygame.gfxdraw.set_camera(rt, cam)
 

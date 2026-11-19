@@ -12,6 +12,7 @@ import pygame_physics as pp
 
 async def main():
     screen = pygame.display.set_mode((300, 200))
+    screen.set_camera(pygame.render.game_camera_ortho(300, 200, 300, 200))
     fw = pp.FluidWorld(particle_radius=0.1)
     frame = 0
 

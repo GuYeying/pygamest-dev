@@ -67,6 +67,7 @@ async def main():
 
     # ── 视觉 smoke（60 帧 盒体 + 骨骼线）──
     screen = pygame.display.set_mode((800, 600))
+    screen.set_camera(pygame.render.game_camera_ortho(800, 600, 800, 600))
     frame = 0
     while frame < 60:
         for e in pygame.event.get():

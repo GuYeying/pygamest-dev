@@ -49,7 +49,7 @@ async def main():
             pygame.gfxdraw.set_color(t, (60, 180, 120))
             pygame.gfxdraw.filled_ellipse(t, -55, -35, 40, 20)  # 椭圆（中心 cx=45-100, cy=25-60）
             pygame.gfxdraw.set_color(t, (120, 220, 255))
-            pygame.gfxdraw.arc(t, 40, -35, 40, 0.0, 3.14159)  # 弧（椭圆弧→圆弧 v1 降级）
+            pygame.gfxdraw.arc(t, 40, -35, 40, 0, 180)  # 弧（SDL_gfx 契约：int 度数 0..360）
 
     no_raise("六形状全绘（离屏会话）", lambda: shapes_on(off))
 

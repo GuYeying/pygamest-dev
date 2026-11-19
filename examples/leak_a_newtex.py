@@ -5,6 +5,7 @@ import pygame
 
 async def main():
     screen = pygame.display.set_mode((400, 300))
+    screen.set_camera(pygame.render.game_camera_ortho(400, 300, 400, 300))
     font = pygame.font.Font("cjk", 16)
     frame = 0
     while frame < 9000:

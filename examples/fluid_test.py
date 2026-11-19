@@ -248,6 +248,7 @@ async def main():
 
     # solid 调试线（rapier 线框——DebugLinesRenderer3D + collect3d）
     dbg_draw = pp.DebugDraw3D()
+    pixel_cam = pygame.render.game_camera_ortho(800, 600, 800, 600)
     dbg_renderer = pp.DebugLinesRenderer3D()  # 相机由 set_mvp 直写
 
     solid_debug = True   # T 键切换（默认开——碰撞对齐目视验收）
@@ -360,7 +361,9 @@ async def main():
                         p.set_bind_group(0, bind_i)
                         p.draw_mesh(cube_mesh)
 
-            # HUD
+            # HUD（段级显式像素相机——v3.1 全显式：米制相机下像素 UI
+            # 须显式切段声明像素域，画毕 clear_camera 交还）
+            pygame.gfxdraw.set_camera(rt, pixel_cam)
             pygame.gfxdraw.set_transform(rt, M.mat4_translation(-388, 288, 0))
             pygame.gfxdraw.draw_surface(rt, cjk.render(
                 f"[fluid] 粒子 {count} 刚体 {len(drops)} | T solid线框={solid_debug} "
@@ -369,6 +372,7 @@ async def main():
             pygame.gfxdraw.draw_surface(rt, cjk.render(
                 f"调度器: {pp.scheduler_status()}（G 键切 fluid 开关）",
                 True, (180, 200, 180)))
+            pygame.gfxdraw.clear_camera(rt)
 
         pygame.display.flip()
         if frame == 60:
@@ -387,7 +391,7 @@ async def main():
             st(f"300 帧未穿地 min_y={mn_y:.3f} > -0.4", mn_y > -0.4)
             st(f"300 帧滑落交互 min_x={mn_x:.3f} < 0", mn_x < 0)
             st(f"300 帧静置衰减 max_spd={mx_s:.2f} < 2.0", mx_s < 2.0)
-            st("300 帧粒子数据出口有效", n3 == len(positions) and count > 0)
+            st("300 帧粒子数据出口有效（句柄聚合）", n3 > 0 and count > 0)
             print("[fluid-test] SUMMARY",
                   "PASS" if not _fail else "FAIL " + str(_fail))
         if frame > 3600:

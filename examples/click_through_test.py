@@ -8,6 +8,7 @@ import pygame
 async def main():
     screen = pygame.display.set_mode((800, 600),
                                      pygame.display.NOFRAME | pygame.display.TRANSPARENT)
+    screen.set_camera(pygame.render.game_camera_ortho(800, 600, 800, 600))
     pygame.display.set_click_through(True)
     assert pygame.display.get_click_through() is True
     print("[ct-test] 穿透 ON 读回 True ✓")

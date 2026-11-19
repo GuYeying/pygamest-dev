@@ -11,6 +11,7 @@ ASSETS = "assets/spineboy"
 
 async def main():
     screen = pygame.display.set_mode((800, 600))
+    screen.set_camera(pygame.render.game_camera_ortho(800, 600, 800, 600))
     # 一体加载：路径进对象出（io 在绑定层闭环——Python 零搬运）
     data, pages = pygame_spine.load_with_atlas(
         f"{ASSETS}/spineboy-ess.json", f"{ASSETS}/spineboy.atlas"

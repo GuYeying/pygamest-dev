@@ -17,6 +17,7 @@ def check(name, ok, detail=""):
 
 async def main():
     screen = pygame.display.set_mode((960, 540))
+    screen.set_camera(pygame.render.game_camera_ortho(960, 540, 960, 540))
     font = pygame.font.Font(None, 24)
 
     vs = pygame.video.VideoSystem()

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 桌面回归矩阵：域分层 v3 批次（20s/案例，双判据）
+# 桌面回归矩阵：v3.1 全显式批次（20s/案例，双判据）
 cd /d/Projects/Rust/pygame-rs-dev
 PASS=(); FAIL=(); DEMO=()
 run_case() {
@@ -15,14 +15,14 @@ run_case() {
     if grep -qE "SUMMARY PASS|汇总: 全部通过" "$log"; then
       PASS+=("$name"); echo "[PASS] $name"
     else
-      FAIL+=("$name(no-summary)"); echo "[FAIL] $name — $(grep -E 'FAIL|SUMMARY|汇总|异常' "$log" | tail -2)"
+      FAIL+=("$name(no-summary)"); echo "[FAIL] $name — $(grep -E 'FAIL|SUMMARY|汇总|异常|Error' "$log" | tail -2)"
     fi
   else
     DEMO+=("$name"); echo "[demo-ok] $name"
   fi
 }
 run_case fluid2d_test.py 1
-run_case fluid2d_debug_calib.py 0
+run_case fluid_test.py 1
 run_case cube_rotate.py 1
 run_case math_test.py 1
 run_case font_test.py 1
@@ -38,5 +38,6 @@ run_case leak_e_writes.py 0
 run_case leak_f_render.py 0
 run_case leak_i_gfx3d.py 0
 run_case egui_test_windowed.py 1 22
+run_case fluid3d_game.py 0
 echo "=== 汇总: PASS=${#PASS[@]} demo=${#DEMO[@]} FAIL=${#FAIL[@]} ==="
 printf '%s\n' "${FAIL[@]}"

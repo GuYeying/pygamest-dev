@@ -10,6 +10,7 @@ MULTI = pygame.get_platform() == "windows"
 async def main():
     pygame.display.set_caption("multiwindow_test")
     screen = pygame.display.set_mode((640, 480))
+    screen.set_camera(pygame.render.game_camera_ortho(640, 480, 640, 480))
     cjk = pygame.font.Font("cjk", 15)
     ac = pygame.render.access()
     M = pygame.math

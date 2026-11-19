@@ -19,7 +19,10 @@ def chk(name, cond):
 
 
 async def main():
-    pygame.display.set_mode((400, 300))
+    screen = pygame.display.set_mode((400, 300))
+    screen.set_camera(pygame.render.game_camera_ortho(400, 300, 400, 300))
+    screen = pygame.display.get_screen()
+    screen.set_camera(pygame.render.game_camera_ortho(400, 300, 400, 300))
     data, _ = pygame_spine.load_with_atlas(
         pygame.io.read_text(f"{ASSETS}/spineboy-ess.json"),
         pygame.io.read_text(f"{ASSETS}/spineboy.atlas"),

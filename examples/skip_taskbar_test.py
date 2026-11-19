@@ -8,6 +8,7 @@ import pygame
 
 async def main():
     screen = pygame.display.set_mode((800, 600))
+    screen.set_camera(pygame.render.game_camera_ortho(800, 600, 800, 600))
     pygame.display.set_skip_taskbar(True)
     assert pygame.display.get_skip_taskbar() is True
     print("[st-test] 任务栏隐藏 ON 读回 True ✓")

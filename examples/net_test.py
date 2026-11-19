@@ -17,6 +17,7 @@ def check(name, ok, detail=""):
 
 async def main():
     screen = pygame.display.set_mode((640, 360))
+    screen.set_camera(pygame.render.game_camera_ortho(640, 360, 640, 360))
     font = pygame.font.Font(None, 24)
 
     # ── TCP 分帧（地址候选：桌面/真机回环 → 模拟器宿主回环 → Web ws://

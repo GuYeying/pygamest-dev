@@ -72,6 +72,7 @@ async def main():
     # 想要"UI 铺满原生屏"的形态：set_mode 改读 sys.argv[-2:]（壳附加的
     # 实测尺寸，runtime 自动追加）即可，事件同样零偏移（恒等映射）。
     screen = pygame.display.set_mode((800, 600))
+    screen.set_camera(pygame.render.game_camera_ortho(800, 600, 800, 600))
     w, h = screen.get_size()
     cjk = pygame.font.Font("cjk", 20)
     game_state = {"size": [w, h]}

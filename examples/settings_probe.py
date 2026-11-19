@@ -15,6 +15,7 @@ async def main():
 
     screen = pygame.display.set_mode(
         (800, 600), gpu_settings=gpu, surface_settings=surf)
+    screen.set_camera(pygame.render.game_camera_ortho(800, 600, 800, 600))
     print("[settings-probe] set_mode kwargs 透传 OK")
 
     font = pygame.font.Font(None, 32)

@@ -152,6 +152,7 @@ async def main():
     # 建（calib 参照实现同款——回调消费体逐帧重置最稳）；2026-11-18 自
     # gfxdraw 手绘迁回——两段式修复后 overlay 相机写入已实证生效）
     dbg_sink = pp.LineSink()
+    pixel_cam = pygame.render.game_camera_ortho(800, 600, 800, 600)
     dbg_renderer = pp.DebugLinesRenderer(ppm=60.0)
 
     solid_debug = True   # T 键切换（默认开——碰撞对齐目视验收）
@@ -270,7 +271,9 @@ async def main():
                 dbg_renderer.set_mvp(cam.mvp())
                 t.draw_debug(dbg_renderer, dbg_sink)
 
-            # HUD
+            # HUD（段级显式像素相机——v3.1 全显式：米制相机下像素 UI
+            # 须显式切段声明像素域，画毕 clear_camera 交还）
+            pygame.gfxdraw.set_camera(t, pixel_cam)
             pygame.gfxdraw.set_transform(t, M.mat4_translation(-388, 288, 0))
             pygame.gfxdraw.draw_surface(t, cjk.render(
                 f"[fluid2d] 粒子 {count} 方块 {len(drops)} | T 线框={solid_debug} "
@@ -279,6 +282,7 @@ async def main():
             pygame.gfxdraw.draw_surface(t, cjk.render(
                 f"2D 轴: physics2d + fluid2d（salva2d DC 耦合）",
                 True, (180, 200, 180)))
+            pygame.gfxdraw.clear_camera(t)
 
         pygame.display.flip()
         if frame == 60:

@@ -15,6 +15,7 @@ def st(name, cond):
 
 async def main():
     screen = pygame.display.set_mode((800, 600))
+    screen.set_camera(pygame.render.game_camera_ortho(800, 600, 800, 600))
     p = pygame_ozz.demo_player()
     st("demo_player 构造", p is not None)
     st("关节数 > 0", p.num_joints() > 0)

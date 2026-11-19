@@ -16,6 +16,7 @@ def st(name, cond):
 
 async def main():
     screen = pygame.display.set_mode((800, 600))
+    screen.set_camera(pygame.render.game_camera_ortho(800, 600, 800, 600))
     j_bytes = await pygame.io.fetch("assets/spineboy/spineboy-ess.json")
     a_bytes = await pygame.io.fetch("assets/spineboy/spineboy.atlas")
     st("io.fetch 异步供数", j_bytes is not None and len(j_bytes) > 100)

@@ -23,6 +23,7 @@ class Hud(egui.UiBase):
 
 async def main():
     screen = pygame.display.set_mode((800, 600))
+    screen.set_camera(pygame.render.game_camera_ortho(800, 600, 800, 600))
     egui.init()
     hud = Hud()
 

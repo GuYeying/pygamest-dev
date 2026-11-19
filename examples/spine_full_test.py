@@ -113,6 +113,7 @@ async def main():
 
     # ── 视觉 smoke（60 帧 walk + draw_spine）──
     screen = pygame.display.set_mode((800, 600))
+    screen.set_camera(pygame.render.game_camera_ortho(800, 600, 800, 600))
     page0 = await pygame.image.load(f"{ASSETS}/spineboy.png")
     frame = 0
     last = time.time()

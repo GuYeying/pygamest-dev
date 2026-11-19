@@ -25,7 +25,7 @@ async def main():
     screen = pygame.display.set_mode((800, 600))
     font = pygame.font.Font(None, 22)
 
-    cam = pygame.render.camera_perspective(55.0, 800 / 600, 0.1, 100.0)
+    cam = "pygame.render.game_camera_perspective(55.0, 800, 600, 800, 600, 0.1, 100.0)"
     cam = cam.with_view(pygame.math.mat4_translation(0.0, 1.6, -7.0))
 
     frame = 0

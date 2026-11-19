@@ -15,6 +15,7 @@ fn cs_main(@builtin(global_invocation_id) gid: vec3<u32>) {
 
 async def main():
     screen = pygame.display.set_mode((400, 300))
+    screen.set_camera(pygame.render.game_camera_ortho(400, 300, 400, 300))
     ac = pygame.render.access()
     shader = ac.shader(CS, label="diag_cs")
     n = 2048

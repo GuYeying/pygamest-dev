@@ -134,7 +134,7 @@ async def main():
         model = pygame.math.mat4_from_quat(
             pygame.math.quat_from_axis_angle(0.0, 1.0, 0.0, angle))
         view = pygame.math.mat4_translation(0.0, 0.0, -4.0)
-        cam = pygame.render.camera_perspective(60.0, 800 / 600, 0.1, 100.0).with_view(view)
+        cam = pygame.render.game_camera_perspective(60.0, 800, 600, 800, 600, 0.1, 100.0).with_view(view)
         mvp = cam.mvp().mul_mat4(model)
 
         # 双参形态 = 引擎自动左乘 present_fit 收进画布（裸 write_buffer

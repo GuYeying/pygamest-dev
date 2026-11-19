@@ -14,7 +14,7 @@ async def main():
                        True, (205, 205, 205))
 
     # 透视相机（像素空间 Camera——gfxdraw.set_camera 段级口）
-    cam = pygame.render.camera_perspective(55.0, 800 / 600, 0.1, 100.0)
+    cam = pygame.render.game_camera_perspective(55.0, 800, 600, 800, 600, 0.1, 100.0)
     view = M.mat4_translation(0.0, 1.6, -7.0)
     cam = cam.with_view(view)
 

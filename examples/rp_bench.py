@@ -126,6 +126,7 @@ def run_benches():
 
 async def main():
     screen = pygame.display.set_mode((800, 600))
+    screen.set_camera(pygame.render.game_camera_ortho(800, 600, 800, 600))
     cjk = pygame.font.Font("cjk", 17)
     title = cjk.render("RustPython 本体性能基准（耗时 ms / 吞吐 ops/s）",
                        True, (255, 220, 120))

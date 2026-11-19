@@ -48,7 +48,7 @@ async def main():
     m_mirror = M.mat4_translation(0, 0, 0).mul_mat4(M.mat4_scale(-1, 1, 1))
 
     # 3D 透视相机（identity 视图——相机在原点看 -Z；右手系卡片摆 -Z 前）
-    cam3d = pygame.render.camera_perspective(45.0, 800.0 / 600.0, 0.1, 100.0)
+    cam3d = pygame.render.game_camera_perspective(45.0, 800, 600, 800, 600, 0.1, 100.0)
     k = 0.55 / 160.0  # 源面像素 → 世界单位（卡片 ≈ 0.55 世界单位宽）
     # y 取负（NDC 下半）+ z 递增 → 三张卡片落进下半红框：近大远小
     card = lambda x, y, z: M.mat4_translation(x, y, z).mul_mat4(

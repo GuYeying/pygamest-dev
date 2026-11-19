@@ -13,6 +13,7 @@ MODEL = "assets/models/Hiyori"
 
 async def main():
     screen = pygame.display.set_mode((1000, 800),[pygame.display.NOFRAME,pygame.display.TRANSPARENT])
+    screen.set_camera(pygame.render.game_camera_ortho(1000, 800, 1000, 800))
     # 产物面：与屏幕等尺寸（1:1 上屏；换任意尺寸只影响清晰度）
     buf = pygame.Surface((1000, 800))
     rt = pygame_live2d.load_runtime(f"{MODEL}/Hiyori.model3.json")
