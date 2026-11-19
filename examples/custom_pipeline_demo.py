@@ -107,7 +107,7 @@ async def main():
     #   900↔650 → 中央盘呈现透视梯形倾斜 + 尺寸呼吸（近大远小——
     #   2D 正交绝对做不出的 3D 投影特征，即"3D 相机在工作"的可视证明）
     M = pygame.math
-    cam_ortho = pygame.render.camera_ortho(800.0, 600.0)
+    cam_ortho = pygame.render.game_camera_ortho(800, 600, 800, 600)
     while True:
         for e in pygame.event.get():
             if e.type == pygame.event.QUIT:
@@ -125,11 +125,11 @@ async def main():
                 M.quat_from_axis_angle(0.0, 1.0, 0.0, yaw)))
             .mul_mat4(M.mat4_translation(0.0, 40.0, 0.0))
         )
-        cam3d = pygame.render.camera_perspective(
+        cam3d = pygame.render.game_camera_perspective(
             # fov = 度数制（API 契约；曾误传弧度意图的 0.9——0.9° 超长焦
             # 把 500 单位四边形投影到 NDC ±40，越界内容涂穿 letterbox 黑条
             # ——引擎裁剪窗在 fit 后放宽至 ±1/sx，2026-10-30 桌面二分定案）
-            55.0, 800.0 / 600.0, 0.1, 2000.0).with_view(view3d)
+            55.0, 800, 600, 800, 600, 0.1, 2000.0).with_view(view3d)
 
         ac.write_buffer(time_buf, [t_sec])
         # 动态几何写入路径验证（update_mesh 每帧就地更新——内容不变

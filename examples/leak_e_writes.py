@@ -25,7 +25,7 @@ async def main():
     sbind = ac.bind_group([(0, "storage_rw", pos_out), (1, "uniform", cfg_buf)],
                           label="diag_bind")
     cpipe = ac.compute_pipeline(shader, [sbind], label="diag_pipe")
-    cam = pygame.render.camera_ortho(400.0, 300.0)
+    cam = pygame.render.game_camera_ortho(400, 300, 400, 300)
     ac.write_buffer_u32(cfg_buf, [n, 0, 16, 0])
     frame = 0
     while frame < 9000:

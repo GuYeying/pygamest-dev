@@ -39,13 +39,13 @@ async def main():
             pygame.gfxdraw.box(f, (-330, -60, 120, 80))
 
             # ② 会话级正交相机（显式）——右侧 2D 圆（同画布分段）
-            pygame.gfxdraw.set_camera(f, pygame.render.camera_ortho(800.0, 600.0))
+            pygame.gfxdraw.set_camera(f, pygame.render.game_camera_ortho(800, 600, 800, 600))
             pygame.gfxdraw.set_color(f, (120, 255, 120))
             pygame.gfxdraw.filled_circle(f, 250, 150, 30)
             pygame.gfxdraw.clear_camera(f)
 
             # ③ 会话级透视相机：3D 空间放置
-            pygame.gfxdraw.set_camera(f, pygame.render.camera_perspective(60.0, 800 / 600, 0.1, 100.0))
+            pygame.gfxdraw.set_camera(f, pygame.render.game_camera_perspective(60.0, 800, 600, 800, 600, 0.1, 100.0))
 
             # 3a. 贴图 quad 绕 y 轴旋转（billboard 手动可算的历史考量
             #     已剔除——这里直接给世界模型矩阵）

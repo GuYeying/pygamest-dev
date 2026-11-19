@@ -181,9 +181,7 @@ async def main():
 
         # 自管透视相机
         view = M.mat4_translation(0.0, 0.0, -7.2)
-        proj = pygame.render.camera_perspective(
-            58.0, 800 / 600, 0.1, 300.0
-        ).with_view(view)
+        proj = pygame.render.game_camera_perspective(58.0, 800, 600, 800, 600, 0.1, 300.0).with_view(view)
 
         pygame.render.write_camera_mvp(cam_buf, proj.mvp())
         ac.write_buffer(model_buf, model_mat)

@@ -53,7 +53,7 @@ async def main():
     rbind = ac.bind_group([(0, "uniform", cam_buf)], label="diag_rbind")
     cpipe = ac.compute_pipeline(shader, [sbind], label="diag_pipe")
     rpipe = ac.pipeline(rshader, mesh, [rbind], label="diag_rpipe")
-    cam = pygame.render.camera_ortho(400.0, 300.0)
+    cam = pygame.render.game_camera_ortho(400, 300, 400, 300)
     ac.write_buffer_u32(cfg_buf, [n, 0, 16, 0])
     ac.write_buffer_u32(ind_buf, [3, n, 0, 0])
     frame = 0

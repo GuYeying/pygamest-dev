@@ -54,7 +54,7 @@ async def main():
 
         # ── ② 3D：透视相机（世界原点 = 屏幕中心）──
         with screen.render_depth() as f:
-            pygame.gfxdraw.set_camera(f, pygame.render.camera_perspective(60.0, aspect, 0.1, 100.0))
+            pygame.gfxdraw.set_camera(f, pygame.render.game_camera_perspective(60.0, 800, 600, 800, 600, 0.1, 100.0))
             # 原点牌：文字中心对世界原点（z=-3 前方；透视投影 (0,0) → 屏幕中心）
             # 可见高 @z=3 ≈ 3.46 世界单位 → 文字 320px 宽 × k=0.0045 ≈ 1.44 单位（约屏宽 36%）
             k = 0.0045

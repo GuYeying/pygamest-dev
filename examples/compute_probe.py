@@ -134,7 +134,7 @@ async def main():
     rbind = ac.bind_group([(0, "uniform", cam_buf)], label="p3_rbind")
     cpipe = ac.compute_pipeline(compute_shader, [state_bind], label="p3_cpipe")
     rpipe = ac.pipeline(render_shader, mesh, [rbind], label="p3_rpipe")
-    cam = pygame.render.camera_ortho(800.0, 600.0)
+    cam = pygame.render.game_camera_ortho(800, 600, 800, 600)
 
     frame = 0
     reset_frame = -10               # mode=1 生效帧（下一帧回 0）

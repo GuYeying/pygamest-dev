@@ -80,7 +80,8 @@ async def main():
 
     cam = pygame.render.game_camera_ortho(14, 8, 800, 600)
     screen.set_camera(cam)
-    pygame.render.set_fb_dump(True)  # STARFISH_FB_BMP 全帧取证
+    # set_fb_dump(True) 已退役（标定结论收口——逐帧 BMP 全帧取证装备
+    # 随偏移场根修完成使命，2026-11-19；需要时 git 历史恢复）
 
     cam_buf = ac.buffer(64)
     pygame.render.write_camera_mvp(cam_buf, cam.mvp())  # 首帧写入
