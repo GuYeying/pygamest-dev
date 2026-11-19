@@ -18,11 +18,14 @@ async def main():
     for i in range(20):
         await pygame.tasks.sleep(0.2)
         if t.done:
-            print("[m] done got =", got_box[0] if got_box else None,
-                  "ex =", t.exception(), flush=True)
+            print("[m] A done =", t.done, flush=True)
+            print("[m] B failed =", t.failed(), flush=True)
+            print("[m] C exc attr =", t.exception, flush=True)
+            print("[m] D exc call =", t.exception(), flush=True)
+            print("[m] E name =", t.name, flush=True)
             break
     print("[m] DONE", flush=True)
 
 async def loader(out, p):
-    data = await pygame.io.fetch(p)
-    out.append(len(data))
+    await pygame.io.fetch(p)              # 触发：读+入表（恢复值 None 丢弃）
+    out.append(len(pygame.io.io_take(p)))  # 完成表直取（委派链 return 丢规避）
