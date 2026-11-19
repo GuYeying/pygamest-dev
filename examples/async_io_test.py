@@ -85,7 +85,6 @@ async def main():
         if frame == 400:
             hud.want = "async"
 
-              "dt =", round(dt, 1), flush=True)
         # 应用按钮请求（会话块外）
         if hud.want == "async" and job is None:
             hud.want = None
