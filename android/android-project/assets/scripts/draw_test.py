@@ -8,6 +8,7 @@ import pygame
 
 async def main():
     screen = pygame.display.set_mode((800, 600))
+    screen.set_camera(pygame.render.game_camera_ortho(800, 600, 800, 600))
     font = pygame.font.Font(None, 20)
     cjk = pygame.font.Font("cjk", 20)
     _fail = []

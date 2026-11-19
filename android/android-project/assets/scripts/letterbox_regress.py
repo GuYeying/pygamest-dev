@@ -5,6 +5,7 @@ import pygame.event
 # 30 帧后自退（窗口一闪即退，CI 可跑）
 async def main():
     screen = pygame.display.set_mode((800, 600))
+    screen.set_camera(pygame.render.game_camera_ortho(800, 600, 800, 600))
     assert screen.get_size() == (800, 600), f"get_size={screen.get_size()}"
     print("[regress] get_size 恒等 ✓", screen.get_size())
     for frame in range(30):

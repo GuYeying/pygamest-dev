@@ -27,6 +27,7 @@ def wav_bytes(freq=440.0, secs=0.05, rate=22050):
 
 async def main():
     screen = pygame.display.set_mode((400, 300))
+    screen.set_camera(pygame.render.game_camera_ortho(400, 300, 400, 300))
     pygame.mixer.init(4)
     frame = 0
     while frame < 3000:  # 50s @60fps——每帧一轮 load/play

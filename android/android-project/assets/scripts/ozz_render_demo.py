@@ -6,6 +6,7 @@ import pygame_ozz
 
 async def main():
     screen = pygame.display.set_mode((800, 600))
+    screen.set_camera(pygame.render.game_camera_ortho(800, 600, 800, 600))
     p = pygame_ozz.demo_player()
     print("[ozz_demo] 关节数 =", p.num_joints())
     print("[ozz_demo] 动画时长 =", p.duration())

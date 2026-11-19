@@ -8,6 +8,7 @@ import pygame
 
 async def main():
     screen = pygame.display.set_mode((800, 600))
+    screen.set_camera(pygame.render.game_camera_ortho(800, 600, 800, 600))
 
     # 托盘图标：64×64 程序化 Surface（绿底 + 红圆——一眼可辨）
     icon = pygame.Surface((64, 64))

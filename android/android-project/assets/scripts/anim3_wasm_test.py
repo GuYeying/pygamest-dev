@@ -20,6 +20,7 @@ SPINE_ASSETS = "assets/spineboy"
 
 async def main():
     screen = pygame.display.set_mode((800, 600))
+    screen.set_camera(pygame.render.game_camera_ortho(800, 600, 800, 600))
     font = pygame.font.Font("cjk", 14)
     frame = 0
 

@@ -37,6 +37,7 @@ def make_tone_wav(freq=440.0, seconds=0.6, rate=22050, volume=0.4):
 
 async def main():
     screen = pygame.display.set_mode((800, 600))
+    screen.set_camera(pygame.render.game_camera_ortho(800, 600, 800, 600))
     font = pygame.font.Font(None, 20)
 
     pygame.mixer.init()

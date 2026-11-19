@@ -25,6 +25,7 @@ def rss_mb():
 
 async def main():
     screen = pygame.display.set_mode((640, 360))
+    screen.set_camera(pygame.render.game_camera_ortho(640, 360, 640, 360))
     font = pygame.font.Font(None, 24)
     print("[RSS-MARK] begin")
 

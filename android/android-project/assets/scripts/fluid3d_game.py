@@ -224,6 +224,7 @@ async def main():
     core_pipe = None
     glow_pipe = None
 
+    pixel_cam = pygame.render.game_camera_ortho(800, 600, 800, 600)
     dbg_renderer = pp.DebugLinesRenderer3D()
     dbg_draw = pp.DebugDraw3D()
 
@@ -279,12 +280,13 @@ async def main():
         with screen.render() as rt:
             rt.fill((10, 12, 18))
             with screen.raw_render(depth=True) as p:
-                # 水槽线框（rapier 边界 collect——隔帧一次省带宽）
-                if frame % 2 == 0:
-                    sink = pp.LineSink3D()
-                    pp.collect3d(solid, dbg_draw, sink)
-                    dbg_renderer.set_mvp(cam_m.mvp())
-                    rt.draw_debug_3d(dbg_renderer, sink)
+                # 水槽线框（rapier 边界 collect——**每帧**绘制：曾隔帧
+                # frame % 2"省带宽"= 30Hz 闪烁，2026-11-19 用户实测根修；
+                # sink 每帧局部新建 + vbo/ibo 逐帧覆写）
+                sink = pp.LineSink3D()
+                pp.collect3d(solid, dbg_draw, sink)
+                dbg_renderer.set_mvp(cam_m.mvp())
+                rt.draw_debug_3d(dbg_renderer, sink)
                 # ① 液体核心球（不透明深度写入）
                 if core_pipe is not None:
                     p.set_pipeline(core_pipe)
@@ -308,11 +310,14 @@ async def main():
                         p.set_bind_group(0, glow_uniforms[i][1])
                         p.draw_mesh(sphere_mesh)
 
-            # HUD（像素域——未 set_camera，段级 = 画布像素正交）
+            # HUD（段级显式像素相机——v3.1 全显式：None 段 = NDC，像素
+            # 域必须声明；画毕 clear_camera 交还段状态）
+            pygame.gfxdraw.set_camera(rt, pixel_cam)
             pygame.gfxdraw.set_transform(rt, M.mat4_translation(-388, 288, 0))
             pygame.gfxdraw.draw_surface(rt, cjk.render(
                 f"[fluid3d] 粒子 {count} | 空格=注水爆发 | ESC 退出",
                 True, (190, 210, 235)))
+            pygame.gfxdraw.clear_camera(rt)
 
         pygame.display.flip()
         await pygame.next_frame()
