@@ -96,7 +96,7 @@ async def main():
     def centroid_yaw(yaw_deg, pitch_deg=0.0):
         cam = cam0.with_view(M.mat4_from_cols_array(
             fps_view(eye, yaw_deg, pitch_deg)))
-        ac.write_buffer(cam_buf, cam.mvp())
+        pygame.render.write_camera_mvp(cam_buf, cam.mvp())
         probe = None
         with screen.render() as rt:
             rt.fill((10, 12, 18))

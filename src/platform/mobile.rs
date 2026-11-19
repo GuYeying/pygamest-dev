@@ -62,6 +62,12 @@ pub fn run_embedded_on_new_thread(name: String, code: String, module_root: Optio
         .stack_size(16 * 1024 * 1024)
         .spawn(move || {
             starfish_debug::log_info!("[pygamest-dev] 引擎线程启动");
+            // 文本输入标志复位（**进程级 static 残留修复**，2026-11-19：
+            // TEXT_INPUT_ACTIVE 跨 loadCode 残留——前一个程序调过
+            // start_text_input（如 text_input_test/egui 类）后，后续
+            // 案例的 isTextInputWanted 恒 true = "点哪都弹键盘"。复位
+            // = 每个程序从干净状态开始（进程一次契约内的轮间隔离））
+            starfish_we::stop_text_input();
             starfish_std::run_control::reset();
             let host = MobileHost { name, code, module_root };
             let exit = starfish_std::app::block_on(async move {

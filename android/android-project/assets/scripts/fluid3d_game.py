@@ -264,7 +264,7 @@ async def main():
         view = fps_view(eye, yaw_look, pitch)
         cam_m = pygame.render.game_camera_perspective(
             52.0, 800, 600, 800, 600, 0.1, 60.0).with_view(view)
-        ac.write_buffer(cam_buf, cam_m.mvp())
+        pygame.render.write_camera_mvp(cam_buf, cam_m.mvp())
         ac.write_buffer(eye_buf, [eye[0], eye[1], eye[2], 1.0])
 
         if core_pipe is None and count > 0:

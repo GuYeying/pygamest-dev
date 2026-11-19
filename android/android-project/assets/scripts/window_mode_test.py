@@ -68,6 +68,11 @@ async def main():
                 screen = pygame.display.set_mode(size, [flags])
             else:
                 screen = pygame.display.set_mode(size)
+            # 像素相机重设（v3.1：显式相机跨换画布**缓存不跟**——新画布
+            # 的像素正交须按新逻辑尺寸重声明，否则边界框按旧画布正交
+            # 映射 = 竖屏下变瘦，2026-11-19 实测）
+            screen.set_camera(pygame.render.game_camera_ortho(
+                size[0], size[1], size[0], size[1]))
             applied = hud.want
             hud.want = -1
 

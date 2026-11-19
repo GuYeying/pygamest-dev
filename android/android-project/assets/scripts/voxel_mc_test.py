@@ -4,7 +4,7 @@
 # 体素物理（表面 cuboid + 动态方块发射）+ 射线选择（cast_ray 命中 →
 # 删除/放置）+ mesh_builder 法线光照渲染。
 # 优化四点：① GameCamera 显式相机接入（perspective + set_camera 定约
-# ——MVP 经 cam.mvp() 内聚 letterbox 直喂 uniform，免 write_camera_mvp
+# ——MVP = cam.mvp()（world→画布 fit_ndc 内聚）经 write_camera_mvp
 # 的 fit 双乘）② 球渲染/物理尺寸对齐（mesh scale = 2×collider half
 # ——修复"碰撞体积与渲染网格大小不符"）③ 单块顶点语义 probe（mesh
 # 世界盒 [x,x+1] ≡ collider 盒——证词打点）④ 删除顶层后的露层 collider
@@ -488,12 +488,12 @@ async def main():
             eye[1] += speed
 
         # 物理 + GameCamera MVP（with_view 每帧替换——letterbox 内聚直
-        # 喂 uniform，免 write_camera_mvp 的 fit 组合双乘）
+        # 喂 uniform（双参口自动组合 present_fit 画布→物理段——两段不同不双乘））
         world.step_frame(1.0 / 60.0)
         if fluid_on and fluid_world is not None:
             fluid_world.step(1.0 / 60.0)
         cam = cam.with_view(fps_view(eye, yaw, pitch))
-        ac.write_buffer(cam_buf, cam.mvp())
+        pygame.render.write_camera_mvp(cam_buf, cam.mvp())
 
         with screen.render() as rt:
             rt.fill((28, 34, 46))
