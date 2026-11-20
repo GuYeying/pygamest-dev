@@ -288,6 +288,7 @@ async def main():
     cube_shader = ac.shader(WGSL_CUBE, label="ball_shader")
     vox_pipe = [None]   # 体素 pipeline + bind（交互重建时一并换新）
     vox_bind = [None]
+    vox_mesh_buf = [None, 0]   # (mesh, 唯一顶点容量)——update_mesh 原地更新用
 
     # ── HUD 覆盖面（透明底离屏 + 3D 后第二 raw pass 全屏合成）──
     # gfxdraw 内容层恒在 raw 之下 = HUD 被 3D 不透明像素盖住（BMP 像素
@@ -311,22 +312,40 @@ async def main():
                               cull="none", blend="alpha", label="hud_pipe")
 
     def rebuild_voxel_mesh():
-        verts, norms, idx = vw.generate_mesh()
-        # 顺序展开（indices → 顶点流；案例级规模免 index 管线）
-        expanded = []
-        for i in idx:
-            v = (verts[i * 3], verts[i * 3 + 1], verts[i * 3 + 2])
-            n = (norms[i * 3], norms[i * 3 + 1], norms[i * 3 + 2])
-            expanded.extend(v)
-            expanded.extend(n)
-        mesh = ac.mesh(["float32x3", "float32x3"], expanded, label="voxel_mesh")
-        bind = ac.bind_group([(0, "uniform", cam_buf)], label="voxel_bind")
-        vox_bind[0] = bind
-        vox_pipe[0] = ac.pipeline(voxel_shader, mesh, [bind],
-                                  cull="back", blend="opaque",
-                                  depth_mode="standard", depth_write=True,
-                                  label="voxel_pipe")
-        return mesh, len(idx) // 3
+        # **generate_mesh_flat**（唯一顶点 pos3+nrm3 交错平铺 + u16 索引）
+        # + **update_mesh 原地更新**（draw 按索引计数 = 可变长度；GPU
+        # buffer 预分配 4x 容量垫底，超限才重建——曾每次编辑 ac.mesh
+        # 新建 buffer = 卡帧 + 分配churn，2026-11-20 分段计时实锤）
+        _t0 = pygame.time.get_ticks()
+        flat, idx = vw.generate_mesh_flat()
+        _t1 = pygame.time.get_ticks()
+        if vox_mesh_buf[0] is None:
+            # 首建：4x 容量零垫底（update_mesh 不增长——容量内原地写）
+            pad = flat + [0.0] * (len(flat) * 3)
+            mesh = ac.mesh(["float32x3", "float32x3"], pad,
+                           indices=idx, label="voxel_mesh")
+            vox_mesh_buf[0] = mesh
+            vox_mesh_buf[1] = len(flat)
+            bind = ac.bind_group([(0, "uniform", cam_buf)], label="voxel_bind")
+            vox_bind[0] = bind
+            vox_pipe[0] = ac.pipeline(voxel_shader, mesh, [bind],
+                                      cull="back", blend="opaque",
+                                      depth_mode="standard", depth_write=True,
+                                      label="voxel_pipe")
+        elif len(flat) > vox_mesh_buf[1]:
+            # 扩容事件（挖洞暴露面净增超垫底）——整 mesh 重建（罕见）
+            pad = flat + [0.0] * (len(flat) * 3)
+            mesh = ac.mesh(["float32x3", "float32x3"], pad,
+                           indices=idx, label="voxel_mesh")
+            vox_mesh_buf[0] = mesh
+            vox_mesh_buf[1] = len(flat)
+        else:
+            ac.update_mesh(vox_mesh_buf[0], flat, idx)   # 原地（~1ms 量级）
+        _t2 = pygame.time.get_ticks()
+        # [TEMP 计时]——remesh 分解（voxelis 出口 / GPU 更新）
+        print(f"[remesh] gen={_t1 - _t0}ms gpu={_t2 - _t1}ms "
+              f"顶点={len(flat) // 6} 三角={len(idx) // 3}", flush=True)
+        return vox_mesh_buf[0], len(idx) // 3
 
     vox_mesh, tri_count = rebuild_voxel_mesh()
     st("generate_mesh 出口", tri_count > 0)
@@ -396,19 +415,41 @@ async def main():
 
     def remove_voxel(key):
         if vw.get_voxel(*key) is None:
+            print(f"[edit] 删 {key} 落空（air——射线/准星分歧）", flush=True)  # [TEMP]
             return False
+        _t0 = pygame.time.get_ticks()
         vw.remove_voxel(*key)                          # 渲染源（voxelis）
+        _t1 = pygame.time.get_ticks()
         world.set_voxel(terrain_col[1], *key, False)   # 物理原位（官方对齐）
+        _t2 = pygame.time.get_ticks()
         vox_mesh, tri_count = rebuild_voxel_mesh()     # remesh（渲染出口）
+        _t3 = pygame.time.get_ticks()
+        # [TEMP 分段计时]——卡帧归因（vw/rapier 原位/remesh 管线重建）
+        print(f"[edit] 删 {key}: vw={_t1 - _t0}ms rapier={_t2 - _t1}ms "
+              f"remesh={_t3 - _t2}ms 三角={tri_count}", flush=True)
+        # [TEMP 形状探针]——被删格正下方向上打：命中本格 = rapier 形状
+        # 未生效；命中上一层 = 形状已更新
+        _probe = world.cast_ray_voxel(
+            (key[0] + 0.5, -1.0, key[2] + 0.5), (0, 1, 0), 30.0)
+        print(f"[edit-probe] 上行射线 -> "
+              f"{_probe[3] if _probe else 'None（全空）'}", flush=True)
         stats[0] -= 1
         return True
 
     def place_voxel(key):
         if vw.get_voxel(*key) is not None:
+            print(f"[edit] 放 {key} 落空（已有方块）", flush=True)  # [TEMP]
             return False
+        _t0 = pygame.time.get_ticks()
         vw.set_voxel(key[0], key[1], key[2], 2)
+        _t1 = pygame.time.get_ticks()
         world.set_voxel(terrain_col[1], key[0], key[1], key[2], True)
+        _t2 = pygame.time.get_ticks()
         vox_mesh, tri_count = rebuild_voxel_mesh()
+        _t3 = pygame.time.get_ticks()
+        # [TEMP 分段计时]——卡帧归因（vw/rapier 原位/remesh 管线重建）
+        print(f"[edit] 放 {key}: vw={_t1 - _t0}ms rapier={_t2 - _t1}ms "
+              f"remesh={_t3 - _t2}ms 三角={tri_count}", flush=True)
         stats[0] += 1
         return True
 
