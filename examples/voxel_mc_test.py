@@ -312,40 +312,40 @@ async def main():
                               cull="none", blend="alpha", label="hud_pipe")
 
     def rebuild_voxel_mesh():
-        # **generate_mesh_flat**（唯一顶点 pos3+nrm3 交错平铺 + u16 索引）
-        # + **update_mesh 原地更新**（draw 按索引计数 = 可变长度；GPU
-        # buffer 预分配 4x 容量垫底，超限才重建——曾每次编辑 ac.mesh
-        # 新建 buffer = 卡帧 + 分配churn，2026-11-20 分段计时实锤）
+        # **generate_mesh_bytes**（f32/u16 LE 原始字节——RP 零逐元素转换，
+        # list 口的 20400 次 new_float ≈ remesh 卡帧残余）+ 容量垫底 +
+        # update_mesh_vertex/index_bytes 原地更新（超限才整 mesh 重建）
         _t0 = pygame.time.get_ticks()
-        flat, idx = vw.generate_mesh_flat()
+        vb, ib = vw.generate_mesh_bytes()
         _t1 = pygame.time.get_ticks()
         if vox_mesh_buf[0] is None:
-            # 首建：4x 容量零垫底（update_mesh 不增长——容量内原地写）
-            pad = flat + [0.0] * (len(flat) * 3)
-            mesh = ac.mesh(["float32x3", "float32x3"], pad,
-                           indices=idx, label="voxel_mesh")
+            # 首建：4x 容量零垫底（update 字节口不增长——容量内原地写）
+            mesh = ac.mesh(["float32x3", "float32x3"],
+                           vertices_bytes=vb + bytes(len(vb) * 3),
+                           index_bytes=ib, label="voxel_mesh")
             vox_mesh_buf[0] = mesh
-            vox_mesh_buf[1] = len(flat)
+            vox_mesh_buf[1] = len(vb)
             bind = ac.bind_group([(0, "uniform", cam_buf)], label="voxel_bind")
             vox_bind[0] = bind
             vox_pipe[0] = ac.pipeline(voxel_shader, mesh, [bind],
                                       cull="back", blend="opaque",
                                       depth_mode="standard", depth_write=True,
                                       label="voxel_pipe")
-        elif len(flat) > vox_mesh_buf[1]:
+        elif len(vb) > vox_mesh_buf[1]:
             # 扩容事件（挖洞暴露面净增超垫底）——整 mesh 重建（罕见）
-            pad = flat + [0.0] * (len(flat) * 3)
-            mesh = ac.mesh(["float32x3", "float32x3"], pad,
-                           indices=idx, label="voxel_mesh")
+            mesh = ac.mesh(["float32x3", "float32x3"],
+                           vertices_bytes=vb + bytes(len(vb) * 3),
+                           index_bytes=ib, label="voxel_mesh")
             vox_mesh_buf[0] = mesh
-            vox_mesh_buf[1] = len(flat)
+            vox_mesh_buf[1] = len(vb)
         else:
-            ac.update_mesh(vox_mesh_buf[0], flat, idx)   # 原地（~1ms 量级）
+            ac.update_mesh_vertex_bytes(vox_mesh_buf[0], vb)   # 原地直喂
+            ac.update_mesh_index_bytes(vox_mesh_buf[0], ib)
         _t2 = pygame.time.get_ticks()
         # [TEMP 计时]——remesh 分解（voxelis 出口 / GPU 更新）
         print(f"[remesh] gen={_t1 - _t0}ms gpu={_t2 - _t1}ms "
-              f"顶点={len(flat) // 6} 三角={len(idx) // 3}", flush=True)
-        return vox_mesh_buf[0], len(idx) // 3
+              f"三角={len(ib) // 6}", flush=True)
+        return vox_mesh_buf[0], len(ib) // 6
 
     vox_mesh, tri_count = rebuild_voxel_mesh()
     st("generate_mesh 出口", tri_count > 0)
