@@ -321,10 +321,12 @@ async def main():
         vb, ib = vw.generate_mesh_bytes()
         _t1 = pygame.time.get_ticks()
         if vox_mesh_buf[0] is None:
-            # 首建：4x 容量零垫底（update 字节口不增长——容量内原地写）
+            # 首建：顶点/索引双 4x 容量垫底（update 字节口不增长——容量内
+            # 原地写；索引垫底 = 0 号退化三角不可见，写时计数自动重设）
             mesh = ac.mesh(["float32x3", "float32x3"],
                            vertices_bytes=vb + bytes(len(vb) * 3),
-                           index_bytes=ib, label="voxel_mesh")
+                           index_bytes=ib + bytes(len(ib) * 3),
+                           label="voxel_mesh")
             vox_mesh_buf[0] = mesh
             vox_mesh_buf[1] = len(vb)
             bind = ac.bind_group([(0, "uniform", cam_buf)], label="voxel_bind")
@@ -455,7 +457,6 @@ async def main():
         stats[0] += 1
         return True
 
-    dragging = False
     _last_ms = 0                          # 帧耗时统计基准
     _dt_sum = [0.0, 0]                    # (ms 累计, 帧数)——120 帧平均窗
     _step_sum = [0, 0]                    # step/fluidstep 累计 ms
@@ -557,7 +558,7 @@ async def main():
                     pitch = -12.0
             elif e.type == pygame.event.MOUSEBUTTONDOWN:
                 if e.button == 1:
-                    dragging = True
+                    #dragging = True
                     picked = pick_voxel()
                     if picked:
                         inside, outside, p, normal = picked
@@ -580,14 +581,14 @@ async def main():
             elif e.type == pygame.event.MOUSEBUTTONUP:
                 if e.button == 1:
                     dragging = False
-            elif e.type == pygame.event.MOUSEMOTION and (dragging or grabbed):
+            elif e.type == pygame.event.MOUSEMOTION and grabbed:
                 # 拖拽 / grab 态 = 转向 + 俯仰（FPS 全形态——x 差分 yaw /
                 # y 差分 pitch，用户定约 2026-11-17；grab 态免按键
                 # 2026-11-20）
                 if last_pos is not None:
-                    yaw += (e.x - last_pos[0]) * 0.35
+                    yaw += (e.x - last_pos[0]) * 0.1
                     pitch = max(-85.0, min(85.0,
-                                           pitch + (e.y - last_pos[1]) * 0.35))
+                                           pitch + (e.y - last_pos[1]) * 0.1))
                 last_pos = (e.x, e.y)
 
         # 漫游（WASD 平移 + QE 升降——get_pressed 视图，Key unhashable）
