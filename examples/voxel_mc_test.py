@@ -188,7 +188,8 @@ fn fs_main(in: VOut) -> @location(0) vec4<f32> {
 async def main():
     pygame.display.set_caption("voxel_mc_test")
     screen = pygame.display.set_mode((2048, 1280))
-    cjk = pygame.font.Font("cjk", 15)
+    cjk = pygame.font.Font("cjk", 25)
+    clock = pygame.time.Clock()               # 帧率上限节流（tick 60——GPU 占用治理）
     ac = pygame.render.access()
     frame = 0
     _fail = []
@@ -482,15 +483,15 @@ async def main():
     def draw_hud(t):
         # 目标 = hud_surf（透明底离屏）——内容层 gfxdraw 恒在 raw 之下，
         # 直接画主屏会被 3D 不透明像素盖住（BMP 实锤 2026-11-20）
-        pygame.gfxdraw.set_transform(t, M.mat4_translation(-500, 608, 0))
+        pygame.gfxdraw.set_transform(t, M.mat4_translation(-450, 608, 0))
         pygame.gfxdraw.draw_surface(t, hud_text(
             f"[voxel_mc] 体素 mesh {tri_count} 三角 | chunk {vw.chunk_count()} | "
             f"球 {len(balls)} | WASD漫游 QE升降 拖拽/TAB抓取=转向+俯仰 左删右放 F发射 R重置 T碰撞体显示 F2流体"))
-        pygame.gfxdraw.set_transform(t, M.mat4_translation(-500, 588, 0))
+        pygame.gfxdraw.set_transform(t, M.mat4_translation(-450, 588, 0))
         pygame.gfxdraw.draw_surface(t, hud_text(
             info + (" | T:collider线框 ON" if debug_on else ""), (255, 220, 90)))
         # 性能行（120 帧平均——物理/流体 step 与总帧耗时分摊可见）
-        pygame.gfxdraw.set_transform(t, M.mat4_translation(-500, 568, 0))
+        pygame.gfxdraw.set_transform(t, M.mat4_translation(-450, 568, 0))
         pygame.gfxdraw.draw_surface(t, hud_text(
             f"帧 {perf[0]:.1f}ms ({1000.0 / max(perf[0], 0.01):.0f}fps) | "
             f"物理 step {perf[1]:.2f}ms | 流体 step {perf[2]:.2f}ms | "
@@ -669,9 +670,19 @@ async def main():
                 rt.draw_debug_3d(dbg_renderer, sink)
             # HUD 覆盖面合成（**3D 之后第二 raw pass**——登记序即执行序，
             # 透明底全屏贴图盖在 3D 上；gfxdraw 内容层恒在 raw 之下）
+            # **剪裁合成**（GPU 25% 占用治理 2026-11-20）：合成 pass 曾
+            # 全屏 alpha 混合（2048×1280 双向带宽），实际 HUD = 顶部文字
+            # 带 + 中心准星两小块——scissor 两段各画一次，非 HUD 区零着色
             with screen.raw_render() as ph:
                 ph.set_pipeline(hud_pipe[0])
                 ph.set_bind_group(0, hud_bind[0])
+                _sw, _sh = screen.get_size()
+                # 文字带像素位（center-origin：用户现变换 (-450, 568..608)
+                # → fb y = _sh/2 - 608-16 ≈ 16..96）
+                ph.set_scissor(0, 16, _sw, 96)
+                ph.draw_mesh(hud_quad)
+                # 准星区（translate (0,0) → fb 中心 ±22px）
+                ph.set_scissor(_sw // 2 - 20, _sh // 2 - 20, 40, 40)
                 ph.draw_mesh(hud_quad)
 
         # 物理数据正确性打点（60 帧一次）：球中心/速度——静止贴面判据
@@ -713,4 +724,8 @@ async def main():
             _step_sum[0] = 0
             _step_sum[1] = 0
         frame += 1
+        # **帧率上限 60**（pygame.time.Clock.tick 正统口——物理 60Hz，
+        # 120Hz 屏全速渲染 = 每两帧重复同一物理态，GPU 减半零视觉损失；
+        # vsync 已超目标时引擎不再补睡——无双重节流）
+        clock.tick(60)
         await pygame.next_frame()
