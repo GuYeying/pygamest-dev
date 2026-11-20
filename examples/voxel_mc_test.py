@@ -218,26 +218,37 @@ async def main():
     st("get_voxel 读回", vw.get_voxel(3, height[3][3], 3) == 2)
     st("get_voxel 空 = None", vw.get_voxel(100, 100, 100) is None)
 
-    # ── 物理（表面体素 cuboid + 射线选择）──
+    # ── 物理（**单 voxel collider**——官方 voxel 案例对齐 2026-11-20：
+    # 全体素 = 1 个 VoxelGeometry 形状碰撞体（parry voxelization），编辑
+    # = 形状原位 set_voxel（ColliderSet::get_mut 自带 modified 脏标记 →
+    # 下步 step 自动刷 broadphase），零刚体插拔；渲染 = voxelis mesh、
+    # 物理 = rapier voxel shape——编辑双写同步。坐标约定对齐钉死：
+    # parry 格 key (x,y,z) ≡ 世界 [x,x+1)³ ≡ voxelis 同款（voxel_center
+    # = (key+0.5)*size，collider 恒等位）──）
     world = rp3.PhysicsWorld3D(gravity=(0, -9.81, 0))
-    col_bodies = {}                          # (x,y,z) → body handle（表面块+放置块）
-    # add_collider(key)：增量 collider（表面块/放置块/露层补挂共用——
-    # 中心 +0.5 half 0.5 ≡ mesh 世界盒 [x,x+1]，渲染物理对齐）
-    def add_collider(key):
-        x, y, z = key
-        b = rp3.RigidBodyBuilder3D("fixed",
-                                   translation=(x + 0.5, y + 0.5, z + 0.5))
-        c = rp3.ColliderBuilder3D("cuboid", hx=0.5, hy=0.5, hz=0.5, friction=0.8)
-        col_bodies[key] = world.insert(b, c)[0]
+    terrain_col = [None, None]               # (body_handle, collider_handle)
+    stats = [0]                              # 当前体素数（HUD）
 
-    for x in range(16):
-        for z in range(16):
-            h = height[x][z]
-            add_collider((x, h - 1, z))      # 每列顶层块（内部块打不到）
-        # 石块样本 collider（值 2 两块——build_terrain 放在列顶层之上，
-        # 列循环只挂到 h-1 顶层，这两块漏挂 = 渲染有块物理穿透 bug）
-        add_collider((3, height[3][3], 3))
-        add_collider((5, height[5][5], 5))
+    def rebuild_terrain_collider():
+        # 体素 collider 全量重建（首次/R 重置共用——voxelis 模型为事实
+        # 源，物理形状全量镜像；旧体弃置换新）
+        if terrain_col[0] is not None:
+            world.remove_body(terrain_col[0])
+        keys = []
+        for x in range(16):
+            for z in range(16):
+                # 列内全枚举（含列顶层之上的石块样本 y=h——get_voxel 判
+                # 空，宁多扫不漏挂）
+                for y in range(height[x][z] + 2):
+                    if vw.get_voxel(x, y, z) is not None:
+                        keys.extend((x, y, z))
+        stats[0] = len(keys) // 3
+        b = rp3.RigidBodyBuilder3D("fixed")
+        c = rp3.ColliderBuilder3D("voxels", voxel_size=1.0, voxels=keys,
+                                  friction=0.8)
+        terrain_col[0], terrain_col[1] = world.insert(b, c)
+
+    rebuild_terrain_collider()               # 全量镜像 voxelis → 物理
 
     # 时序契约：insert 后须至少 step 一次方可 cast_ray（broad_phase 时序）
     world.step_frame(1.0 / 60.0)
@@ -328,76 +339,37 @@ async def main():
                 M.sin(pitch_r),
                 -M.cos(pitch_r) * M.cos(yaw_r))
 
-    def dda_traverse(o, d, max_dist=64.0):
-        # **Amanatides-Woo voxel traversal**（数学精确——无 ε 猜测）：
-        # 从 o 沿 d 逐格步进，命中首个有体素的格；返回
-        # (命中格, 进入面法线, 步进序列)——放置格 = 命中格 + 法线
-        dl = (d[0] ** 2 + d[1] ** 2 + d[2] ** 2) ** 0.5
-        if dl == 0:
-            return None
-        dn = (d[0] / dl, d[1] / dl, d[2] / dl)
-        x, y, z = int(o[0] // 1), int(o[1] // 1), int(o[2] // 1)
-        step = (1 if dn[0] > 0 else -1,
-                1 if dn[1] > 0 else -1,
-                1 if dn[2] > 0 else -1)
-
-        def axis_init(p, dd, s):
-            if dd == 0:
-                return float("inf"), float("inf")
-            edge = p + (1 if s > 0 else 0)          # 下一格边界（整数坐标）
-            t_max = (edge - p) / dd                 # 到边界的射线参数 t
-            return (t_max if t_max >= 0 else 0.0), abs(1.0 / dd)
-
-        tx, dtx = axis_init(o[0], dn[0], step[0])
-        ty, dty = axis_init(o[1], dn[1], step[1])
-        tz, dtz = axis_init(o[2], dn[2], step[2])
-        normal = None
-        t = 0.0
-        while t <= max_dist:
-            if vw.get_voxel(x, y, z) is not None:
-                return ((x, y, z), normal, t)
-            if tx < ty and tx < tz:
-                x += step[0]; t = tx; tx += dtx; normal = (-step[0], 0, 0)
-            elif ty < tz:
-                y += step[1]; t = ty; ty += dty; normal = (0, -step[1], 0)
-            else:
-                z += step[2]; t = tz; tz += dtz; normal = (0, 0, -step[2])
-        return None
-
     def pick_voxel():
         d = mouse_ray()
-        r = dda_traverse(eye, d)
-        if r is None:
+        # **rapier 体素射线**（官方 voxel 案例对齐——broadphase query
+        # 命中自带 FeatureId→voxel_key 直映射，DDA 自算退役；axis-aligned
+        # 形状 → 法线恒 ±1 单轴）
+        hit = world.cast_ray_voxel(eye, d, 64.0)
+        if hit is None:
             return None
-        inside, normal, t = r
-        # 放置格 = 命中格 + 进入面法线（数学正确——外侧即命中面背侧）
-        outside = (inside[0] + normal[0], inside[1] + normal[1],
-                   inside[2] + normal[2]) if normal else (
-            int((eye[0] + d[0] * (t - 0.05)) // 1),
-            int((eye[1] + d[1] * (t - 0.05)) // 1),
-            int((eye[2] + d[2] * (t - 0.05)) // 1))
-        hp = (eye[0] + d[0] * t, eye[1] + d[1] * t, eye[2] + d[2] * t)
-        return inside, outside, hp, normal
+        _ch, toi, normal, key, center = hit
+        n = (int(round(normal[0])), int(round(normal[1])), int(round(normal[2])))
+        inside = (int(key[0]), int(key[1]), int(key[2]))
+        # 放置格 = 命中格沿命中面法线外侧（官方 affected_key 同语义）
+        outside = (key[0] + n[0], key[1] + n[1], key[2] + n[2])
+        return inside, outside, center, n
 
     def remove_voxel(key):
         if vw.get_voxel(*key) is None:
             return False
-        vw.remove_voxel(*key)
-        bh = col_bodies.pop(key, None)
-        if bh is not None:
-            world.remove_body(bh)
-        # 露层补挂：正下方有体素则给新暴露面补 collider（消除
-        # "mesh 有块物理穿"——增量近似，仅直下方向）
-        below = (key[0], key[1] - 1, key[2])
-        if vw.get_voxel(*below) is not None and below not in col_bodies:
-            add_collider(below)
+        vw.remove_voxel(*key)                          # 渲染源（voxelis）
+        world.set_voxel(terrain_col[1], *key, False)   # 物理原位（官方对齐）
+        vox_mesh, tri_count = rebuild_voxel_mesh()     # remesh（渲染出口）
+        stats[0] -= 1
         return True
 
     def place_voxel(key):
         if vw.get_voxel(*key) is not None:
             return False
         vw.set_voxel(key[0], key[1], key[2], 2)
-        add_collider(key)
+        world.set_voxel(terrain_col[1], key[0], key[1], key[2], True)
+        vox_mesh, tri_count = rebuild_voxel_mesh()
+        stats[0] += 1
         return True
 
     dragging = False
@@ -436,7 +408,7 @@ async def main():
         pygame.gfxdraw.draw_surface(rt, hud_text(
             f"帧 {perf[0]:.1f}ms ({1000.0 / max(perf[0], 0.01):.0f}fps) | "
             f"物理 step {perf[1]:.2f}ms | 流体 step {perf[2]:.2f}ms | "
-            f"刚体 {len(balls)} + 体素碰撞 {len(col_bodies)}", (150, 230, 180)))
+            f"刚体 {len(balls)} | 体素 {stats[0]}（单 voxel collider）", (150, 230, 180)))
         # 中心十字准星（FPS 沉浸式——射线即屏心视线，pick 与准星同源
         # 同约定：yaw/pitch 前向；grab 隐藏光标后的瞄准参照）
         pygame.gfxdraw.set_transform(rt, M.mat4_translation(0, 0, 0))
@@ -482,21 +454,12 @@ async def main():
                         ], label="fluid_model_bind")
                         print('[voxel_mc] 流体已注入（160 粒子水柱）')
                 if e.key == pygame.key.K_r:
-                    for bh in list(col_bodies.values()):
-                        world.remove_body(bh)
-                    col_bodies.clear()
                     for bh, _mb, _bd in balls:
                         world.remove_body(bh)
                     balls.clear()
                     vw.clear()
                     build_terrain()
-                    # 表面 collider 重建（R 全量重置——放置块一并清）
-                    for x in range(16):
-                        for z in range(16):
-                            h = height[x][z]
-                            add_collider((3, height[3][3], 3))
-                            add_collider((5, height[5][5], 5))
-                            add_collider((x, h - 1, z))
+                    rebuild_terrain_collider()     # 体素 collider 全量重建
                     world.step_frame(1.0 / 60.0)   # 时序契约（cast_ray 前置）
                     vox_mesh, tri_count = rebuild_voxel_mesh()
                     info = "地形+视角已重置"
