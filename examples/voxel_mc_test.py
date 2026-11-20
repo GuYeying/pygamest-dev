@@ -166,6 +166,25 @@ def fps_view(eye, yaw_deg, pitch_deg):
     return M.mat4_from_cols_array(cols)
 
 
+WGSL_HUD = """
+struct VIn { @location(0) pos: vec2<f32>, @location(1) uv: vec2<f32> }
+struct VOut { @builtin(position) pos: vec4<f32>, @location(0) uv: vec2<f32> }
+@vertex
+fn vs_main(v: VIn) -> VOut {
+    var o: VOut;
+    o.pos = vec4<f32>(v.pos, 0.0, 1.0);
+    o.uv = v.uv;
+    return o;
+}
+@group(0) @binding(0) var tex: texture_2d<f32>;
+@group(0) @binding(1) var samp: sampler;
+@fragment
+fn fs_main(in: VOut) -> @location(0) vec4<f32> {
+    return textureSample(tex, samp, in.uv);
+}
+"""
+
+
 async def main():
     pygame.display.set_caption("voxel_mc_test")
     screen = pygame.display.set_mode((1024, 640))
@@ -269,6 +288,27 @@ async def main():
     cube_shader = ac.shader(WGSL_CUBE, label="ball_shader")
     vox_pipe = [None]   # 体素 pipeline + bind（交互重建时一并换新）
     vox_bind = [None]
+
+    # ── HUD 覆盖面（透明底离屏 + 3D 后第二 raw pass 全屏合成）──
+    # gfxdraw 内容层恒在 raw 之下 = HUD 被 3D 不透明像素盖住（BMP 像素
+    # 真值实锤 2026-11-20：文字带 (300,620)=地形绿）；fluid3d 透明背景
+    # 层序同款——HUD 画进透明离屏面，3D 之后 alpha 合成回主屏
+    hud_surf = pygame.Surface((1024, 640))
+    hud_quad = ac.mesh(["float32x2", "float32x2"],
+                       # 6 顶点两三角（TriangleList 定约——4 顶点 = 半屏）；
+                       # **uv v 翻转**——wgpu 纹理 v=0 = 顶行，quad 直排会把
+                       # 覆盖面上下颠倒（用户实测文字上下翻转 2026-11-20）
+                       [-1.0, -1.0, 0.0, 1.0, 1.0, -1.0, 1.0, 1.0,
+                        1.0, 1.0, 1.0, 0.0, -1.0, -1.0, 0.0, 1.0,
+                        1.0, 1.0, 1.0, 0.0, -1.0, 1.0, 0.0, 0.0],
+                       label="hud_quad")
+    hud_shader = ac.shader(WGSL_HUD, label="hud_shader")
+    hud_pipe = [None]
+    hud_bind = [None]
+    hud_bind[0] = ac.bind_group([(0, "texture", hud_surf),
+                                 (1, "sampler", None)], label="hud_bind")
+    hud_pipe[0] = ac.pipeline(hud_shader, hud_quad, [hud_bind[0]],
+                              cull="none", blend="alpha", label="hud_pipe")
 
     def rebuild_voxel_mesh():
         verts, norms, idx = vw.generate_mesh()
@@ -395,27 +435,31 @@ async def main():
             text_cache[key] = cjk.render(s, True, color)
         return text_cache[key]
 
-    def draw_hud(rt):
-        pygame.gfxdraw.set_transform(rt, M.mat4_translation(-500, 308, 0))
-        pygame.gfxdraw.draw_surface(rt, hud_text(
+    def draw_hud(t):
+        # 目标 = hud_surf（透明底离屏）——内容层 gfxdraw 恒在 raw 之下，
+        # 直接画主屏会被 3D 不透明像素盖住（BMP 实锤 2026-11-20）
+        pygame.gfxdraw.set_transform(t, M.mat4_translation(-500, 308, 0))
+        pygame.gfxdraw.draw_surface(t, hud_text(
             f"[voxel_mc] 体素 mesh {tri_count} 三角 | chunk {vw.chunk_count()} | "
             f"球 {len(balls)} | WASD漫游 QE升降 拖拽/TAB抓取=转向+俯仰 左删右放 F发射 R重置 T碰撞体显示 F2流体"))
-        pygame.gfxdraw.set_transform(rt, M.mat4_translation(-500, 288, 0))
-        pygame.gfxdraw.draw_surface(rt, hud_text(
+        pygame.gfxdraw.set_transform(t, M.mat4_translation(-500, 288, 0))
+        pygame.gfxdraw.draw_surface(t, hud_text(
             info + (" | T:collider线框 ON" if debug_on else ""), (255, 220, 90)))
         # 性能行（120 帧平均——物理/流体 step 与总帧耗时分摊可见）
-        pygame.gfxdraw.set_transform(rt, M.mat4_translation(-500, 268, 0))
-        pygame.gfxdraw.draw_surface(rt, hud_text(
+        pygame.gfxdraw.set_transform(t, M.mat4_translation(-500, 268, 0))
+        pygame.gfxdraw.draw_surface(t, hud_text(
             f"帧 {perf[0]:.1f}ms ({1000.0 / max(perf[0], 0.01):.0f}fps) | "
             f"物理 step {perf[1]:.2f}ms | 流体 step {perf[2]:.2f}ms | "
             f"刚体 {len(balls)} | 体素 {stats[0]}（单 voxel collider）", (150, 230, 180)))
         # 中心十字准星（FPS 沉浸式——射线即屏心视线，pick 与准星同源
         # 同约定：yaw/pitch 前向；grab 隐藏光标后的瞄准参照）
-        pygame.gfxdraw.set_transform(rt, M.mat4_translation(0, 0, 0))
-        pygame.gfxdraw.set_color(rt, (240, 240, 240))
-        pygame.gfxdraw.box(rt, (-11, -1, 22, 2))
-        pygame.gfxdraw.box(rt, (-1, -11, 2, 22))
-        pygame.gfxdraw.set_color(rt, (255, 255, 255))
+        # ⚠️ set_color 是 one-shot（每次 draw 消费）——每个 box 前都须
+        # 重设，否则回落引擎默认紫（128,0,128 实测）
+        pygame.gfxdraw.set_transform(t, M.mat4_translation(0, 0, 0))
+        pygame.gfxdraw.set_color(t, (240, 240, 240))
+        pygame.gfxdraw.box(t, (-11, -1, 22, 2))
+        pygame.gfxdraw.set_color(t, (240, 240, 240))
+        pygame.gfxdraw.box(t, (-1, -11, 2, 22))
 
     while True:
         for e in pygame.event.get():
@@ -535,6 +579,12 @@ async def main():
         cam = cam.with_view(fps_view(eye, yaw, pitch))
         pygame.render.write_camera_mvp(cam_buf, cam.mvp())
 
+        # HUD 覆盖面内容（透明底——文字/准星画进离屏，随后的屏幕会话
+        # 末段第二 raw pass alpha 合成回主屏）
+        with hud_surf.render() as ht:
+            ht.fill((0, 0, 0, 0))       # 透明底（alpha 合成回主屏）
+            draw_hud(ht)
+
         with screen.render() as rt:
             rt.fill((28, 34, 46))
             with screen.raw_render(depth=True) as p:
@@ -571,7 +621,12 @@ async def main():
                 rp3.collect3d(world, dbg_draw, sink)
                 dbg_renderer.set_mvp(cam.mvp())
                 rt.draw_debug_3d(dbg_renderer, sink)
-            draw_hud(rt)
+            # HUD 覆盖面合成（**3D 之后第二 raw pass**——登记序即执行序，
+            # 透明底全屏贴图盖在 3D 上；gfxdraw 内容层恒在 raw 之下）
+            with screen.raw_render() as ph:
+                ph.set_pipeline(hud_pipe[0])
+                ph.set_bind_group(0, hud_bind[0])
+                ph.draw_mesh(hud_quad)
 
         # 物理数据正确性打点（60 帧一次）：球中心/速度——静止贴面判据
         # （中心 y ≈ 下方命中面 y + 0.5，容差 ±0.05）
