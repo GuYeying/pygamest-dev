@@ -1,8 +1,9 @@
 # async_io_test —— tasks 异步加载 vs 阻塞加载 A/B 对照（FPS 视觉验收）：
-# 8 个 2MB 分片文件（启动时生成）——阻塞按钮 = 依次同步全读（画面冻结
-# 到读完）；异步按钮 = tasks.spawn 分帧协程（每帧读一片 + await 挂起，
-# 画面持续推进）。egui 输入相对路径（默认分片 0）+ FPS/耗时/进度全显
-# 示——分帧协程的"加载期间画面不冻结"直观验收。
+# 128MB 单文件（native 启动时生成 / wasm build.py 预置）——阻塞按钮 =
+# 同步全读（画面冻结到读完）；异步按钮 = tasks.spawn 分帧协程（native
+# 每帧读 8MB 块 + await 挂起；wasm io_size None 退化 fetch 全量——网络
+# 层流式不卡帧）。egui 输入相对路径 + FPS/耗时/进度全显示——分帧协程
+# 的"加载期间画面不冻结"直观验收。
 import pygame
 import pygame_gui as egui
 _stopwatch = pygame.io.read_text is not None  # 探针占位
@@ -11,7 +12,7 @@ class SW:
     def __init__(self): self.t0 = pygame.time.get_ticks()
     def ms(self): return pygame.time.get_ticks() - self.t0
 
-PARTS = 8
+PARTS = 16                     # 128MB / 8MB 块 = 16 帧（wasm = 1 次 fetch 全量）
 BIG_BYTES = 128 * 1024 * 1024  # 单文件 128MB（fetch 自动分块流式 v3.1）
 
 
@@ -106,6 +107,7 @@ async def main():
                 max_dt = blocking_ms       # 冻结段计入最大帧间
             hud.state = "阻塞完成"
             hud.info = f"阻塞加载耗时 {blocking_ms:.0f} ms（期间画面冻结、FPS=0）"
+            print("[aiot] blocking_ms =", blocking_ms, flush=True)  # 结果输出（wasm 画面文字难截读——console 为准）
 
         # 异步任务收割（耗时读 hud.async_ms——**不碰 job.result**，
         # RP 委派链恢复值坑定约）
@@ -149,18 +151,25 @@ async def main():
 
 
 async def chunk_loader(path, hud):
-    # **coroutine 形态**（无 yield——async gen 在 RP 驱动有病态）：
-    # pygame.io.io_read_chunk 同步区间读（每帧一块，块级毫秒级不超
-    # 帧预算）+ await next_frame 挂起交出控制权——画面持续推进
+    # **coroutine 形态**（无裸 yield——async gen 在 RP 驱动有病态）：
+    # native = io_size 分块判定 + io_read_chunk 同步区间读（每帧一块，
+    # 块级毫秒级不超帧预算）+ await next_frame 挂起交出控制权——画面
+    # 持续推进；wasm = io_size None（fetch 全量承载定约）→ await
+    # io.fetch 全量退化（网络层流式不卡帧）+ 完成表 io_take 直取
     t0 = SW()
-    got = 0
     total = pygame.io.io_size(path)
-    off = 0
-    chunk = 8 * 1024 * 1024
-    while off < total:
-        data = pygame.io.io_read_chunk(path, off, n if False else min(chunk, total - off))
-        got += len(data)
-        off += n if False else min(chunk, total - off)
-        hud.state = f"异步中|{off * 100 // total}"
-        await pygame.next_frame()                  # 挂起一帧（画面推进）
+    if total is None:
+        await pygame.io.fetch(path)          # wasm：fetch 全量（挂起至入表）
+        pygame.io.io_take(path)              # 完成表直取（委派链 return 丢规避）
+        hud.state = "异步中|100"
+    else:
+        off = 0
+        chunk = 8 * 1024 * 1024
+        while off < total:
+            n = min(chunk, total - off)
+            pygame.io.io_read_chunk(path, off, n)
+            off += n
+            hud.state = f"异步中|{off * 100 // total}"
+            await pygame.next_frame()        # 挂起一帧（画面推进）
     hud.async_ms = t0.ms()
+    print("[aiot] async_ms =", hud.async_ms, flush=True)       # 结果输出（wasm 画面文字难截读——console 为准）

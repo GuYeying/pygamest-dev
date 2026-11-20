@@ -401,6 +401,8 @@ async def main():
         return True
 
     dragging = False
+    grabbed = False                       # TAB 抓取态（FPS 沉浸式——grab
+                                          # + 隐藏光标，免按键自由转向）
     last_pos = None                       # 拖拽差分锚（Event 无 rel——x/y 差分自算）
     debug_on = False                      # T 键：collider 线框叠加（对齐检查）
     fluid_on = False                      # F2 键：流体元素开关（水柱注入）
@@ -420,7 +422,7 @@ async def main():
         pygame.gfxdraw.set_transform(rt, M.mat4_translation(-500, 308, 0))
         pygame.gfxdraw.draw_surface(rt, hud_text(
             f"[voxel_mc] 体素 mesh {tri_count} 三角 | chunk {vw.chunk_count()} | "
-            f"球 {len(balls)} | WASD漫游 QE升降 拖拽=转向+俯仰 左删右放 F发射 R重置 T碰撞体显示 F2流体"))
+            f"球 {len(balls)} | WASD漫游 QE升降 拖拽/TAB抓取=转向+俯仰 左删右放 F发射 R重置 T碰撞体显示 F2流体"))
         pygame.gfxdraw.set_transform(rt, M.mat4_translation(-500, 288, 0))
         pygame.gfxdraw.draw_surface(rt, hud_text(
             info + (" | T:collider线框 ON" if debug_on else ""), (255, 220, 90)))
@@ -432,6 +434,17 @@ async def main():
             if e.type == pygame.event.KEYDOWN:
                 if e.key == pygame.key.K_ESCAPE:
                     return
+                if e.key == pygame.key.K_TAB:
+                    # FPS 沉浸式抓取切换（2026-11-20 用户定约）：TAB =
+                    # grab（鼠标限定窗口内逃不出）+ 隐藏光标 + 免按键
+                    # 自由转向；再按 TAB 释放回拖拽形态。last_pos 重锚
+                    # 防切换瞬间跳变。
+                    grabbed = not grabbed
+                    pygame.mouse.set_grab(grabbed)
+                    pygame.mouse.set_visible(not grabbed)
+                    last_pos = None
+                    info = ("TAB 抓取鼠标：FPS 沉浸式（自由转向，左删右放不变）"
+                            if grabbed else "TAB 已释放鼠标（回拖拽形态）")
                 if e.key == pygame.key.K_f:
                     launch_ball()
                 if e.key == pygame.key.K_t:
@@ -492,9 +505,10 @@ async def main():
             elif e.type == pygame.event.MOUSEBUTTONUP:
                 if e.button == 1:
                     dragging = False
-            elif e.type == pygame.event.MOUSEMOTION and dragging:
-                # 拖拽 = 转向 + 俯仰（FPS 全形态——x 差分 yaw / y 差分
-                # pitch，用户定约 2026-11-17）
+            elif e.type == pygame.event.MOUSEMOTION and (dragging or grabbed):
+                # 拖拽 / grab 态 = 转向 + 俯仰（FPS 全形态——x 差分 yaw /
+                # y 差分 pitch，用户定约 2026-11-17；grab 态免按键
+                # 2026-11-20）
                 if last_pos is not None:
                     yaw += (e.x - last_pos[0]) * 0.35
                     pitch = max(-85.0, min(85.0,
