@@ -481,15 +481,15 @@ async def main():
     def draw_hud(t):
         # 目标 = hud_surf（透明底离屏）——内容层 gfxdraw 恒在 raw 之下，
         # 直接画主屏会被 3D 不透明像素盖住（BMP 实锤 2026-11-20）
-        pygame.gfxdraw.set_transform(t, M.mat4_translation(-500, 308, 0))
+        pygame.gfxdraw.set_transform(t, M.mat4_translation(-500, 608, 0))
         pygame.gfxdraw.draw_surface(t, hud_text(
             f"[voxel_mc] 体素 mesh {tri_count} 三角 | chunk {vw.chunk_count()} | "
             f"球 {len(balls)} | WASD漫游 QE升降 拖拽/TAB抓取=转向+俯仰 左删右放 F发射 R重置 T碰撞体显示 F2流体"))
-        pygame.gfxdraw.set_transform(t, M.mat4_translation(-500, 288, 0))
+        pygame.gfxdraw.set_transform(t, M.mat4_translation(-500, 588, 0))
         pygame.gfxdraw.draw_surface(t, hud_text(
             info + (" | T:collider线框 ON" if debug_on else ""), (255, 220, 90)))
         # 性能行（120 帧平均——物理/流体 step 与总帧耗时分摊可见）
-        pygame.gfxdraw.set_transform(t, M.mat4_translation(-500, 268, 0))
+        pygame.gfxdraw.set_transform(t, M.mat4_translation(-500, 568, 0))
         pygame.gfxdraw.draw_surface(t, hud_text(
             f"帧 {perf[0]:.1f}ms ({1000.0 / max(perf[0], 0.01):.0f}fps) | "
             f"物理 step {perf[1]:.2f}ms | 流体 step {perf[2]:.2f}ms | "
