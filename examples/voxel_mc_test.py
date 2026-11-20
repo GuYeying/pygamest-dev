@@ -187,7 +187,7 @@ fn fs_main(in: VOut) -> @location(0) vec4<f32> {
 
 async def main():
     pygame.display.set_caption("voxel_mc_test")
-    screen = pygame.display.set_mode((1024, 640))
+    screen = pygame.display.set_mode((2048, 1280))
     cjk = pygame.font.Font("cjk", 15)
     ac = pygame.render.access()
     frame = 0
@@ -293,8 +293,10 @@ async def main():
     # ── HUD 覆盖面（透明底离屏 + 3D 后第二 raw pass 全屏合成）──
     # gfxdraw 内容层恒在 raw 之下 = HUD 被 3D 不透明像素盖住（BMP 像素
     # 真值实锤 2026-11-20：文字带 (300,620)=地形绿）；fluid3d 透明背景
-    # 层序同款——HUD 画进透明离屏面，3D 之后 alpha 合成回主屏
-    hud_surf = pygame.Surface((1024, 640))
+    # 层序同款——HUD 画进透明离屏面，3D 之后 alpha 合成回主屏。
+    # ⚠️ 尺寸须跟随屏幕（覆盖面全屏合成 1:1——曾固定 1024×640 配
+    # set_mode 2048×1280 = 半尺寸错位，2026-11-20 用户改分辨率实测）
+    hud_surf = pygame.Surface(screen.get_size())
     hud_quad = ac.mesh(["float32x2", "float32x2"],
                        # 6 顶点两三角（TriangleList 定约——4 顶点 = 半屏）；
                        # **uv v 翻转**——wgpu 纹理 v=0 = 顶行，quad 直排会把
@@ -620,10 +622,12 @@ async def main():
         cam = cam.with_view(fps_view(eye, yaw, pitch))
         pygame.render.write_camera_mvp(cam_buf, cam.mvp())
 
-        # HUD 覆盖面内容（透明底——文字/准星画进离屏，随后的屏幕会话
-        # 末段第二 raw pass alpha 合成回主屏）
+        # HUD 覆盖面内容（**真清屏**——write_texture 直写全透明；曾用
+        # alpha-blend fill((0,0,0,0)) 无法穿透已写像素 = 文字跨帧堆叠，
+        # 2026-11-20 用户实测）——文字/准星画进离屏，屏幕会话末段第二
+        # raw pass alpha 合成回主屏
+        hud_surf.clear((0, 0, 0, 0))   # 全透明直写（write_texture 真清屏）
         with hud_surf.render() as ht:
-            ht.fill((0, 0, 0, 0))       # 透明底（alpha 合成回主屏）
             draw_hud(ht)
 
         with screen.render() as rt:
