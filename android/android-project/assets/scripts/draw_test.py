@@ -63,7 +63,7 @@ async def main():
             pygame.gfxdraw.set_color(t, (120, 220, 255))
             pygame.gfxdraw.set_topology(t, "lines")
             pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(40, -35, 0))
-            pygame.gfxdraw.push(t, pygame.gfxdraw.gen_arc(40, 0, 180))  # 弧（度数制）
+            pygame.gfxdraw.push(t, pygame.gfxdraw.gen_arc(40, 0, 180, dashed=True))  # 虚线弧（度数制）
             pygame.gfxdraw.set_topology(t, "default")
             pygame.gfxdraw.reset_transform(t)
 
