@@ -35,9 +35,8 @@ class Hud(egui.UiBase):
 
 
 async def main():
-    screen = pygame.display.set_mode((800, 600))
+    screen = pygame.display.set_mode((800, 600), gui=True)
     screen.set_camera(pygame.render.game_camera_ortho(800, 600, 800, 600))
-    egui.init()
     hud = Hud()
 
     # 连接（三顺位候选——谁通用谁；重连按钮可反复触发）。等待循环内

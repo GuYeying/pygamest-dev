@@ -74,7 +74,7 @@ async def main():
     w, h = 800, 600
     if len(sys.argv) >= 3:   # Android 壳附加的实测屏幕尺寸（argv[-2:]）
         w, h = int(sys.argv[-2]), int(sys.argv[-1])
-    screen = pygame.display.set_mode((w, h), FULLSCREEN)
+    screen = pygame.display.set_mode((w, h), FULLSCREEN, gui=True)
     screen.set_camera(pygame.render.game_camera_ortho(w, h, w, h))
     cjk = pygame.font.Font("cjk", 20)
     game_state = {"size": [w, h]}
@@ -95,9 +95,8 @@ async def main():
             st(name, False)
             print("    [egui-test] 异常:", e)
 
-    # ── init（幂等；无隐式事件挂接——输入走 event(e) 逐条喂）──
-    no_raise("egui.init", lambda: egui.init())
-    no_raise("egui.init 幂等", lambda: egui.init())
+    # ── 装配检查（egui 随 set_mode(gui=True) 自动装配——旧 init 口退役；
+    # 无隐式事件挂接——输入走 event(e) 逐条喂）──
     st("wants_pointer 初值布尔", isinstance(egui.wants_pointer(), bool))
 
     # ── OOP 负路径（draw_ui 的会话形态——须在 with 块内调用）──

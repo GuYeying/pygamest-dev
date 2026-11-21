@@ -37,9 +37,8 @@ class Hud(egui.UiBase):
 
 async def main():
     pygame.display.set_caption("async_io_test")
-    screen = pygame.display.set_mode((800, 600))
+    screen = pygame.display.set_mode((800, 600), gui=True)
     screen.set_camera(pygame.render.game_camera_ortho(800, 600, 800, 600))
-    egui.init()
     cjk = pygame.font.Font("cjk", 15)
 
     # ── 测试分片生成（启动一次——8×16MB 全零，write 覆盖幂等）──

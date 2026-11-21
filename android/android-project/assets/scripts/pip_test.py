@@ -32,7 +32,7 @@ class PipPanel(egui.UiBase):
 
 
 async def main():
-    screen = pygame.display.set_mode((800, 600))
+    screen = pygame.display.set_mode((800, 600), gui=True)
     screen.set_camera(pygame.render.game_camera_ortho(800, 600, 800, 600))
     cjk = pygame.font.Font("cjk", 20)
     _fail = []
@@ -75,8 +75,6 @@ async def main():
     # 游戏内面板：无深度面（2D egui 通道）；右上角
     ui_surf = pygame.Surface((260, 140))
     panel = PipPanel()
-
-    egui.init()
 
     label = cjk.render("画中画：中间 = 3D 物理调试（Surface 深度通道）· 右上 = egui 内嵌面板",
                        True, (200, 200, 200))

@@ -71,7 +71,7 @@ async def main():
     # 收进居中画布，触摸事件已由引擎逆映射为逻辑坐标——hit 与视觉一致）。
     # 想要"UI 铺满原生屏"的形态：set_mode 改读 sys.argv[-2:]（壳附加的
     # 实测尺寸，runtime 自动追加）即可，事件同样零偏移（恒等映射）。
-    screen = pygame.display.set_mode((800, 600))
+    screen = pygame.display.set_mode((800, 600), gui=True)
     screen.set_camera(pygame.render.game_camera_ortho(800, 600, 800, 600))
     w, h = screen.get_size()
     cjk = pygame.font.Font("cjk", 20)
@@ -93,9 +93,8 @@ async def main():
             st(name, False)
             print("    [egui-test] 异常:", e)
 
-    # ── init（幂等；无隐式事件挂接——输入走 event(e) 逐条喂）──
-    no_raise("egui.init", lambda: egui.init())
-    no_raise("egui.init 幂等", lambda: egui.init())
+    # ── 装配检查（egui 随 set_mode(gui=True) 自动装配——旧 init 口退役；
+    # 无隐式事件挂接——输入走 event(e) 逐条喂）──
     st("wants_pointer 初值布尔", isinstance(egui.wants_pointer(), bool))
 
     # ── OOP 负路径（draw_ui 的会话形态——须在 with 块内调用）──

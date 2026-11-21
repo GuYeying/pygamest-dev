@@ -109,9 +109,8 @@ class HUD(egui.UiBase):
 
 
 async def main():
-    screen = pygame.display.set_mode((800, 600))
+    screen = pygame.display.set_mode((800, 600), gui=True)
     ac = pygame.render.access()
-    egui.init()
     hud = HUD()
     cjk = pygame.font.Font("cjk", 16)
 

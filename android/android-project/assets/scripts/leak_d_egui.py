@@ -17,9 +17,8 @@ class HUD(egui.UiBase):
 
 
 async def main():
-    screen = pygame.display.set_mode((400, 300))
+    screen = pygame.display.set_mode((400, 300), gui=True)
     screen.set_camera(pygame.render.game_camera_ortho(400, 300, 400, 300))
-    egui.init()
     hud = HUD()
     frame = 0
     while frame < 9000:
