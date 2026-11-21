@@ -138,7 +138,8 @@ async def main():
                 done_pct = int(hud.state.split("|")[1])
                 w = int(500 * done_pct / 100)
                 pygame.gfxdraw.set_color(t, (80, 200, 140))
-                pygame.gfxdraw.box(t, (-250, -180, w, 24))
+                pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(-250 + w // 2, -168, 0))
+                pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect(w, 24))
             pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(0, 0, 0))
 
             # egui 面板（输入路径 + 按钮）

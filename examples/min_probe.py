@@ -17,9 +17,9 @@ async def main():
             pygame.gfxdraw.set_transform(rt, pygame.math.mat4_translation(-150, 120, 0))
             pygame.gfxdraw.draw_surface(rt, cjk.render("MIN PROBE TEST", True, (255, 255, 255)))
             pygame.gfxdraw.set_color(rt, (240, 240, 240))
-            pygame.gfxdraw.box(rt, (-10, -1, 20, 2))
+            pygame.gfxdraw.push(rt, pygame.gfxdraw.gen_rect(20, 2))
             pygame.gfxdraw.set_color(rt, (240, 240, 240))
-            pygame.gfxdraw.box(rt, (-1, -10, 2, 20))
+            pygame.gfxdraw.push(rt, pygame.gfxdraw.gen_rect(2, 20))
         if frame == 200:
             for s in pygame.render.screen_probe()[:6]:
                 print("[probe]", s, flush=True)

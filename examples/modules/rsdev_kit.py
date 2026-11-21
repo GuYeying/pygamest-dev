@@ -15,7 +15,7 @@ class Camera2D:
 
     def __init__(self, w, h):
         self.w, self.h = w, h
-        self.cam = pygame.render.camera_ortho(float(w), float(h))
+        self.cam = pygame.render.game_camera_ortho(int(w), int(h), int(w), int(h))
 
     def use(self, t):
         """会话相机切换（t = render 会话对象；仅本会话生效）"""
@@ -26,8 +26,8 @@ class Camera3D:
     """3D 透视相机（y 向上右手系，看向 -Z；纵横比恒取画布——三端同源）"""
 
     def __init__(self, w, h, fov=45.0, near=0.1, far=100.0):
-        self.cam = pygame.render.camera_perspective(
-            fov, float(w) / float(h), near, far)
+        self.cam = pygame.render.game_camera_perspective(
+            fov, int(w), int(h), int(w), int(h), near, far)
 
     def use(self, t):
         pygame.gfxdraw.set_camera(t, self.cam)

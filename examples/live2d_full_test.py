@@ -105,7 +105,7 @@ async def main():
         rt2.draw(buf2, scale=0.9)
         with screen.render() as t:
             pygame.gfxdraw.set_color(t, (36, 40, 52))
-            pygame.gfxdraw.box(t, (-400, -300, 800, 600))
+            pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect(800, 600))
             pygame.gfxdraw.draw_surface(t, buf2)
         pygame.display.flip()
         await pygame.next_frame()

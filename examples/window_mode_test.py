@@ -81,13 +81,17 @@ async def main():
             # 画布边界框 + 中心十字（letterbox 可视化）
             w, h = screen.get_size()
             pygame.gfxdraw.set_color(t, (90, 200, 120))
-            pygame.gfxdraw.rectangle(t, (-w // 2, -h // 2, w, h))
-            pygame.gfxdraw.line(t, -40, 0, 40, 0)
-            pygame.gfxdraw.line(t, 0, -40, 0, 40)
+            pygame.gfxdraw.set_topology(t, "lines")
+            pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect_outline(w, h))
+            pygame.gfxdraw.push(t, pygame.gfxdraw.gen_line(-40, 0, 40, 0))
+            pygame.gfxdraw.push(t, pygame.gfxdraw.gen_line(0, -40, 0, 40))
             # 四角标记（画布四角一眼可辨）
             for cx in (-w // 2, w // 2 - 20):
                 for cy in (-h // 2, h // 2 - 20):
-                    pygame.gfxdraw.box(t, (cx, cy, 20, 20))
+                    pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(
+                        cx + 10, cy + 10, 0))
+                    pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect(20, 20))
+            pygame.gfxdraw.set_topology(t, "default")
 
             # 信息面板
             name = MODES[applied][0]

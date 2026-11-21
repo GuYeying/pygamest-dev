@@ -70,12 +70,15 @@ async def main():
         with screen.render() as t:
             t.fill((16, 18, 26))
             pygame.gfxdraw.set_color(t, (90, 140, 220))
-            pygame.gfxdraw.box(t, (int(x) - 20, int(y) - 20, 40, 40))
+            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(int(x), int(y), 0))
+            pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect(40, 40))
             pygame.gfxdraw.set_color(t, (220, 120, 120))
             for (cx0, cy0) in click_pts:
-                pygame.gfxdraw.filled_circle(t, cx0, cy0, 8)
+                pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(cx0, cy0, 0))
+                pygame.gfxdraw.push(t, pygame.gfxdraw.gen_circle(8))
             pygame.gfxdraw.set_color(t, (255, 90, 90))
-            pygame.gfxdraw.filled_circle(t, cx, cy, 5)   # 鼠标指针落点
+            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(cx, cy, 0))
+            pygame.gfxdraw.push(t, pygame.gfxdraw.gen_circle(5))   # 鼠标指针落点
 
             info = [
                 f"方块方向键移动 ({x:.0f},{y:.0f})  鼠标=({cx},{cy}) 左{mb[0]} 中{mb[1]} 右{mb[2]}",

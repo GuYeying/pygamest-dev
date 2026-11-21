@@ -41,13 +41,18 @@ async def main():
     with art.render() as t:
         t.fill((125, 125, 125))
         pygame.gfxdraw.set_color(t, (80, 200, 90))
-        pygame.gfxdraw.rectangle(t, (-72, -52, 144, 104))
+        pygame.gfxdraw.set_topology(t, "lines")
+        pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect_outline(144, 104))
+        pygame.gfxdraw.set_topology(t, "default")
         pygame.gfxdraw.set_color(t, (230, 70, 70))
-        pygame.gfxdraw.filled_circle(t, -40, 0, 24)
+        pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(-40, 0, 0))
+        pygame.gfxdraw.push(t, pygame.gfxdraw.gen_circle(24))
         pygame.gfxdraw.set_color(t, (240, 200, 80))
-        pygame.gfxdraw.line(t, -70, 50, 70, -50)
+        pygame.gfxdraw.set_topology(t, "lines")
+        pygame.gfxdraw.push(t, pygame.gfxdraw.gen_line(-70, 50, 70, -50))
         pygame.gfxdraw.set_color(t, (240, 240, 240))
-        pygame.gfxdraw.line(t, -70, -50, 70, 50)
+        pygame.gfxdraw.push(t, pygame.gfxdraw.gen_line(-70, -50, 70, 50))
+        pygame.gfxdraw.set_topology(t, "default")
 
     frame = 0
     logged = False

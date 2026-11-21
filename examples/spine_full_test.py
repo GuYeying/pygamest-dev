@@ -126,7 +126,7 @@ async def main():
         last = now
         with screen.render() as t:
             pygame.gfxdraw.set_color(t, (30, 34, 44))
-            pygame.gfxdraw.box(t, (-400, -300, 800, 600))
+            pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect(800, 600))
             state.update(dt)
             state.apply(sk3)
             sk3.update_world_transform()

@@ -75,7 +75,7 @@ async def main():
                 return
         with screen.render() as t:
             pygame.gfxdraw.set_color(t, (24, 26, 34))
-            pygame.gfxdraw.box(t, (-400, -300, 800, 600))
+            pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect(800, 600))
             ratio = (frame % 60) / 60.0
             p.sample(ratio)
             pygame.gfxdraw.draw_ozz_quads(t, p, scale=60.0, cx=0.0, cy=-60.0, size=10.0)

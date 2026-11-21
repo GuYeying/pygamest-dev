@@ -15,7 +15,10 @@ async def main():
         with screen.render() as r:
             r.fill((20, 120, 20))
             pygame.gfx.draw.set_color(r,(255, 255, 0))
-            pygame.gfxdraw.rectangle(r, (100, 80, 200, 150), )  # 原 width=3 描边（gfxdraw 恒 1px）
+            pygame.gfxdraw.set_topology(r, "lines")
+            pygame.gfxdraw.set_transform(r, pygame.math.mat4_translation(200, 155, 0))
+            pygame.gfxdraw.push(r, pygame.gfxdraw.gen_rect_outline(200, 150))
+            pygame.gfxdraw.set_topology(r, "default")
         pygame.display.flip()
         await pygame.next_frame()
     assert screen.get_size() == (800, 600)

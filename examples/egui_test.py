@@ -160,7 +160,8 @@ async def main():
             # 引擎指针落点校准（红圈）：红圈应贴手指——偏了 = 坐标链问题
             _mp = pygame.mouse.get_pos()
             pygame.gfxdraw.set_color(t, (255, 0, 0))
-            pygame.gfxdraw.filled_circle(t, _mp[0], _mp[1], 12)
+            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(_mp[0], _mp[1], 0))
+            pygame.gfxdraw.push(t, pygame.gfxdraw.gen_circle(12))
             if frame_no == 0:
                 no_raise("t.draw_ui 首帧", lambda: t.draw_ui(hud))
             else:

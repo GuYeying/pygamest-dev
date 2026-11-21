@@ -34,7 +34,8 @@ async def main():
             t.fill((16, 18, 26))
             pygame.gfxdraw.set_color(t, (120, 200, 220))
             for (cx, cy) in touch_pts:
-                pygame.gfxdraw.filled_circle(t, cx, cy, 10)
+                pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(cx, cy, 0))
+                pygame.gfxdraw.push(t, pygame.gfxdraw.gen_circle(10))
             yy = 270
             for line in lines:
                 s = font.render(line, True, (180, 220, 180))
