@@ -194,7 +194,13 @@ fn fs_main(in: VOut) -> @location(0) vec4<f32> {
 
 async def main():
     pygame.display.set_caption("voxel_mc_test")
-    screen = pygame.display.set_mode((2048, 1280))
+    # **清屏色直出 + 填充 pass 消除**（2026-11-21 GPU 占用治理第二弹）：
+    # SurfaceSettings.clear_color = 引擎 LoadOp::Clear 直出底色——内容层
+    # 的填充 quad 删除，pass 数 2→1；present_mode 显式化（flip 实验口）
+    surf_set = pygame.render.SurfaceSettings(
+        present_mode="fifo",
+        clear_color=[28 / 255, 34 / 255, 46 / 255, 1.0])
+    screen = pygame.display.set_mode((2048, 1280), surface_settings=surf_set)
     cjk = pygame.font.Font("cjk", 25)
     clock = pygame.time.Clock()               # 帧率上限节流（tick 60——GPU 占用治理）
     ac = pygame.render.access()
@@ -669,7 +675,6 @@ async def main():
         draw_hud()   # HUD 贴片位置/内容更新（raw 直绘用，无胶片）
 
         with screen.render() as rt:
-            rt.fill((28, 34, 46))
             with screen.raw_render(depth=True) as p:
                 p.set_pipeline(vox_pipe[0])
                 p.set_bind_group(0, vox_bind[0])
