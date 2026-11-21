@@ -89,6 +89,49 @@ async def main():
                        None, (255, 120, 255))
     no_raise("geometry 索引填充/线框", lambda: raw_geom(off))
 
+    # push 统一口（v1 批次：VertexBuf + set_topology + gen_* 生成器）——
+    # sticky 状态流（色/拓扑/变换跨 push 持续，与 draw 族 one-shot 分立）
+    def push_apis(s):
+        with s.render() as t:
+            # 生成器句柄 + sticky 色/变换（连 push 两份同色同拓扑）
+            tri = pygame.gfxdraw.gen_circle(20)
+            pygame.gfxdraw.set_topology(t, "triangles")
+            pygame.gfxdraw.set_color(t, (255, 120, 60))
+            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(60, 60, 0))
+            pygame.gfxdraw.push(t, tri)
+            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(120, 60, 0))
+            pygame.gfxdraw.push(t, tri)          # sticky：色/拓扑仍生效
+
+            # 扁平 list + 索引覆盖
+            pygame.gfxdraw.push(t, [160, 60, 220, 60, 190, 120])
+
+            # bytes 直拷（手动 VertexBuf + set_indices）
+            buf = pygame.gfxdraw.VertexBuf()
+            buf.add_points([240, 60, 0, 300, 60, 0, 270, 120, 0])
+            buf.set_indices([0, 1, 2])
+            pygame.gfxdraw.push(t, buf)
+
+            # lines 拓扑——顶点按 2 个点一组解释（每点仍 x,y,z 三分量）
+            pygame.gfxdraw.set_topology(t, "lines")
+            pygame.gfxdraw.set_color(t, (120, 220, 255))
+            pygame.gfxdraw.push(t, [10, 120, 0, 90, 120, 0])
+
+            # 拓扑复位（default）——后续 draw 族不受污染
+            pygame.gfxdraw.set_topology(t, "default")
+            pygame.gfxdraw.reset_transform(t)
+    no_raise("push 统一口四通道", lambda: push_apis(off))
+
+    # push 负路径：长度不校验（扁平 list 非 3 倍数）
+    def push_bad_len(s):
+        with s.render() as t:
+            pygame.gfxdraw.set_topology(t, "triangles")
+            pygame.gfxdraw.push(t, [10, 20, 30, 40])   # 4 个数 = 非 3 倍数
+    try:
+        push_bad_len(off)
+        st("push 扁平长度 ValueError", False)
+    except ValueError:
+        st("push 扁平长度 ValueError", True)
+
     # 负路径：颜色分量不足 / 非法项
     def bad_color(s):
         with s.render() as t:
