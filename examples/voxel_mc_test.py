@@ -319,11 +319,10 @@ async def main():
     # 行表：[纹理面, 位置buf, bind, 当前面引用]——文字面变化才换 bind
     hud_lines = []
 
-    def hud_line(i, fx, fy, text_surf):
-        # 行更新：rect 位置每帧写（16B）；纹理面变化才重建 bind。
-        # 锚点 = 半画布**相对比例**（fx, fy ∈ [-1,1]，中心原点）——
-        # **每帧实测尺寸**（窗口/全屏切换自适应，2026-11-21 用户问询：
-        # 动态屏幕大小文字位置跟随）
+    def hud_line(i, cx_px, cy_px, text_surf):
+        # 行/令牌槽更新：rect 位置每帧写（16B）；纹理面变化才重建 bind。
+        # 位置 = **像素中心**（调用方按帧内实测尺寸换算——窗口/全屏切换
+        # 自适应，2026-11-21 用户问询：动态屏幕大小文字位置跟随）
         while len(hud_lines) <= i:
             hud_lines.append([None, None, None, None])
         ln = hud_lines[i]
@@ -331,7 +330,7 @@ async def main():
         sw, sh = screen.get_size()
         nx, ny = sw / 2, sh / 2
         # 变换位 = 贴片**中心**（draw_surface 中心锚同语义）
-        rect = [(fx * nx - w / 2) / nx, ((fy * ny) + h / 2) / ny, w / nx, h / ny]
+        rect = [(cx_px - w / 2) / nx, ((cy_px) + h / 2) / ny, w / nx, h / ny]
         if ln[1] is None:
             ln[1] = ac.buffer(16, label=f"hud_l{i}")
         ln[0] = text_surf
@@ -511,23 +510,43 @@ async def main():
         return text_cache[key]
 
     def draw_hud():
-        # HUD 贴片更新（无胶片——raw pass 直绘在 3D 上；行位置/内容按
-        # hud_line 注册表每帧写 16B 位置 + 文字面变化换 bind）
-        # 性能行数字量化（GPU 尖峰治理 2026-11-21）：串不变 = hud_text
-        # 缓存命中，字体光栅化+纹理上传尖峰消除
-        _pm = int(perf[0] / 4) * 4
-        hud_line(0, -450 / 1024, 608 / 640, hud_text(
+        # HUD 贴片更新（无胶片——raw pass 直绘在 3D 上）。位置 = 像素
+        # 中心，按帧内实测尺寸换算（窗口/全屏切换自适应）
+        _sw, _sh = screen.get_size()
+        _nx, _ny = _sw / 2, _sh / 2
+        hud_line(0, -450 / 1024 * _nx, 608 / 640 * _ny, hud_text(
             f"[voxel_mc] 体素 mesh {tri_count} 三角 | chunk {vw.chunk_count()} | "
             f"球 {len(balls)} | WASD漫游 QE升降 拖拽/TAB抓取=转向+俯仰 左删右放 F发射 R重置 T碰撞体显示 F2流体"))
-        hud_line(1, -450 / 1024, 588 / 640, hud_text(
+        hud_line(1, -450 / 1024 * _nx, 588 / 640 * _ny, hud_text(
             info + (" | T:collider线框 ON" if debug_on else ""), (255, 220, 90)))
-        hud_line(2, -450 / 1024, 568 / 640, hud_text(
-            f"帧 ~{_pm}ms ({1000 // max(_pm, 1)}fps) | "
-            f"物理 step {int(perf[1])}ms | 流体 step {int(perf[2])}ms | "
-            f"刚体 {len(balls)} | 体素 {stats[0]}（单 voxel collider）", (150, 230, 180)))
         # 中心准星（加号字形贴片——FPS 沉浸式瞄准参照，pick 与准星同源
         # 同约定：yaw/pitch 前向）
         hud_line(3, 0, 0, cross_surf)
+        draw_perf_row(_nx, _ny)
+
+    def draw_perf_row(_nx, _ny):
+        # 性能行 = **令牌拼装**（字符集缓存——固定标签 + 数字 0-9 预渲染
+        # 各一张永久缓存，每帧零光栅化零上传：曾整串渲染 = 每次变化
+        # 字体光栅化+纹理+bind ≈2-4ms 尖峰，2026-11-21 用户提出不缓存
+        # 直觉后定形）。布局 = 左锚 x 逐令牌步进，位置 16B/令牌直写
+        pm = int(perf[0] / 4) * 4
+        fps = 1000 // max(pm, 1)
+        col = (150, 230, 180)
+        toks = [("帧", col), ("~", col), (str(pm), col), ("ms", col),
+                ("（", col), (str(fps), col), ("fps", col), ("）", col),
+                ("｜", col), ("物理 step", col), (str(int(perf[1])), col),
+                ("ms", col), ("｜", col), ("流体 step", col),
+                (str(int(perf[2])), col), ("ms", col), ("｜", col),
+                ("刚体", col), (str(len(balls)), col), ("｜", col),
+                ("体素", col), (str(stats[0]), col),
+                ("（单 voxel collider）", col)]
+        x = -0.95 * _nx                       # 行左缘（相对比例——23 令牌全宽收进半幅）
+        yc = 568 / 640 * _ny                  # 行中心 y
+        for i, (s, c) in enumerate(toks):
+            surf = hud_text(s, c)             # 缓存命中（令牌串恒定）
+            w = surf.get_size()[0]
+            hud_line(10 + i, x + w / 2, yc, surf)
+            x += w + 4                        # 步进（+4px 间距）
 
     while True:
         for e in pygame.event.get():
@@ -691,6 +710,8 @@ async def main():
             with screen.raw_render() as ph:
                 ph.set_pipeline(hudq_pipe[0])
                 for ln in hud_lines:
+                    if ln[0] is None:
+                        continue                     # 未用槽位跳过
                     ph.set_bind_group(0, ln[2])
                     ph.draw_mesh(hud_unit)
 
