@@ -491,10 +491,14 @@ async def main():
         pygame.gfxdraw.draw_surface(t, hud_text(
             info + (" | T:collider线框 ON" if debug_on else ""), (255, 220, 90)))
         # 性能行（120 帧平均——物理/流体 step 与总帧耗时分摊可见）
+        # **数字量化**（GPU 尖峰治理 2026-11-21）：性能行每变一次文字 =
+        # 字体光栅化 + 纹理上传 + bind group 一整套（≈2-4ms 尖峰）——
+        # 帧 ms 按 4ms 桶量化 + step 整数化，串不变 = hud_text 缓存命中
+        _pm = int(perf[0] / 4) * 4
         pygame.gfxdraw.set_transform(t, M.mat4_translation(-450, 568, 0))
         pygame.gfxdraw.draw_surface(t, hud_text(
-            f"帧 {perf[0]:.1f}ms ({1000.0 / max(perf[0], 0.01):.0f}fps) | "
-            f"物理 step {perf[1]:.2f}ms | 流体 step {perf[2]:.2f}ms | "
+            f"帧 ~{_pm}ms ({1000 // max(_pm, 1)}fps) | "
+            f"物理 step {int(perf[1])}ms | 流体 step {int(perf[2])}ms | "
             f"刚体 {len(balls)} | 体素 {stats[0]}（单 voxel collider）", (150, 230, 180)))
         # 中心十字准星（FPS 沉浸式——射线即屏心视线，pick 与准星同源
         # 同约定：yaw/pitch 前向；grab 隐藏光标后的瞄准参照）
@@ -727,5 +731,5 @@ async def main():
         # **帧率上限 60**（pygame.time.Clock.tick 正统口——物理 60Hz，
         # 120Hz 屏全速渲染 = 每两帧重复同一物理态，GPU 减半零视觉损失；
         # vsync 已超目标时引擎不再补睡——无双重节流）
-        clock.tick(60)
+        clock.tick(120)
         await pygame.next_frame()
