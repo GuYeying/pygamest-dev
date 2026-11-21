@@ -75,9 +75,14 @@ async def main():
     if len(sys.argv) >= 3:   # Android 壳附加的实测屏幕尺寸（argv[-2:]）
         w, h = int(sys.argv[-2]), int(sys.argv[-1])
     screen = pygame.display.set_mode((w, h), FULLSCREEN, gui=True)
-    screen.set_camera(pygame.render.game_camera_ortho(w, h, w, h))
+    # 像素域相机须用 **set_mode 后实测逻辑画布**（全屏下引擎把 logical
+    # 回填为物理分辨率——桌面 2560×1600 实测；请求尺寸 800×600 与之
+    # 脱钩 = 红球"中心对、越远偏移越大"域冲突 2026-11-21）。鼠标/
+    # 触摸输入域 = 同一 logical，相机与输入域对齐后图元贴指针
+    lw, lh = screen.get_size()
+    screen.set_camera(pygame.render.game_camera_ortho(lw, lh, lw, lh))
     cjk = pygame.font.Font("cjk", 20)
-    game_state = {"size": [w, h]}
+    game_state = {"size": [lw, lh]}
     _fail = []
 
     def st(name, cond):
