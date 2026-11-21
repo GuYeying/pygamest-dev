@@ -323,6 +323,24 @@ def main():
         big.write_bytes(bytes(128 * 1024 * 1024))
         print(f"[OK] 大文件预置: {big} (128MB)")
 
+    # examples 自动同步（**分发副本根治**——手动 cp 忘记 = 用户跑旧脚本
+    # 的伪 bug 两连，2026-11-20/21 实录）：examples 顶层 *.py 镜像到
+    # web/examples/（?script=examples/xxx.py 直跑；排除清单见 EXCLUDE）
+    ex_dir = ROOT / "examples"
+    if ex_dir.is_dir():
+        exclude = {"__probe_case__.py", "video_wasm_probe.py"}
+        dst_dir = WEB / "examples"
+        dst_dir.mkdir(parents=True, exist_ok=True)
+        n = 0
+        for f in ex_dir.glob("*.py"):
+            if f.name in exclude:
+                continue
+            (dst_dir / f.name).write_bytes(f.read_bytes())
+            n += 1
+        print(f"[OK] examples 同步: {n} 个案例 → web/examples/")
+    else:
+        print("[WARN] examples 目录缺失——案例同步跳过")
+
     print("[OK] web/index.html + python.js + python_bg.wasm")
     print("=== 游戏部署 ===")
     print(f"  把脚本放入 {WEB} 并命名 main.py（或 ?script=<名> 指定）；")
