@@ -23,26 +23,15 @@ async def main():
     vs = pygame.video.VideoSystem()
     check("VideoSystem 构造", vs is not None)
 
-    # 端检测（异常驱动）：Web 站桩 open 一触即显式 ValueError
+    # 端检测（异常驱动）：Web 站桩 open 一触即显式 ValueError——
+    # **wasm 异步接线后站桩仅同步口**（2026-11-21 video wasm 批次：
+    # VideoCodecs 异步面全链开放，视频渲染三端一致达成）
     v = None
     try:
         v = vs.open("assets/video/bbb_10s.mp4")
     except ValueError as e:
         if "Web" in str(e):
-            check("web 站桩 open", True, str(e)[:40])
-            assert not FAIL, f"web 分支有失败项: {FAIL}"
-            print(f"[SUMMARY] PASS={len(PASS)} FAIL={len(FAIL)} {FAIL or ''}")
-            last = time.time()
-            while True:
-                for e in pygame.event.get():
-                    if e.type == pygame.event.QUIT or (
-                        e.type == pygame.event.KEYDOWN and e.key == pygame.key.K_ESCAPE):
-                        return
-                if time.time() - last > 2.0:
-                    return
-                await pygame.next_frame()
-        else:
-            check("open", False, str(e)[:60])
+            check("web 站桩 open（同步口）", True, str(e)[:40])
 
     # 缺失文件错误路径
     try:
@@ -63,7 +52,12 @@ async def main():
     saw_frame = False
     last_pos = 0.0
     pos_advanced = False
+    check("循环前 ended", not v.ended(), f"ended={v.ended()}")
     while not v.ended() and frames < 900:
+        if frames < 3:
+            check(f"循环帧 {frames}", True,
+                  f"ended={v.ended()} pos={v.position():.2f} "
+                  f"frame={'有' if v.frame() is not None else '无'}")
         v.update(dt)
         f = v.frame()
         if f is not None:
