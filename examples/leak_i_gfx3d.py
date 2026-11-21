@@ -46,23 +46,19 @@ async def main():
                 pygame.gfxdraw.clear_camera(rt)
                 pygame.gfxdraw.set_camera(rt, cam)
 
-            # ② shape3d 五件套逐帧重建（每帧全新几何 → push）
+            # ② shape3d 五件套逐帧重建（每帧全新几何 → push_geometry）
             pygame.gfxdraw.set_color(rt, (70, 74, 92))
-            pygame.gfxdraw.push(rt, pygame.gfxdraw.gen_plane(
-                [0.0, -1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0], [8.0, 8.0]))
+            pygame.gfxdraw.plane(rt, [0.0, -1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0],
+                                 [8.0, 8.0])
             pygame.gfxdraw.set_color(rt, (60, 120, 200))
-            pygame.gfxdraw.push(rt, pygame.gfxdraw.gen_box(
-                [ca * 1.5 - 0.6, -0.6, sa * 1.5 - 0.6],
-                [ca * 1.5 + 0.6, 0.6, sa * 1.5 + 0.6]))
+            pygame.gfxdraw.cube(rt, [ca * 1.5 - 0.6, -0.6, sa * 1.5 - 0.6],
+                                [ca * 1.5 + 0.6, 0.6, sa * 1.5 + 0.6])
             pygame.gfxdraw.set_color(rt, (200, 90, 60))
-            pygame.gfxdraw.set_transform(rt, pygame.math.mat4_translation(-2.6, 0.0, 0.5))
-            pygame.gfxdraw.push(rt, pygame.gfxdraw.gen_sphere(0.8))
+            pygame.gfxdraw.sphere(rt, [-2.6, 0.0, 0.5], 0.8)
             pygame.gfxdraw.set_color(rt, (90, 180, 110))
-            pygame.gfxdraw.set_transform(rt, pygame.math.mat4_translation(2.6, 0.0, 0.5))
-            pygame.gfxdraw.push(rt, pygame.gfxdraw.gen_cylinder(0.6, 2.0))
+            pygame.gfxdraw.cylinder(rt, [2.6, -1.0, 0.5], 0.6, 2.0)
             pygame.gfxdraw.set_color(rt, (200, 170, 60))
-            pygame.gfxdraw.set_transform(rt, pygame.math.mat4_translation(2.6, 1.6, 0.5))
-            pygame.gfxdraw.push(rt, pygame.gfxdraw.gen_cone(0.6, 1.2))
+            pygame.gfxdraw.cone(rt, [2.6, 1.0, 0.5], 0.6, 1.2)
 
             # ③ polygon3d churn（六边形板，顶点随帧微动）
             pts = []
@@ -70,7 +66,7 @@ async def main():
                 a = i / 6.0 * 6.2831853 + angle * 0.3
                 pts += [-1.5 + pygame.math.cos(a) * 0.7, -0.9, 2.2 + pygame.math.sin(a) * 0.7]
             pygame.gfxdraw.set_color(rt, (150, 90, 200))
-            pygame.gfxdraw.push(rt, pygame.gfxdraw.gen_polygon3d(pts))
+            pygame.gfxdraw.polygon3d(rt, pts)
 
             # 2D HUD（clear_camera 后正交层——每帧字体渲染 churn）
             pygame.gfxdraw.clear_camera(rt)
