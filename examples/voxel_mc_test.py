@@ -166,18 +166,25 @@ def fps_view(eye, yaw_deg, pitch_deg):
     return M.mat4_from_cols_array(cols)
 
 
-WGSL_HUD = """
+WGSL_HUDQ = """
+// HUD 定位贴片：单位 quad × rect（NDC x, y顶, w, h）× 每行文字纹理
+struct QRect { rect: vec4<f32> };
+@group(0) @binding(0) var tex: texture_2d<f32>;
+@group(0) @binding(1) var samp: sampler;
+@group(0) @binding(2) var<uniform> qr: QRect;
 struct VIn { @location(0) pos: vec2<f32>, @location(1) uv: vec2<f32> }
 struct VOut { @builtin(position) pos: vec4<f32>, @location(0) uv: vec2<f32> }
 @vertex
 fn vs_main(v: VIn) -> VOut {
     var o: VOut;
-    o.pos = vec4<f32>(v.pos, 0.0, 1.0);
+    // 单位 quad（pos ±1）→ 贴片内 [0,1] 归一化再乘 rect——直接乘
+    // rect.zw = 高宽各翻倍（文字胖一倍实测）。y 向 **向下延伸**：
+    // rect.y = 贴片顶（NDC 大 = 屏上方），底 = rect.y - h（NDC 小 =
+    // 屏下方）——曾向上延伸 = 整块倒置（用户实测文字翻转 2026-11-21）
+    o.pos = vec4<f32>(qr.rect.xy + vec2<f32>((v.pos.x + 1.0) * 0.5, -(1.0 - v.pos.y) * 0.5) * qr.rect.zw, 0.0, 1.0);
     o.uv = v.uv;
     return o;
 }
-@group(0) @binding(0) var tex: texture_2d<f32>;
-@group(0) @binding(1) var samp: sampler;
 @fragment
 fn fs_main(in: VOut) -> @location(0) vec4<f32> {
     return textureSample(tex, samp, in.uv);
@@ -291,28 +298,51 @@ async def main():
     vox_bind = [None]
     vox_mesh_buf = [None, 0]   # (mesh, 唯一顶点容量)——update_mesh 原地更新用
 
-    # ── HUD 覆盖面（透明底离屏 + 3D 后第二 raw pass 全屏合成）──
-    # gfxdraw 内容层恒在 raw 之下 = HUD 被 3D 不透明像素盖住（BMP 像素
-    # 真值实锤 2026-11-20：文字带 (300,620)=地形绿）；fluid3d 透明背景
-    # 层序同款——HUD 画进透明离屏面，3D 之后 alpha 合成回主屏。
-    # ⚠️ 尺寸须跟随屏幕（覆盖面全屏合成 1:1——曾固定 1024×640 配
-    # set_mode 2048×1280 = 半尺寸错位，2026-11-20 用户改分辨率实测）
-    hud_surf = pygame.Surface(screen.get_size())
-    hud_quad = ac.mesh(["float32x2", "float32x2"],
+    # ── HUD 定位贴片（**胶片免除**——每行文字一张定位小贴片，3D 后
+    # 单条 raw pass 追加 draw 直绘在 3D 上）──
+    # 曾绕胶片 = 每帧多 2 条 pass（hud_surf 清屏+文字 1 条 + 合成 1 条
+    # ≈ GPU 占用 +10%，2026-11-21 pass 地板实测：4 条 → 2 条 = 占用
+    # 减半）。零件全现成：Surface 即纹理（fluid3d 同款绑定）、raw 的
+    # pipeline/bind/mesh 命令齐备——零引擎改动。
+    _sw, _sh = screen.get_size()
+    hud_unit = ac.mesh(["float32x2", "float32x2"],
                        # 6 顶点两三角（TriangleList 定约——4 顶点 = 半屏）；
-                       # **uv v 翻转**——wgpu 纹理 v=0 = 顶行，quad 直排会把
-                       # 覆盖面上下颠倒（用户实测文字上下翻转 2026-11-20）
+                       # uv：pos(-1,-1)（贴片底）→ uv(0,1)（纹理底行）——
+                       # 贴片与文字纹理方向一致，无翻转需求
                        [-1.0, -1.0, 0.0, 1.0, 1.0, -1.0, 1.0, 1.0,
                         1.0, 1.0, 1.0, 0.0, -1.0, -1.0, 0.0, 1.0,
                         1.0, 1.0, 1.0, 0.0, -1.0, 1.0, 0.0, 0.0],
-                       label="hud_quad")
-    hud_shader = ac.shader(WGSL_HUD, label="hud_shader")
-    hud_pipe = [None]
-    hud_bind = [None]
-    hud_bind[0] = ac.bind_group([(0, "texture", hud_surf),
-                                 (1, "sampler", None)], label="hud_bind")
-    hud_pipe[0] = ac.pipeline(hud_shader, hud_quad, [hud_bind[0]],
-                              cull="none", blend="alpha", label="hud_pipe")
+                       label="hud_unit")
+    hudq_shader = ac.shader(WGSL_HUDQ, label="hudq_shader")
+    hudq_pipe = [None]
+    cross_surf = cjk.render("+", True, (240, 240, 240))   # 准星 = 加号字形
+    # 行表：[纹理面, 位置buf, bind, 当前面引用]——文字面变化才换 bind
+    hud_lines = []
+
+    def hud_line(i, fx, fy, text_surf):
+        # 行更新：rect 位置每帧写（16B）；纹理面变化才重建 bind。
+        # 锚点 = 半画布**相对比例**（fx, fy ∈ [-1,1]，中心原点）——
+        # **每帧实测尺寸**（窗口/全屏切换自适应，2026-11-21 用户问询：
+        # 动态屏幕大小文字位置跟随）
+        while len(hud_lines) <= i:
+            hud_lines.append([None, None, None, None])
+        ln = hud_lines[i]
+        w, h = text_surf.get_size()
+        sw, sh = screen.get_size()
+        nx, ny = sw / 2, sh / 2
+        # 变换位 = 贴片**中心**（draw_surface 中心锚同语义）
+        rect = [(fx * nx - w / 2) / nx, ((fy * ny) + h / 2) / ny, w / nx, h / ny]
+        if ln[1] is None:
+            ln[1] = ac.buffer(16, label=f"hud_l{i}")
+        ln[0] = text_surf
+        ln[2] = ac.bind_group([(0, "texture", text_surf),
+                               (1, "sampler", None),
+                               (2, "uniform", ln[1])], label=f"hud_l{i}_bind")
+        ac.write_buffer(ln[1], list(rect))
+        if hudq_pipe[0] is None:
+            hudq_pipe[0] = ac.pipeline(hudq_shader, hud_unit, [ln[2]],
+                                       cull="none", blend="alpha", label="hudq_pipe")
+        return ln[2]
 
     def rebuild_voxel_mesh():
         # **generate_mesh_bytes**（f32/u16 LE 原始字节——RP 零逐元素转换，
@@ -480,35 +510,24 @@ async def main():
             text_cache[key] = cjk.render(s, True, color)
         return text_cache[key]
 
-    def draw_hud(t):
-        # 目标 = hud_surf（透明底离屏）——内容层 gfxdraw 恒在 raw 之下，
-        # 直接画主屏会被 3D 不透明像素盖住（BMP 实锤 2026-11-20）
-        pygame.gfxdraw.set_transform(t, M.mat4_translation(-450, 608, 0))
-        pygame.gfxdraw.draw_surface(t, hud_text(
+    def draw_hud():
+        # HUD 贴片更新（无胶片——raw pass 直绘在 3D 上；行位置/内容按
+        # hud_line 注册表每帧写 16B 位置 + 文字面变化换 bind）
+        # 性能行数字量化（GPU 尖峰治理 2026-11-21）：串不变 = hud_text
+        # 缓存命中，字体光栅化+纹理上传尖峰消除
+        _pm = int(perf[0] / 4) * 4
+        hud_line(0, -450 / 1024, 608 / 640, hud_text(
             f"[voxel_mc] 体素 mesh {tri_count} 三角 | chunk {vw.chunk_count()} | "
             f"球 {len(balls)} | WASD漫游 QE升降 拖拽/TAB抓取=转向+俯仰 左删右放 F发射 R重置 T碰撞体显示 F2流体"))
-        pygame.gfxdraw.set_transform(t, M.mat4_translation(-450, 588, 0))
-        pygame.gfxdraw.draw_surface(t, hud_text(
+        hud_line(1, -450 / 1024, 588 / 640, hud_text(
             info + (" | T:collider线框 ON" if debug_on else ""), (255, 220, 90)))
-        # 性能行（120 帧平均——物理/流体 step 与总帧耗时分摊可见）
-        # **数字量化**（GPU 尖峰治理 2026-11-21）：性能行每变一次文字 =
-        # 字体光栅化 + 纹理上传 + bind group 一整套（≈2-4ms 尖峰）——
-        # 帧 ms 按 4ms 桶量化 + step 整数化，串不变 = hud_text 缓存命中
-        _pm = int(perf[0] / 4) * 4
-        pygame.gfxdraw.set_transform(t, M.mat4_translation(-450, 568, 0))
-        pygame.gfxdraw.draw_surface(t, hud_text(
+        hud_line(2, -450 / 1024, 568 / 640, hud_text(
             f"帧 ~{_pm}ms ({1000 // max(_pm, 1)}fps) | "
             f"物理 step {int(perf[1])}ms | 流体 step {int(perf[2])}ms | "
             f"刚体 {len(balls)} | 体素 {stats[0]}（单 voxel collider）", (150, 230, 180)))
-        # 中心十字准星（FPS 沉浸式——射线即屏心视线，pick 与准星同源
-        # 同约定：yaw/pitch 前向；grab 隐藏光标后的瞄准参照）
-        # ⚠️ set_color 是 one-shot（每次 draw 消费）——每个 box 前都须
-        # 重设，否则回落引擎默认紫（128,0,128 实测）
-        pygame.gfxdraw.set_transform(t, M.mat4_translation(0, 0, 0))
-        pygame.gfxdraw.set_color(t, (240, 240, 240))
-        pygame.gfxdraw.box(t, (-11, -1, 22, 2))
-        pygame.gfxdraw.set_color(t, (240, 240, 240))
-        pygame.gfxdraw.box(t, (-1, -11, 2, 22))
+        # 中心准星（加号字形贴片——FPS 沉浸式瞄准参照，pick 与准星同源
+        # 同约定：yaw/pitch 前向）
+        hud_line(3, 0, 0, cross_surf)
 
     while True:
         for e in pygame.event.get():
@@ -628,13 +647,7 @@ async def main():
         cam = cam.with_view(fps_view(eye, yaw, pitch))
         pygame.render.write_camera_mvp(cam_buf, cam.mvp())
 
-        # HUD 覆盖面内容（**真清屏**——write_texture 直写全透明；曾用
-        # alpha-blend fill((0,0,0,0)) 无法穿透已写像素 = 文字跨帧堆叠，
-        # 2026-11-20 用户实测）——文字/准星画进离屏，屏幕会话末段第二
-        # raw pass alpha 合成回主屏
-        hud_surf.clear((0, 0, 0, 0))   # 全透明直写（write_texture 真清屏）
-        with hud_surf.render() as ht:
-            draw_hud(ht)
+        draw_hud()   # HUD 贴片位置/内容更新（raw 直绘用，无胶片）
 
         with screen.render() as rt:
             rt.fill((28, 34, 46))
@@ -672,22 +685,14 @@ async def main():
                 rp3.collect3d(world, dbg_draw, sink)
                 dbg_renderer.set_mvp(cam.mvp())
                 rt.draw_debug_3d(dbg_renderer, sink)
-            # HUD 覆盖面合成（**3D 之后第二 raw pass**——登记序即执行序，
-            # 透明底全屏贴图盖在 3D 上；gfxdraw 内容层恒在 raw 之下）
-            # **剪裁合成**（GPU 25% 占用治理 2026-11-20）：合成 pass 曾
-            # 全屏 alpha 混合（2048×1280 双向带宽），实际 HUD = 顶部文字
-            # 带 + 中心准星两小块——scissor 两段各画一次，非 HUD 区零着色
+            # HUD 贴片直绘（3D raw pass **追加 draw**——登记序即执行序，
+            # 无胶片无合成 pass：每行文字 = 定位小贴片，blend 压在地形上）
+            draw_hud()
             with screen.raw_render() as ph:
-                ph.set_pipeline(hud_pipe[0])
-                ph.set_bind_group(0, hud_bind[0])
-                _sw, _sh = screen.get_size()
-                # 文字带像素位（center-origin：用户现变换 (-450, 568..608)
-                # → fb y = _sh/2 - 608-16 ≈ 16..96）
-                ph.set_scissor(0, 16, _sw, 96)
-                ph.draw_mesh(hud_quad)
-                # 准星区（translate (0,0) → fb 中心 ±22px）
-                ph.set_scissor(_sw // 2 - 20, _sh // 2 - 20, 40, 40)
-                ph.draw_mesh(hud_quad)
+                ph.set_pipeline(hudq_pipe[0])
+                for ln in hud_lines:
+                    ph.set_bind_group(0, ln[2])
+                    ph.draw_mesh(hud_unit)
 
         # 物理数据正确性打点（60 帧一次）：球中心/速度——静止贴面判据
         # （中心 y ≈ 下方命中面 y + 0.5，容差 ±0.05）
