@@ -38,8 +38,8 @@ async def main():
 
             # 地板平面（右/上基向量定朝向）
             pygame.gfxdraw.set_color(rt, (70, 74, 92))
-            pygame.gfxdraw.plane(rt, [0.0, -1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0],
-                                 [8.0, 8.0])
+            # 地板（plane 直调渲染缺陷挂账——薄盒替代实证可靠）
+            pygame.gfxdraw.cube(rt, [-4.0, -1.5, -4.0], [4.0, -0.5, 4.0])
 
             # 中央旋转立方体
             pygame.gfxdraw.set_color(rt, (60, 120, 200))

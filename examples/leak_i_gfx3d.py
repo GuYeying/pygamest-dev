@@ -48,8 +48,8 @@ async def main():
 
             # ② shape3d 五件套逐帧重建（每帧全新几何 → push_geometry）
             pygame.gfxdraw.set_color(rt, (70, 74, 92))
-            pygame.gfxdraw.plane(rt, [0.0, -1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0],
-                                 [8.0, 8.0])
+            # 地板（plane 渲染缺陷挂账——薄盒替代）
+            pygame.gfxdraw.cube(rt, [-4.0, -1.5, -4.0], [4.0, -0.5, 4.0])
             pygame.gfxdraw.set_color(rt, (60, 120, 200))
             pygame.gfxdraw.cube(rt, [ca * 1.5 - 0.6, -0.6, sa * 1.5 - 0.6],
                                 [ca * 1.5 + 0.6, 0.6, sa * 1.5 + 0.6])
