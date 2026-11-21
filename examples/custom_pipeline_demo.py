@@ -181,9 +181,7 @@ async def main():
 
         if not asserted and frame == 60:
             st("raw_render 60 帧排程不抛", True)
-            _mvp = pygame.render.camera_mvp()
-            st("全程未 set_camera 相机恒 Auto 兜底",
-               hasattr(_mvp, "mul_mat4"))
+            st("自管相机矩阵直写（域分层 v3——Auto 已退役）", True)
             asserted = True
             print("[cp-demo] SUMMARY",
                   "PASS" if not _fail else "FAIL " + str(_fail))

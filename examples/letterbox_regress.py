@@ -6,6 +6,7 @@ import pygame.event
 async def main():
     screen = pygame.display.set_mode((800, 600))
     screen.set_camera(pygame.render.game_camera_ortho(800, 600, 800, 600))
+    screen.set_camera(pygame.render.game_camera_ortho(800, 600, 800, 600))
     assert screen.get_size() == (800, 600), f"get_size={screen.get_size()}"
     print("[regress] get_size 恒等 ✓", screen.get_size())
     for frame in range(30):
@@ -14,7 +15,7 @@ async def main():
                 return
         with screen.render() as r:
             r.fill((20, 120, 20))
-            pygame.gfx.draw.set_color(r,(255, 255, 0))
+            pygame.gfxdraw.set_color(r,(255, 255, 0))
             pygame.gfxdraw.set_topology(r, "lines")
             pygame.gfxdraw.set_transform(r, pygame.math.mat4_translation(200, 155, 0))
             pygame.gfxdraw.push(r, pygame.gfxdraw.gen_rect_outline(200, 150))

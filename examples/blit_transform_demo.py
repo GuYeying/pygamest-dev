@@ -11,6 +11,7 @@ import pygame
 
 async def main():
     screen = pygame.display.set_mode((800, 600))
+    screen.set_camera(pygame.render.game_camera_ortho(800, 600, 800, 600))
     cjk = pygame.font.Font("cjk", 17)
     title = cjk.render("上半：blit_transform 2D 三联（旋转30°/缩放1.4/水平镜像）· 右侧 transform.rotate 烘焙对照",True, (205, 205, 205))
     sub = cjk.render("下半：pygame.gfxdraw.set_camera(render, 透视) + blit_transform 空间放置（z=-2.2/-3.2/-4.2 近大远小）",True, (205, 205, 205))

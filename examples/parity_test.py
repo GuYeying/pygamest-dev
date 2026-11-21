@@ -7,6 +7,7 @@ import pygame
 async def main():
     screen = pygame.display.set_mode((800, 600))
     screen.set_camera(pygame.render.game_camera_ortho(800, 600, 800, 600))
+    screen.set_camera(pygame.render.game_camera_ortho(800, 600, 800, 600))
     cjk = pygame.font.Font("cjk", 20)
     _fail = []
 
@@ -74,7 +75,7 @@ async def main():
             pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(16, 12, 0)); pygame.gfxdraw.draw_surface(t, label)
             for i, c in enumerate(swatches):
                 x, y = 24 + (i % 8) * 92, 60 + (i // 8) * 64
-                pygame.gfx.draw.set_color(t, (c.r, c.g, c.b))
+                pygame.gfxdraw.set_color(t, (c.r, c.g, c.b))
                 pygame.gfxdraw.set_topology(t, "lines")
                 pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(
                     x + 40, y + 22, 0))
@@ -85,10 +86,10 @@ async def main():
         # 深度会话：API 链路验证（独立槽位——绘制按深度管线打包）
         with screen.render_depth() as t:
             t.fill((30, 30, 44))
-            pygame.gfx.draw.set_color(t,(0, 200, 90))
+            pygame.gfxdraw.set_color(t,(0, 200, 90))
             pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(400, 270, 0))
             pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect(200, 140))
-            pygame.gfx.draw.set_color(t,  (200, 90, 0))
+            pygame.gfxdraw.set_color(t,  (200, 90, 0))
             pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(480, 330, 0))
             pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect(200, 140))
 
