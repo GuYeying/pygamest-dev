@@ -11,6 +11,7 @@ import pygame
 
 async def main():
     screen = pygame.display.set_mode((800, 600))
+    screen.set_camera(pygame.render.game_camera_ortho(800, 600, 800, 600))
     cjk = pygame.font.Font("cjk", 17)
     title = cjk.render("上半：blit_transform 2D 三联（旋转30°/缩放1.4/水平镜像）· 右侧 transform.rotate 烘焙对照",True, (205, 205, 205))
     sub = cjk.render("下半：pygame.gfxdraw.set_camera(render, 透视) + blit_transform 空间放置（z=-2.2/-3.2/-4.2 近大远小）",True, (205, 205, 205))
@@ -29,14 +30,20 @@ async def main():
         t.fill((125, 125, 125))
 
         pygame.gfxdraw.set_color(t,(80, 200, 90))
-        pygame.gfxdraw.rectangle(t, (8, 8, 144, 104))  # 原 width=2 描边（gfxdraw 恒 1px）
+        pygame.gfxdraw.set_topology(t, "lines")
+        pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(80, 60, 0))
+        pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect_outline(144, 104))
+        pygame.gfxdraw.set_topology(t, "default")
 
         pygame.gfxdraw.set_color(t,(230, 70, 70))
-        pygame.gfxdraw.filled_circle(t, 40, 60, 24)
+        pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(40, 60, 0))
+        pygame.gfxdraw.push(t, pygame.gfxdraw.gen_circle(24))
 
         pygame.gfxdraw.set_color(t,(240, 200, 80))
         pygame.gfxdraw.set_wireframe(t,True)
-        pygame.gfxdraw.line(t, 10, 110, 150, 10)
+        pygame.gfxdraw.set_topology(t, "lines")
+        pygame.gfxdraw.push(t, pygame.gfxdraw.gen_line(10, 110, 150, 10))
+        pygame.gfxdraw.set_topology(t, "default")
     # 烘焙对照（一次烘焙——非逐帧反模式）
     baked = pygame.transform.rotate(art, 30)
 
@@ -57,7 +64,7 @@ async def main():
     m_mid = card(0.0, -0.68, -3.2)
     m_far = card(0.9, -0.85, -4.2)
 
-    st("camera_mvp 可查（Auto 兜底）", hasattr(pygame.render.camera_mvp(), "mul_mat4"))
+    st("Auto 相机已退役（域分层 v3——显式 set_camera 唯一口）", True)
     frame_no = 0
     asserted = False
     while True:
@@ -78,7 +85,8 @@ async def main():
             #pygame.gfxdraw.set_transform(t, m_scale); pygame.gfxdraw.draw_surface(t, art)
             #pygame.gfxdraw.set_transform(t, m_mirror); pygame.gfxdraw.draw_surface(t, art)
             #pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(660, 120, 0)); pygame.gfxdraw.draw_surface(t, baked)
-            pygame.gfxdraw.box(t, (0, 300, 800, 3))
+            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(400, 301, 0))
+            pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect(800, 3))
 
         # ── 下半：透视 + 深度会话空间放置（近大远小；会话级 set_camera）──
         with screen.render_depth() as t:
@@ -93,7 +101,10 @@ async def main():
         with screen.render() as t:
             pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(14, 306, 0)); pygame.gfxdraw.draw_surface(t, sub)
             pygame.gfxdraw.set_color(t,(120, 60, 60))
-            pygame.gfxdraw.rectangle(t, (30, 350, 740, 220))
+            pygame.gfxdraw.set_topology(t, "lines")
+            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(400, 460, 0))
+            pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect_outline(740, 220))
+            pygame.gfxdraw.set_topology(t, "default")
 
         pygame.display.flip()
         frame_no += 1
@@ -103,7 +114,7 @@ async def main():
             asserted = True
             print("[blit-demo] SUMMARY",
                   "PASS" if not _fail else "FAIL " + str(_fail))
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()
 
 
 # 引擎壳接线（surf_probe 同款）——宿主按名调度 game 协程

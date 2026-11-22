@@ -128,5 +128,5 @@ async def main():
             dbg_renderer.set_mvp(cam.mvp())
             t.draw_debug(dbg_renderer, dbg_sink)
         pygame.display.flip()
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()
         frame += 1

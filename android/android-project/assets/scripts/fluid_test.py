@@ -396,5 +396,5 @@ async def main():
                   "PASS" if not _fail else "FAIL " + str(_fail))
         if frame > 3600:
             return
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()
         frame += 1

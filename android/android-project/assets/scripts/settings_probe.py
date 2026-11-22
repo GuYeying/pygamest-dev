@@ -35,4 +35,4 @@ async def main():
         if frame == 3000:      # 15s @60fps——外部采样窗口
             print("[settings-probe] 3000 帧跑完，正常退出")
             return
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()

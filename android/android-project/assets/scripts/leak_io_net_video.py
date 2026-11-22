@@ -33,7 +33,7 @@ async def main():
     for i in range(200):
         pygame.io.write(f"leak_{i % 8}.bin", bytes([i % 256]) * 64)
         _ = pygame.io.read(f"leak_{i % 8}.bin")
-    await pygame.next_frame()
+    await pygame.tasks.yield_now()
     print("[RSS-MARK] io-done")
     check("io 循环 200", True)
 
@@ -44,13 +44,13 @@ async def main():
             c = pygame.net.TCP("127.0.0.1:9001")
             t0 = time.time()
             while time.time() - t0 < 3.0 and c.state() != "connected":
-                await pygame.next_frame()
+                await pygame.tasks.yield_now()
             if c.state() == "connected":
                 ok_n += 1
             c.close()
         except Exception:
             pass
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()
     check("net 连断 20", ok_n >= 18, f"ok={ok_n}/20")
 
     # ── video 重开 ×20（每支放 12 帧）──
@@ -67,7 +67,7 @@ async def main():
             v = None
         except ValueError:
             pass  # web 站桩
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()
     check("video 重开 20", ok_v >= 18, f"ok={ok_v}/20（web 站桩=0 也过）")
 
     print("[RSS-MARK] end")
@@ -90,4 +90,4 @@ async def main():
                 pygame.gfxdraw.draw_surface(r, s)
                 y += 26
         pygame.display.flip()
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()

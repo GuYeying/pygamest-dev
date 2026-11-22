@@ -38,8 +38,8 @@ async def main():
 
             # 地板平面（右/上基向量定朝向）
             pygame.gfxdraw.set_color(rt, (70, 74, 92))
-            pygame.gfxdraw.plane(rt, [0.0, -1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0],
-                                 [8.0, 8.0])
+            # 地板（plane 直调渲染缺陷挂账——薄盒替代实证可靠）
+            pygame.gfxdraw.cube(rt, [-4.0, -1.5, -4.0], [4.0, -0.5, 4.0])
 
             # 中央旋转立方体
             pygame.gfxdraw.set_color(rt, (60, 120, 200))
@@ -72,11 +72,13 @@ async def main():
 
             # 正交 2D 边框线（clear 后像素坐标直用）
             pygame.gfxdraw.set_color(rt, (150, 170, 150))
-            pygame.gfxdraw.line(rt, -390, -290, 390, -290)
-            pygame.gfxdraw.line(rt, -390, -290, -390, 290)
+            pygame.gfxdraw.set_topology(rt, "lines")
+            pygame.gfxdraw.push(rt, pygame.gfxdraw.gen_line(-390, -290, 390, -290))
+            pygame.gfxdraw.push(rt, pygame.gfxdraw.gen_line(-390, -290, -390, 290))
+            pygame.gfxdraw.set_topology(rt, "default")
 
         pygame.display.flip()
         # 帧率上限（深度会话每帧重建深度资源——无上限循环会 OOM，
         # 存量性能项挂账：深度纹理应随表面复用而非逐帧重建）
         pygame.time.delay(8)
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()

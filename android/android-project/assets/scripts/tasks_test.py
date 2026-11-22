@@ -7,7 +7,7 @@ import pygame
 async def worker(name, frames):
     n = 0
     while n < frames:
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()
         n += 1
     return f"{name}-done"
 
@@ -21,7 +21,7 @@ async def bad_load(res_name):
 
 async def hung():
     while True:
-        await pygame.next_frame()          # 永不完成（wait_for 超时对象）
+        await pygame.tasks.yield_now()          # 永不完成（wait_for 超时对象）
 
 async def producer(q):
     await pygame.tasks.sleep(0.2)
@@ -104,5 +104,5 @@ async def main():
                 "pygame.tasks 微调度器 " + ("全部 PASS" if not _fail else "有失败项"),
                 True, (150, 220, 170) if not _fail else (255, 120, 120)))
         pygame.display.flip()
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()
         frame += 1

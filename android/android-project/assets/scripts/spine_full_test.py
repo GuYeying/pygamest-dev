@@ -126,7 +126,7 @@ async def main():
         last = now
         with screen.render() as t:
             pygame.gfxdraw.set_color(t, (30, 34, 44))
-            pygame.gfxdraw.box(t, (-400, -300, 800, 600))
+            pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect(800, 600))
             state.update(dt)
             state.apply(sk3)
             sk3.update_world_transform()
@@ -134,7 +134,7 @@ async def main():
             pygame.gfxdraw.draw_spine(t, sk3, [page0])
             pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(0, 0, 0))
         pygame.display.flip()
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()
         frame += 1
     chk("视觉 smoke 60 帧", True, True)
 

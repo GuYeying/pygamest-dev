@@ -39,5 +39,5 @@ async def main():
         pygame.render.write_camera_mvp(cam_buf, cam.mvp())
         ac.write_buffer_u32(cfg_buf, [n, 0, 16, 0])
         pygame.display.flip()
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()
         frame += 1

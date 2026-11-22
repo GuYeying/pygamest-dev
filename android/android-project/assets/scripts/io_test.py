@@ -49,7 +49,7 @@ async def main():
             if pygame.io.io_ready("io_case.txt"):
                 got = pygame.io.io_take("io_case.txt")
                 break
-            await pygame.next_frame()
+            await pygame.tasks.yield_now()
         check("web 异步通道 pending→ready→take",
               got == "你好 io 测试".encode(), f"got={got!r}")
         assert not FAIL, f"web 分支有失败项: {FAIL}"
@@ -62,7 +62,7 @@ async def main():
                     return
             if time.time() - last > 2.0:
                 return
-            await pygame.next_frame()
+            await pygame.tasks.yield_now()
 
     # ① 字节写读闭环
     pygame.io.write("io_case.bin", payload)
@@ -80,7 +80,7 @@ async def main():
         if pygame.io.io_ready("io_case.txt"):
             got = pygame.io.io_take("io_case.txt")
             break
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()
     check("pending→ready→take", got == "你好 io 测试".encode(),
           f"got={got!r}")
 
@@ -114,4 +114,4 @@ async def main():
             pygame.gfxdraw.set_transform(r, pygame.math.mat4_translation(-280, y + 30, 0))
             pygame.gfxdraw.draw_surface(r, summ)
         pygame.display.flip()
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()

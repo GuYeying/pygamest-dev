@@ -214,4 +214,4 @@ async def main():
             print("[cube-demo] SUMMARY",
                   "PASS" if not _fail else "FAIL " + str(_fail))
 
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()

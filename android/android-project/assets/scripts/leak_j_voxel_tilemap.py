@@ -75,6 +75,6 @@ async def main():
                 print(f"[leak-j] frame={frame} rss={rss}KB")
             except Exception:
                 print(f"[leak-j] frame={frame}（RSS 由外部脚本采样）")
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()
         frame += 1
     print("[leak-j] 9000 帧跑完（150s）——外部 RSS 对比 0 帧/4500 帧/9000 帧")

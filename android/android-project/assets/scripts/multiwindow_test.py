@@ -81,4 +81,4 @@ async def main():
                   "PASS" if not _fail else "FAIL " + str(_fail))
         if frame > frame_cap:
             return
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()

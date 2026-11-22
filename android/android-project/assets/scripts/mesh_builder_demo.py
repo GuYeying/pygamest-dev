@@ -164,4 +164,4 @@ async def main():
                 y += 26
 
         pygame.display.flip()
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()

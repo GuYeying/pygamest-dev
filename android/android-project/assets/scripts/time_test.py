@@ -55,7 +55,7 @@ async def main():
                     yy -= 26
 
         pygame.display.flip()
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()
 
     avg = sum(fps_samples) / len(fps_samples)
     check("tick 节流生效（平均间隔 ≥ 12ms）", avg >= 12.0, f"avg={avg:.1f}ms")
@@ -79,4 +79,4 @@ async def main():
             pygame.gfxdraw.draw_surface(rt, s)
         pygame.display.flip()
         pygame.time.delay(8)
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()

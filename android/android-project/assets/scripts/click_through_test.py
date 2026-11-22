@@ -30,13 +30,13 @@ async def main():
         assert readback == click_through, "读回与设定不一致"
         with screen.render() as t:
             pygame.gfxdraw.set_color(t, (40, 120, 220, 140))
-            pygame.gfxdraw.box(t, (-300, -200, 600, 400))
+            pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect(600, 400))
             line = font.render(
                 f"穿透={click_through} 读回={readback} · frame {frame}（ESC 退出）",
                 True, (255, 255, 255))
             pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(-300, 240, 0))
             pygame.gfxdraw.draw_surface(t, line)
         pygame.display.flip()
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()
         frame += 1
     print("[ct-test] 600 帧读回自检全过 ✓")

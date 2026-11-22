@@ -36,5 +36,5 @@ async def main():
                 p.dispatch(n // 64, 1, 1)
                 p.copy_mesh_vertices(mesh, pos_out, n * 8)
         pygame.display.flip()
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()
         frame += 1

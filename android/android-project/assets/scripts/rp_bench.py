@@ -175,4 +175,4 @@ async def main():
             pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(660, 560, 0)); pygame.gfxdraw.draw_surface(t, bar)
         pygame.display.flip()
         frame += 1
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()

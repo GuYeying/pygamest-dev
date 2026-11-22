@@ -34,6 +34,7 @@ def mat_str(m):
 async def main():
     screen = pygame.display.set_mode((800, 600))
     screen.set_camera(pygame.render.game_camera_ortho(800, 600, 800, 600))
+    screen.set_camera(pygame.render.game_camera_ortho(800, 600, 800, 600))
     M = pygame.math
 
     # 源面：非对称图案（红圆在左→镜像可辨；黄线对角→旋转可辨）
@@ -41,13 +42,18 @@ async def main():
     with art.render() as t:
         t.fill((125, 125, 125))
         pygame.gfxdraw.set_color(t, (80, 200, 90))
-        pygame.gfxdraw.rectangle(t, (-72, -52, 144, 104))
+        pygame.gfxdraw.set_topology(t, "lines")
+        pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect_outline(144, 104))
+        pygame.gfxdraw.set_topology(t, "default")
         pygame.gfxdraw.set_color(t, (230, 70, 70))
-        pygame.gfxdraw.filled_circle(t, -40, 0, 24)
+        pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(-40, 0, 0))
+        pygame.gfxdraw.push(t, pygame.gfxdraw.gen_circle(24))
         pygame.gfxdraw.set_color(t, (240, 200, 80))
-        pygame.gfxdraw.line(t, -70, 50, 70, -50)
+        pygame.gfxdraw.set_topology(t, "lines")
+        pygame.gfxdraw.push(t, pygame.gfxdraw.gen_line(-70, 50, 70, -50))
         pygame.gfxdraw.set_color(t, (240, 240, 240))
-        pygame.gfxdraw.line(t, -70, -50, 70, 50)
+        pygame.gfxdraw.push(t, pygame.gfxdraw.gen_line(-70, -50, 70, 50))
+        pygame.gfxdraw.set_topology(t, "default")
 
     frame = 0
     logged = False
@@ -129,4 +135,4 @@ async def main():
 
         frame += 1
         pygame.display.flip()
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()

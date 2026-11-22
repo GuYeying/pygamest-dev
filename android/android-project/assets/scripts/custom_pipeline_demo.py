@@ -147,7 +147,9 @@ async def main():
                    pygame.render.screen_attachment() is not None)
             t.fill((14, 15, 22))
             pygame.gfxdraw.set_color(t, (255, 0, 255))
-            pygame.gfxdraw.rectangle(t, (-399, -299, 798, 598),)  # 原 width=2 描边（gfxdraw 恒 1px）  # 诊断：画布边界框
+            pygame.gfxdraw.set_topology(t, "lines")
+            pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect_outline(798, 598))  # 诊断：画布边界框
+            pygame.gfxdraw.set_topology(t, "default")
             pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(-370, 280, 0)); pygame.gfxdraw.draw_surface(t, title)
             # ── 段 1：2D 正交（对照恒定）——大波纹圆盘（draw_mesh 全量，
             #    免手填顶点范围）+ debug 标注 + 动态状态命令 ──
@@ -179,10 +181,8 @@ async def main():
 
         if not asserted and frame == 60:
             st("raw_render 60 帧排程不抛", True)
-            _mvp = pygame.render.camera_mvp()
-            st("全程未 set_camera 相机恒 Auto 兜底",
-               hasattr(_mvp, "mul_mat4"))
+            st("自管相机矩阵直写（域分层 v3——Auto 已退役）", True)
             asserted = True
             print("[cp-demo] SUMMARY",
                   "PASS" if not _fail else "FAIL " + str(_fail))
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()

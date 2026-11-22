@@ -19,7 +19,7 @@ async def main():
                 return
         with screen.render() as t:
             pygame.gfxdraw.set_color(t, (24, 26, 34))
-            pygame.gfxdraw.box(t, (-400, -300, 800, 600))
+            pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect(800, 600))
             ratio = abs((frame % 120) - 60) / 60.0
             p.sample(ratio)
             pygame.gfxdraw.draw_ozz_bones(t, p, scale=150.0, cx=0.0, cy=-60.0)
@@ -29,7 +29,7 @@ async def main():
             pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(-380, 270, 0))
             pygame.gfxdraw.draw_surface(t, label)
         pygame.display.flip()
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()
         frame += 1
 
     print("[ozz_demo] DONE 300 帧")

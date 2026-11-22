@@ -189,7 +189,9 @@ async def main():
         with screen.render() as t:
             t.fill((6, 8, 14))
             pygame.gfxdraw.set_color(t,(255, 0, 255))
-            pygame.gfxdraw.rectangle(t, (-399, -299, 798, 598),)  # 原 width=2 描边（gfxdraw 恒 1px）       # 画布边界诊断
+            pygame.gfxdraw.set_topology(t, "lines")
+            pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect_outline(798, 598))  # 画布边界诊断
+            pygame.gfxdraw.set_topology(t, "default")
             with screen.raw_compute() as p:
                 p.set_pipeline(cpipe)
                 p.set_bind_group(0, state_bind)
@@ -206,4 +208,4 @@ async def main():
             t.draw_ui(hud)
         pygame.display.flip()
         frame += 1
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()

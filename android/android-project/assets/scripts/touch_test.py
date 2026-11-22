@@ -6,6 +6,7 @@ import pygame
 async def main():
     screen = pygame.display.set_mode((800, 600))
     screen.set_camera(pygame.render.game_camera_ortho(800, 600, 800, 600))
+    screen.set_camera(pygame.render.game_camera_ortho(800, 600, 800, 600))
     font = pygame.font.Font(None, 20)
     finger_count = pygame.touch.get_count()
     touch_pts = []   # 触点轨迹（事件 MOUSEBUTTONDOWN 桌面模拟）
@@ -34,7 +35,8 @@ async def main():
             t.fill((16, 18, 26))
             pygame.gfxdraw.set_color(t, (120, 200, 220))
             for (cx, cy) in touch_pts:
-                pygame.gfxdraw.filled_circle(t, cx, cy, 10)
+                pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(cx, cy, 0))
+                pygame.gfxdraw.push(t, pygame.gfxdraw.gen_circle(10))
             yy = 270
             for line in lines:
                 s = font.render(line, True, (180, 220, 180))
@@ -44,4 +46,4 @@ async def main():
 
         pygame.display.flip()
         pygame.time.delay(8)
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()

@@ -25,7 +25,7 @@ async def main():
     screen = pygame.display.set_mode((800, 600))
     font = pygame.font.Font(None, 22)
 
-    cam = "pygame.render.game_camera_perspective(55.0, 800, 600, 800, 600, 0.1, 100.0)"
+    cam = pygame.render.game_camera_perspective(55.0, 800, 600, 800, 600, 0.1, 100.0)
     cam = cam.with_view(pygame.math.mat4_translation(0.0, 1.6, -7.0))
 
     frame = 0
@@ -48,8 +48,8 @@ async def main():
 
             # ② shape3d 五件套逐帧重建（每帧全新几何 → push_geometry）
             pygame.gfxdraw.set_color(rt, (70, 74, 92))
-            pygame.gfxdraw.plane(rt, [0.0, -1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0],
-                                 [8.0, 8.0])
+            # 地板（plane 渲染缺陷挂账——薄盒替代）
+            pygame.gfxdraw.cube(rt, [-4.0, -1.5, -4.0], [4.0, -0.5, 4.0])
             pygame.gfxdraw.set_color(rt, (60, 120, 200))
             pygame.gfxdraw.cube(rt, [ca * 1.5 - 0.6, -0.6, sa * 1.5 - 0.6],
                                 [ca * 1.5 + 0.6, 0.6, sa * 1.5 + 0.6])
@@ -79,7 +79,7 @@ async def main():
         # 帧率上限（深度会话 + 每帧内联 buffer——无上限循环 OOM 风险，
         # 见 待做优化.txt P3 arena 债务；真实应用 ≈60fps 基准）
         pygame.time.delay(8)
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()
         frame += 1
 
     check("深度会话 churn 2400 帧", True)
@@ -98,4 +98,4 @@ async def main():
         if time.time() - last > 2.0:
             return
         pygame.time.delay(8)
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()

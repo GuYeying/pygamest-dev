@@ -166,10 +166,43 @@ def fps_view(eye, yaw_deg, pitch_deg):
     return M.mat4_from_cols_array(cols)
 
 
+WGSL_HUDQ = """
+// HUD 定位贴片：单位 quad × rect（NDC x, y顶, w, h）× 每行文字纹理
+struct QRect { rect: vec4<f32> };
+@group(0) @binding(0) var tex: texture_2d<f32>;
+@group(0) @binding(1) var samp: sampler;
+@group(0) @binding(2) var<uniform> qr: QRect;
+struct VIn { @location(0) pos: vec2<f32>, @location(1) uv: vec2<f32> }
+struct VOut { @builtin(position) pos: vec4<f32>, @location(0) uv: vec2<f32> }
+@vertex
+fn vs_main(v: VIn) -> VOut {
+    var o: VOut;
+    // 单位 quad（pos ±1）→ 贴片内 [0,1] 归一化再乘 rect——直接乘
+    // rect.zw = 高宽各翻倍（文字胖一倍实测）。y 向 **向下延伸**：
+    // rect.y = 贴片顶（NDC 大 = 屏上方），底 = rect.y - h（NDC 小 =
+    // 屏下方）——曾向上延伸 = 整块倒置（用户实测文字翻转 2026-11-21）
+    o.pos = vec4<f32>(qr.rect.xy + vec2<f32>((v.pos.x + 1.0) * 0.5, -(1.0 - v.pos.y) * 0.5) * qr.rect.zw, 0.0, 1.0);
+    o.uv = v.uv;
+    return o;
+}
+@fragment
+fn fs_main(in: VOut) -> @location(0) vec4<f32> {
+    return textureSample(tex, samp, in.uv);
+}
+"""
+
+
 async def main():
     pygame.display.set_caption("voxel_mc_test")
-    screen = pygame.display.set_mode((1024, 640))
-    cjk = pygame.font.Font("cjk", 15)
+    # **清屏色直出 + 填充 pass 消除**（2026-11-21 GPU 占用治理第二弹）：
+    # SurfaceSettings.clear_color = 引擎 LoadOp::Clear 直出底色——内容层
+    # 的填充 quad 删除，pass 数 2→1；present_mode 显式化（flip 实验口）
+    surf_set = pygame.render.SurfaceSettings(
+        present_mode="fifo",
+        clear_color=[28 / 255, 34 / 255, 46 / 255, 1.0])
+    screen = pygame.display.set_mode((2048, 1280), surface_settings=surf_set)
+    cjk = pygame.font.Font("cjk", 25)
+    clock = pygame.time.Clock()               # 帧率上限节流（tick 60——GPU 占用治理）
     ac = pygame.render.access()
     frame = 0
     _fail = []
@@ -218,29 +251,40 @@ async def main():
     st("get_voxel 读回", vw.get_voxel(3, height[3][3], 3) == 2)
     st("get_voxel 空 = None", vw.get_voxel(100, 100, 100) is None)
 
-    # ── 物理（表面体素 cuboid + 射线选择）──
+    # ── 物理（**单 voxel collider**——官方 voxel 案例对齐 2026-11-20：
+    # 全体素 = 1 个 VoxelGeometry 形状碰撞体（parry voxelization），编辑
+    # = 形状原位 set_voxel（ColliderSet::get_mut 自带 modified 脏标记 →
+    # 下步 step 自动刷 broadphase），零刚体插拔；渲染 = voxelis mesh、
+    # 物理 = rapier voxel shape——编辑双写同步。坐标约定对齐钉死：
+    # parry 格 key (x,y,z) ≡ 世界 [x,x+1)³ ≡ voxelis 同款（voxel_center
+    # = (key+0.5)*size，collider 恒等位）──）
     world = rp3.PhysicsWorld3D(gravity=(0, -9.81, 0))
-    col_bodies = {}                          # (x,y,z) → body handle（表面块+放置块）
-    # add_collider(key)：增量 collider（表面块/放置块/露层补挂共用——
-    # 中心 +0.5 half 0.5 ≡ mesh 世界盒 [x,x+1]，渲染物理对齐）
-    def add_collider(key):
-        x, y, z = key
-        b = rp3.RigidBodyBuilder3D("fixed",
-                                   translation=(x + 0.5, y + 0.5, z + 0.5))
-        c = rp3.ColliderBuilder3D("cuboid", hx=0.5, hy=0.5, hz=0.5, friction=0.8)
-        col_bodies[key] = world.insert(b, c)[0]
+    terrain_col = [None, None]               # (body_handle, collider_handle)
+    stats = [0]                              # 当前体素数（HUD）
 
-    for x in range(16):
-        for z in range(16):
-            h = height[x][z]
-            add_collider((x, h - 1, z))      # 每列顶层块（内部块打不到）
-        # 石块样本 collider（值 2 两块——build_terrain 放在列顶层之上，
-        # 列循环只挂到 h-1 顶层，这两块漏挂 = 渲染有块物理穿透 bug）
-        add_collider((3, height[3][3], 3))
-        add_collider((5, height[5][5], 5))
+    def rebuild_terrain_collider():
+        # 体素 collider 全量重建（首次/R 重置共用——voxelis 模型为事实
+        # 源，物理形状全量镜像；旧体弃置换新）
+        if terrain_col[0] is not None:
+            world.remove_body(terrain_col[0])
+        keys = []
+        for x in range(16):
+            for z in range(16):
+                # 列内全枚举（含列顶层之上的石块样本 y=h——get_voxel 判
+                # 空，宁多扫不漏挂）
+                for y in range(height[x][z] + 2):
+                    if vw.get_voxel(x, y, z) is not None:
+                        keys.extend((x, y, z))
+        stats[0] = len(keys) // 3
+        b = rp3.RigidBodyBuilder3D("fixed")
+        c = rp3.ColliderBuilder3D("voxels", voxel_size=1.0, voxels=keys,
+                                  friction=0.8)
+        terrain_col[0], terrain_col[1] = world.insert(b, c)
+
+    rebuild_terrain_collider()               # 全量镜像 voxelis → 物理
 
     # 时序契约：insert 后须至少 step 一次方可 cast_ray（broad_phase 时序）
-    world.step_frame(1.0 / 60.0)
+    world.step()                     # 时序契约（cast_ray 前置——broad_phase 就绪步进）
     hit = world.cast_ray_filtered((8.0, 8.0, 8.0), (0.0, -1.0, 0.0), None, "only_fixed")
     st("cast_ray 命中地面", hit is not None and hit[1] > 0.0)
 
@@ -258,24 +302,90 @@ async def main():
     cube_shader = ac.shader(WGSL_CUBE, label="ball_shader")
     vox_pipe = [None]   # 体素 pipeline + bind（交互重建时一并换新）
     vox_bind = [None]
+    vox_mesh_buf = [None, 0]   # (mesh, 唯一顶点容量)——update_mesh 原地更新用
+
+    # ── HUD 定位贴片（**胶片免除**——每行文字一张定位小贴片，3D 后
+    # 单条 raw pass 追加 draw 直绘在 3D 上）──
+    # 曾绕胶片 = 每帧多 2 条 pass（hud_surf 清屏+文字 1 条 + 合成 1 条
+    # ≈ GPU 占用 +10%，2026-11-21 pass 地板实测：4 条 → 2 条 = 占用
+    # 减半）。零件全现成：Surface 即纹理（fluid3d 同款绑定）、raw 的
+    # pipeline/bind/mesh 命令齐备——零引擎改动。
+    _sw, _sh = screen.get_size()
+    hud_unit = ac.mesh(["float32x2", "float32x2"],
+                       # 6 顶点两三角（TriangleList 定约——4 顶点 = 半屏）；
+                       # uv：pos(-1,-1)（贴片底）→ uv(0,1)（纹理底行）——
+                       # 贴片与文字纹理方向一致，无翻转需求
+                       [-1.0, -1.0, 0.0, 1.0, 1.0, -1.0, 1.0, 1.0,
+                        1.0, 1.0, 1.0, 0.0, -1.0, -1.0, 0.0, 1.0,
+                        1.0, 1.0, 1.0, 0.0, -1.0, 1.0, 0.0, 0.0],
+                       label="hud_unit")
+    hudq_shader = ac.shader(WGSL_HUDQ, label="hudq_shader")
+    hudq_pipe = [None]
+    cross_surf = cjk.render("+", True, (240, 240, 240))   # 准星 = 加号字形
+    # 行表：[纹理面, 位置buf, bind, 当前面引用]——文字面变化才换 bind
+    hud_lines = []
+
+    def hud_line(i, cx_px, cy_px, text_surf):
+        # 行/令牌槽更新：rect 位置每帧写（16B）；纹理面变化才重建 bind。
+        # 位置 = **像素中心**（调用方按帧内实测尺寸换算——窗口/全屏切换
+        # 自适应，2026-11-21 用户问询：动态屏幕大小文字位置跟随）
+        while len(hud_lines) <= i:
+            hud_lines.append([None, None, None, None])
+        ln = hud_lines[i]
+        w, h = text_surf.get_size()
+        sw, sh = screen.get_size()
+        nx, ny = sw / 2, sh / 2
+        # 变换位 = 贴片**中心**（draw_surface 中心锚同语义）
+        rect = [(cx_px - w / 2) / nx, ((cy_px) + h / 2) / ny, w / nx, h / ny]
+        if ln[1] is None:
+            ln[1] = ac.buffer(16, label=f"hud_l{i}")
+        ln[0] = text_surf
+        ln[2] = ac.bind_group([(0, "texture", text_surf),
+                               (1, "sampler", None),
+                               (2, "uniform", ln[1])], label=f"hud_l{i}_bind")
+        ac.write_buffer(ln[1], list(rect))
+        if hudq_pipe[0] is None:
+            hudq_pipe[0] = ac.pipeline(hudq_shader, hud_unit, [ln[2]],
+                                       cull="none", blend="alpha", label="hudq_pipe")
+        return ln[2]
 
     def rebuild_voxel_mesh():
-        verts, norms, idx = vw.generate_mesh()
-        # 顺序展开（indices → 顶点流；案例级规模免 index 管线）
-        expanded = []
-        for i in idx:
-            v = (verts[i * 3], verts[i * 3 + 1], verts[i * 3 + 2])
-            n = (norms[i * 3], norms[i * 3 + 1], norms[i * 3 + 2])
-            expanded.extend(v)
-            expanded.extend(n)
-        mesh = ac.mesh(["float32x3", "float32x3"], expanded, label="voxel_mesh")
-        bind = ac.bind_group([(0, "uniform", cam_buf)], label="voxel_bind")
-        vox_bind[0] = bind
-        vox_pipe[0] = ac.pipeline(voxel_shader, mesh, [bind],
-                                  cull="back", blend="opaque",
-                                  depth_mode="standard", depth_write=True,
-                                  label="voxel_pipe")
-        return mesh, len(idx) // 3
+        # **generate_mesh_bytes**（f32/u16 LE 原始字节——RP 零逐元素转换，
+        # list 口的 20400 次 new_float ≈ remesh 卡帧残余）+ 容量垫底 +
+        # update_mesh_vertex/index_bytes 原地更新（超限才整 mesh 重建）
+        _t0 = pygame.time.get_ticks()
+        vb, ib = vw.generate_mesh_bytes()
+        _t1 = pygame.time.get_ticks()
+        if vox_mesh_buf[0] is None:
+            # 首建：顶点/索引双 4x 容量垫底（update 字节口不增长——容量内
+            # 原地写；索引垫底 = 0 号退化三角不可见，写时计数自动重设）
+            mesh = ac.mesh(["float32x3", "float32x3"],
+                           vertices_bytes=vb + bytes(len(vb) * 3),
+                           index_bytes=ib + bytes(len(ib) * 3),
+                           label="voxel_mesh")
+            vox_mesh_buf[0] = mesh
+            vox_mesh_buf[1] = len(vb)
+            bind = ac.bind_group([(0, "uniform", cam_buf)], label="voxel_bind")
+            vox_bind[0] = bind
+            vox_pipe[0] = ac.pipeline(voxel_shader, mesh, [bind],
+                                      cull="back", blend="opaque",
+                                      depth_mode="standard", depth_write=True,
+                                      label="voxel_pipe")
+        elif len(vb) > vox_mesh_buf[1]:
+            # 扩容事件（挖洞暴露面净增超垫底）——整 mesh 重建（罕见）
+            mesh = ac.mesh(["float32x3", "float32x3"],
+                           vertices_bytes=vb + bytes(len(vb) * 3),
+                           index_bytes=ib, label="voxel_mesh")
+            vox_mesh_buf[0] = mesh
+            vox_mesh_buf[1] = len(vb)
+        else:
+            ac.update_mesh_vertex_bytes(vox_mesh_buf[0], vb)   # 原地直喂
+            ac.update_mesh_index_bytes(vox_mesh_buf[0], ib)
+        _t2 = pygame.time.get_ticks()
+        # [TEMP 计时]——remesh 分解（voxelis 出口 / GPU 更新）
+        print(f"[remesh] gen={_t1 - _t0}ms gpu={_t2 - _t1}ms "
+              f"三角={len(ib) // 6}", flush=True)
+        return vox_mesh_buf[0], len(ib) // 6
 
     vox_mesh, tri_count = rebuild_voxel_mesh()
     st("generate_mesh 出口", tri_count > 0)
@@ -330,50 +440,71 @@ async def main():
 
     def pick_voxel():
         d = mouse_ray()
-        hit = world.cast_ray_filtered(tuple(eye), d, None, "only_fixed")
+        # **rapier 体素射线**（官方 voxel 案例对齐——broadphase query
+        # 命中自带 FeatureId→voxel_key 直映射，DDA 自算退役；axis-aligned
+        # 形状 → 法线恒 ±1 单轴）
+        hit = world.cast_ray_voxel(eye, d, 64.0)
         if hit is None:
             return None
-        toi = hit[1]
-        px = eye[0] + d[0] * toi
-        py = eye[1] + d[1] * toi
-        pz = eye[2] + d[2] * toi
-        # 命中点 ± ε·dir → 内侧格（删）/ 外侧格（放）——`// 1` 向负无穷
-        # 取整 = floor（math 模块缺席，整除语义替代）
-        inside = (int((px - d[0] * 0.05) // 1),
-                  int((py - d[1] * 0.05) // 1),
-                  int((pz - d[2] * 0.05) // 1))
-        outside = (int((px + d[0] * 0.05) // 1),
-                   int((py + d[1] * 0.05) // 1),
-                   int((pz + d[2] * 0.05) // 1))
-        return inside, outside, (px, py, pz)
+        _ch, toi, normal, key, center = hit
+        n = (int(round(normal[0])), int(round(normal[1])), int(round(normal[2])))
+        inside = (int(key[0]), int(key[1]), int(key[2]))
+        # 放置格 = 命中格沿命中面法线外侧（官方 affected_key 同语义）
+        outside = (key[0] + n[0], key[1] + n[1], key[2] + n[2])
+        return inside, outside, center, n
 
     def remove_voxel(key):
         if vw.get_voxel(*key) is None:
+            print(f"[edit] 删 {key} 落空（air——射线/准星分歧）", flush=True)  # [TEMP]
             return False
-        vw.remove_voxel(*key)
-        bh = col_bodies.pop(key, None)
-        if bh is not None:
-            world.remove_body(bh)
-        # 露层补挂：正下方有体素则给新暴露面补 collider（消除
-        # "mesh 有块物理穿"——增量近似，仅直下方向）
-        below = (key[0], key[1] - 1, key[2])
-        if vw.get_voxel(*below) is not None and below not in col_bodies:
-            add_collider(below)
+        _t0 = pygame.time.get_ticks()
+        vw.remove_voxel(*key)                          # 渲染源（voxelis）
+        _t1 = pygame.time.get_ticks()
+        world.set_voxel(terrain_col[1], *key, False)   # 物理原位（官方对齐）
+        _t2 = pygame.time.get_ticks()
+        vox_mesh, tri_count = rebuild_voxel_mesh()     # remesh（渲染出口）
+        _t3 = pygame.time.get_ticks()
+        # [TEMP 分段计时]——卡帧归因（vw/rapier 原位/remesh 管线重建）
+        print(f"[edit] 删 {key}: vw={_t1 - _t0}ms rapier={_t2 - _t1}ms "
+              f"remesh={_t3 - _t2}ms 三角={tri_count}", flush=True)
+        # [TEMP 形状探针]——被删格正下方向上打：命中本格 = rapier 形状
+        # 未生效；命中上一层 = 形状已更新
+        _probe = world.cast_ray_voxel(
+            (key[0] + 0.5, -1.0, key[2] + 0.5), (0, 1, 0), 30.0)
+        print(f"[edit-probe] 上行射线 -> "
+              f"{_probe[3] if _probe else 'None（全空）'}", flush=True)
+        stats[0] -= 1
         return True
 
     def place_voxel(key):
         if vw.get_voxel(*key) is not None:
+            print(f"[edit] 放 {key} 落空（已有方块）", flush=True)  # [TEMP]
             return False
+        _t0 = pygame.time.get_ticks()
         vw.set_voxel(key[0], key[1], key[2], 2)
-        add_collider(key)
+        _t1 = pygame.time.get_ticks()
+        world.set_voxel(terrain_col[1], key[0], key[1], key[2], True)
+        _t2 = pygame.time.get_ticks()
+        vox_mesh, tri_count = rebuild_voxel_mesh()
+        _t3 = pygame.time.get_ticks()
+        # [TEMP 分段计时]——卡帧归因（vw/rapier 原位/remesh 管线重建）
+        print(f"[edit] 放 {key}: vw={_t1 - _t0}ms rapier={_t2 - _t1}ms "
+              f"remesh={_t3 - _t2}ms 三角={tri_count}", flush=True)
+        stats[0] += 1
         return True
 
-    dragging = False
+    _last_ms = 0                          # 帧耗时统计基准
+    _dt_sum = [0.0, 0]                    # (ms 累计, 帧数)——120 帧平均窗
+    _step_sum = [0, 0]                    # step/fluidstep 累计 ms
+    perf = [16.7, 0.0, 0.0]               # HUD 展示 (帧ms, step_ms, fluid_ms)
+    grabbed = False                       # TAB 抓取态（FPS 沉浸式——grab
+                                          # + 隐藏光标，免按键自由转向）
     last_pos = None                       # 拖拽差分锚（Event 无 rel——x/y 差分自算）
     debug_on = False                      # T 键：collider 线框叠加（对齐检查）
     fluid_on = False                      # F2 键：流体元素开关（水柱注入）
     fluid_world = None                    # 惰性创建（首次 F2 时）
     fluid_fh = None
+    fluid_res = [None, None]              # 流体渲染 (model_buf, bind)——F2 开启时一次建
     dbg_draw = rp3.DebugDraw3D()
     dbg_renderer = rp3.DebugLinesRenderer3D()   # 相机由 set_mvp 直写（默认构造即可）
     text_cache = {}
@@ -384,14 +515,44 @@ async def main():
             text_cache[key] = cjk.render(s, True, color)
         return text_cache[key]
 
-    def draw_hud(rt):
-        pygame.gfxdraw.set_transform(rt, M.mat4_translation(-500, 308, 0))
-        pygame.gfxdraw.draw_surface(rt, hud_text(
+    def draw_hud():
+        # HUD 贴片更新（无胶片——raw pass 直绘在 3D 上）。位置 = 像素
+        # 中心，按帧内实测尺寸换算（窗口/全屏切换自适应）
+        _sw, _sh = screen.get_size()
+        _nx, _ny = _sw / 2, _sh / 2
+        hud_line(0, -450 / 1024 * _nx, 608 / 640 * _ny, hud_text(
             f"[voxel_mc] 体素 mesh {tri_count} 三角 | chunk {vw.chunk_count()} | "
-            f"球 {len(balls)} | WASD漫游 QE升降 拖拽=转向+俯仰 左删右放 F发射 R重置 T碰撞体显示 F2流体"))
-        pygame.gfxdraw.set_transform(rt, M.mat4_translation(-500, 288, 0))
-        pygame.gfxdraw.draw_surface(rt, hud_text(
+            f"球 {len(balls)} | WASD漫游 QE升降 拖拽/TAB抓取=转向+俯仰 左删右放 F发射 R重置 T碰撞体显示 F2流体"))
+        hud_line(1, -450 / 1024 * _nx, 588 / 640 * _ny, hud_text(
             info + (" | T:collider线框 ON" if debug_on else ""), (255, 220, 90)))
+        # 中心准星（加号字形贴片——FPS 沉浸式瞄准参照，pick 与准星同源
+        # 同约定：yaw/pitch 前向）
+        hud_line(3, 0, 0, cross_surf)
+        draw_perf_row(_nx, _ny)
+
+    def draw_perf_row(_nx, _ny):
+        # 性能行 = **令牌拼装**（字符集缓存——固定标签 + 数字 0-9 预渲染
+        # 各一张永久缓存，每帧零光栅化零上传：曾整串渲染 = 每次变化
+        # 字体光栅化+纹理+bind ≈2-4ms 尖峰，2026-11-21 用户提出不缓存
+        # 直觉后定形）。布局 = 左锚 x 逐令牌步进，位置 16B/令牌直写
+        pm = int(perf[0] / 4) * 4
+        fps = 1000 // max(pm, 1)
+        col = (150, 230, 180)
+        toks = [("帧", col), ("~", col), (str(pm), col), ("ms", col),
+                ("（", col), (str(fps), col), ("fps", col), ("）", col),
+                ("｜", col), ("物理 step", col), (str(int(perf[1])), col),
+                ("ms", col), ("｜", col), ("流体 step", col),
+                (str(int(perf[2])), col), ("ms", col), ("｜", col),
+                ("刚体", col), (str(len(balls)), col), ("｜", col),
+                ("体素", col), (str(stats[0]), col),
+                ("（单 voxel collider）", col)]
+        x = -0.95 * _nx                       # 行左缘（相对比例——23 令牌全宽收进半幅）
+        yc = 568 / 640 * _ny                  # 行中心 y
+        for i, (s, c) in enumerate(toks):
+            surf = hud_text(s, c)             # 缓存命中（令牌串恒定）
+            w = surf.get_size()[0]
+            hud_line(10 + i, x + w / 2, yc, surf)
+            x += w + 4                        # 步进（+4px 间距）
 
     while True:
         for e in pygame.event.get():
@@ -400,6 +561,17 @@ async def main():
             if e.type == pygame.event.KEYDOWN:
                 if e.key == pygame.key.K_ESCAPE:
                     return
+                if e.key == pygame.key.K_TAB:
+                    # FPS 沉浸式抓取切换（2026-11-20 用户定约）：TAB =
+                    # grab（鼠标限定窗口内逃不出）+ 隐藏光标 + 免按键
+                    # 自由转向；再按 TAB 释放回拖拽形态。last_pos 重锚
+                    # 防切换瞬间跳变。
+                    grabbed = not grabbed
+                    pygame.mouse.set_grab(grabbed)
+                    pygame.mouse.set_visible(not grabbed)
+                    last_pos = None
+                    info = ("TAB 抓取鼠标：FPS 沉浸式（自由转向，左删右放不变）"
+                            if grabbed else "TAB 已释放鼠标（回拖拽形态）")
                 if e.key == pygame.key.K_f:
                     launch_ball()
                 if e.key == pygame.key.K_t:
@@ -410,24 +582,22 @@ async def main():
                         fluid_world = rp3.FluidWorld(particle_radius=0.1)
                         fluid_fh = fluid_world.add_fluid_cuboid(
                             (-0.4, 4.0, -0.4), (0.8, 2.0, 0.8))
+                        # 流体渲染资源一次性建（per-body 独立 buffer 定约
+                        # ——每帧新建 = 分配泄漏，2026-11-20 实测修正）
+                        fluid_res[0] = ac.buffer(64, label="fluid_model")
+                        fluid_res[1] = ac.bind_group([
+                            (0, "uniform", cam_buf),
+                            (1, "uniform", fluid_res[0]),
+                        ], label="fluid_model_bind")
                         print('[voxel_mc] 流体已注入（160 粒子水柱）')
                 if e.key == pygame.key.K_r:
-                    for bh in list(col_bodies.values()):
-                        world.remove_body(bh)
-                    col_bodies.clear()
                     for bh, _mb, _bd in balls:
                         world.remove_body(bh)
                     balls.clear()
                     vw.clear()
                     build_terrain()
-                    # 表面 collider 重建（R 全量重置——放置块一并清）
-                    for x in range(16):
-                        for z in range(16):
-                            h = height[x][z]
-                            add_collider((3, height[3][3], 3))
-                            add_collider((5, height[5][5], 5))
-                            add_collider((x, h - 1, z))
-                    world.step_frame(1.0 / 60.0)   # 时序契约（cast_ray 前置）
+                    rebuild_terrain_collider()     # 体素 collider 全量重建
+                    world.step()                    # 时序契约（cast_ray 前置——broad_phase 就绪步进，不动 accumulator）
                     vox_mesh, tri_count = rebuild_voxel_mesh()
                     info = "地形+视角已重置"
                     # 视角同步归位（pitch 残留低俯角 = "旋转看起来绕斜轴"
@@ -437,34 +607,37 @@ async def main():
                     pitch = -12.0
             elif e.type == pygame.event.MOUSEBUTTONDOWN:
                 if e.button == 1:
-                    dragging = True
+                    #dragging = True
                     picked = pick_voxel()
                     if picked:
-                        inside, outside, p = picked
+                        inside, outside, p, normal = picked
                         if remove_voxel(inside):
                             vox_mesh, tri_count = rebuild_voxel_mesh()
-                            info = f"删 {inside} @({p[0]:.1f},{p[1]:.1f},{p[2]:.1f})"
+                            info = (f"删 {inside} @({p[0]:.1f},{p[1]:.1f},{p[2]:.1f})"
+                                    f" 法线{normal}")
                         else:
                             info = f"删 {inside} 落空（air）"
                 elif e.button == 3:
                     picked = pick_voxel()
                     if picked:
-                        inside, outside, p = picked
+                        inside, outside, p, normal = picked
                         if place_voxel(outside):
                             vox_mesh, tri_count = rebuild_voxel_mesh()
-                            info = f"放 {outside} @({p[0]:.1f},{p[1]:.1f},{p[2]:.1f})"
+                            info = (f"放 {outside} @({p[0]:.1f},{p[1]:.1f},{p[2]:.1f})"
+                                    f" 法线{normal}")
                         else:
                             info = f"放 {outside} 落空（已有方块）"
             elif e.type == pygame.event.MOUSEBUTTONUP:
                 if e.button == 1:
                     dragging = False
-            elif e.type == pygame.event.MOUSEMOTION and dragging:
-                # 拖拽 = 转向 + 俯仰（FPS 全形态——x 差分 yaw / y 差分
-                # pitch，用户定约 2026-11-17）
+            elif e.type == pygame.event.MOUSEMOTION and grabbed:
+                # 拖拽 / grab 态 = 转向 + 俯仰（FPS 全形态——x 差分 yaw /
+                # y 差分 pitch，用户定约 2026-11-17；grab 态免按键
+                # 2026-11-20）
                 if last_pos is not None:
-                    yaw += (e.x - last_pos[0]) * 0.35
+                    yaw += (e.x - last_pos[0]) * 0.1
                     pitch = max(-85.0, min(85.0,
-                                           pitch + (e.y - last_pos[1]) * 0.35))
+                                           pitch + (e.y - last_pos[1]) * 0.1))
                 last_pos = (e.x, e.y)
 
         # 漫游（WASD 平移 + QE 升降——get_pressed 视图，Key unhashable）
@@ -489,14 +662,19 @@ async def main():
 
         # 物理 + GameCamera MVP（with_view 每帧替换——letterbox 内聚直
         # 喂 uniform（双参口自动组合 present_fit 画布→物理段——两段不同不双乘））
-        world.step_frame(1.0 / 60.0)
+        _s0 = pygame.time.get_ticks()      # step 单独计时（物理/渲染分摊
+        world.step_frame(clock.get_time() / 1000.0)   # 真实帧间隔喂 accumulator（修复字面量+tick120=2倍速）
+        _step_sum[0] += pygame.time.get_ticks() - _s0
         if fluid_on and fluid_world is not None:
+            _f0 = pygame.time.get_ticks()
             fluid_world.step(1.0 / 60.0)
+            _step_sum[1] += pygame.time.get_ticks() - _f0
         cam = cam.with_view(fps_view(eye, yaw, pitch))
         pygame.render.write_camera_mvp(cam_buf, cam.mvp())
 
+        draw_hud()   # HUD 贴片位置/内容更新（raw 直绘用，无胶片）
+
         with screen.render() as rt:
-            rt.fill((28, 34, 46))
             with screen.raw_render(depth=True) as p:
                 p.set_pipeline(vox_pipe[0])
                 p.set_bind_group(0, vox_bind[0])
@@ -516,16 +694,13 @@ async def main():
                 # 流体粒子球（F2 开——salva 粒子出口 → instanced 球）
                 if fluid_on and fluid_world is not None:
                     fpos, _fv = fluid_world.fluid_particles(fluid_fh)
-                    fmodel = ac.buffer(64, label="fluid_model_f")
-                    fbind = ac.bind_group([
-                        (0, "uniform", cam_buf),
-                        (1, "uniform", fmodel),
-                    ], label="fluid_model_bind")
+                    # buffer/bind **开启时刻一次性建**（曾每帧新建 = GPU
+                    # 分配泄漏——balls 同款 per-body 资源定约）
                     for i in range(len(fpos) // 3):
                         fx = fpos[i * 3]; fy = fpos[i * 3 + 1]; fz = fpos[i * 3 + 2]
-                        ac.write_buffer(fmodel, M.mat4_translation(fx, fy, fz))
+                        ac.write_buffer(fluid_res[0], M.mat4_translation(fx, fy, fz))
                         p.set_pipeline(ball_pipe)
-                        p.set_bind_group(0, fbind)
+                        p.set_bind_group(0, fluid_res[1])
                         p.draw_mesh(ball_mesh)
             if debug_on:
                 # collider 线框叠加（D 键——set_mvp 绝对对齐：与主管线
@@ -534,7 +709,16 @@ async def main():
                 rp3.collect3d(world, dbg_draw, sink)
                 dbg_renderer.set_mvp(cam.mvp())
                 rt.draw_debug_3d(dbg_renderer, sink)
-            draw_hud(rt)
+            # HUD 贴片直绘（3D raw pass **追加 draw**——登记序即执行序，
+            # 无胶片无合成 pass：每行文字 = 定位小贴片，blend 压在地形上）
+            draw_hud()
+            with screen.raw_render() as ph:
+                ph.set_pipeline(hudq_pipe[0])
+                for ln in hud_lines:
+                    if ln[0] is None:
+                        continue                     # 未用槽位跳过
+                    ph.set_bind_group(0, ln[2])
+                    ph.draw_mesh(hud_unit)
 
         # 物理数据正确性打点（60 帧一次）：球中心/速度——静止贴面判据
         # （中心 y ≈ 下方命中面 y + 0.5，容差 ±0.05）
@@ -560,5 +744,23 @@ async def main():
                     st("球静止贴面（物理数据正确）", ok)
 
         pygame.display.flip()
+        # 帧耗时统计窗（120 帧平均——物理/渲染分摊常驻可见，性能排查用）
+        _now = pygame.time.get_ticks()
+        if _last_ms > 0 and _now > _last_ms:
+            _dt_sum[0] += _now - _last_ms
+            _dt_sum[1] += 1
+        _last_ms = _now
+        if _dt_sum[1] >= 120:
+            perf[0] = _dt_sum[0] / _dt_sum[1]
+            perf[1] = _step_sum[0] / _dt_sum[1]
+            perf[2] = _step_sum[1] / _dt_sum[1]
+            _dt_sum[0] = 0
+            _dt_sum[1] = 0
+            _step_sum[0] = 0
+            _step_sum[1] = 0
         frame += 1
-        await pygame.next_frame()
+        # **帧率上限 60**（pygame.time.Clock.tick 正统口——物理 60Hz，
+        # 120Hz 屏全速渲染 = 每两帧重复同一物理态，GPU 减半零视觉损失；
+        # vsync 已超目标时引擎不再补睡——无双重节流）
+        clock.tick(120)
+        await pygame.tasks.yield_now()

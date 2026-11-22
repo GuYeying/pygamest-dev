@@ -83,7 +83,7 @@ async def main():
                         pygame.math.Vector3(M.cos(a) * 1.5, M.sin(a) * 1.5, 0.0))
                     pts += [v.x, v.y, v.z]
                 pygame.gfxdraw.set_color(rt, col)
-                pygame.gfxdraw.polygon3d(rt, pts)
+                pygame.gfxdraw.push(rt, pygame.gfxdraw.gen_polygon3d(pts))
 
             pygame.gfxdraw.clear_camera(rt)
             yy = 270
@@ -102,4 +102,4 @@ async def main():
         if frame > 60:
             return
         pygame.time.delay(8)
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()

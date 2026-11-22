@@ -71,5 +71,5 @@ async def main():
                 p.set_mesh(mesh)
                 p.draw_indirect(ind_buf, 0)
         pygame.display.flip()
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()
         frame += 1

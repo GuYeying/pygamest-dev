@@ -67,7 +67,7 @@ async def main():
 
         with screen.render() as t:
             pygame.gfxdraw.set_color(t, (30, 34, 44))
-            pygame.gfxdraw.box(t, (-400, -300, 800, 600))
+            pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect(800, 600))
 
             # spine walk（左半）
             sstate.update(dt)
@@ -95,6 +95,6 @@ async def main():
             pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(-380, 280, 0))
             pygame.gfxdraw.draw_surface(t, line)
         pygame.display.flip()
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()
         frame += 1
     print("[wasm-3anim] 汇总:", "ALL PASS" if not fail else f"FAIL {fail}")

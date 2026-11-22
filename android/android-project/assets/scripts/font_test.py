@@ -125,4 +125,4 @@ async def main():
                               else "状态：见控制台失败项", True,
                               (120, 255, 120) if not _fail else (255, 120, 120)))
         pygame.display.flip()
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()

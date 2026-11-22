@@ -47,9 +47,11 @@ async def main():
     with body.render() as br:
         br.fill((255, 180, 80, 255))                     # 橙色身体（不透明主体）
         pygame.gfxdraw.set_color(br, (40, 30, 30))
-        pygame.gfxdraw.filled_circle(br, 90, 90, 18)            # 眼
+        pygame.gfxdraw.set_transform(br, pygame.math.mat4_translation(90, 90, 0))
+        pygame.gfxdraw.push(br, pygame.gfxdraw.gen_circle(18))            # 眼
         pygame.gfxdraw.set_color(br, (40, 30, 30))
-        pygame.gfxdraw.filled_circle(br, 190, 90, 18)
+        pygame.gfxdraw.set_transform(br, pygame.math.mat4_translation(190, 90, 0))
+        pygame.gfxdraw.push(br, pygame.gfxdraw.gen_circle(18))
     body.set_alpha(255)                                  # 主体不透明（桌宠形态：背景全透、本体实心）
 
     # AA 文字边缘探针：黄色大字（若出现 fill 色描边 = colorkey 类缺陷）
@@ -88,9 +90,11 @@ async def main():
             pygame.gfxdraw.set_transform(r, pygame.math.mat4_translation(60, 40, 0)); pygame.gfxdraw.draw_surface(r, title)                        # AA 文字边缘探针
             pygame.gfxdraw.set_transform(r, pygame.math.mat4_translation(60, 100, 0)); pygame.gfxdraw.draw_surface(r, hint)
             pygame.gfxdraw.set_color(r, (255, 255, 255, max(0, panel_a)))
-            pygame.gfxdraw.box(r, (-140, 90, 200, 120))  # 局部半透明面板（x-400, y=300-60-120 → 顶 90）
+            pygame.gfxdraw.set_transform(r, pygame.math.mat4_translation(-40, 150, 0))
+            pygame.gfxdraw.push(r, pygame.gfxdraw.gen_rect(200, 120))  # 局部半透明面板（x-400, y=300-60-120 → 顶 90）
             pygame.gfxdraw.set_color(r, (120, 255, 160))
-            pygame.gfxdraw.filled_circle(r, 20, 120,
-                     max(6, int(30 * tri(1400, _t))), )
+            pygame.gfxdraw.set_transform(r, pygame.math.mat4_translation(20, 120, 0))
+            pygame.gfxdraw.push(r, pygame.gfxdraw.gen_circle(
+                     max(6, int(30 * tri(1400, _t)))))
         pygame.display.flip()
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()

@@ -3,7 +3,7 @@ import pygame
 async def bg():
     n = 0
     while n < 30:
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()
         n += 1
     print("[mini] bg done, frame =", pygame.tasks.frame())
 

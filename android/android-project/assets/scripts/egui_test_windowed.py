@@ -149,7 +149,8 @@ async def main():
             # 引擎指针落点校准（红圈）：红圈应贴手指——偏了 = 坐标链问题
             _mp = pygame.mouse.get_pos()
             pygame.gfxdraw.set_color(t, (255, 0, 0))
-            pygame.gfxdraw.filled_circle(t, _mp[0], _mp[1], 12)
+            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(_mp[0], _mp[1], 0))
+            pygame.gfxdraw.push(t, pygame.gfxdraw.gen_circle(12))
             if frame_no == 0:
                 no_raise("t.draw_ui 首帧", lambda: t.draw_ui(hud))
             else:
@@ -166,10 +167,10 @@ async def main():
         #     st("属性捕获游戏对象生效", hud.game["size"] == [800, 600])
         #     st("draw_ui 持续 60 帧", True)  # 未抛即通过
         #     break
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()
 
     # ── shutdown（幂等）──
     no_raise("egui.shutdown", lambda: egui.shutdown())
     no_raise("shutdown 后 wants_pointer 可查", lambda: egui.wants_pointer())
     print("[egui-test] SUMMARY", "PASS" if not _fail else "FAIL " + str(_fail))
-    await pygame.next_frame()
+    await pygame.tasks.yield_now()

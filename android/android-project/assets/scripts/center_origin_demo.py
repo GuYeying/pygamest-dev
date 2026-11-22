@@ -9,6 +9,7 @@ import pygame
 
 async def main():
     screen = pygame.display.set_mode((800, 600))
+    screen.set_camera(pygame.render.game_camera_ortho(800, 600, 800, 600))
     font = pygame.font.Font(None, 24)
 
     quad2d = font.render("2D origin (0,0) = screen center", True, (255, 220, 120))
@@ -29,21 +30,27 @@ async def main():
             f.fill((14, 14, 22))
             # 坐标轴（横纵过原点）
             pygame.gfxdraw.set_color(f,(80, 80, 100))
-            pygame.gfxdraw.line(f, -400, 0, 400, 0)
-            pygame.gfxdraw.set_color(f,(80, 80, 100))
-            pygame.gfxdraw.line(f, 0, -300, 0, 300, )
+            pygame.gfxdraw.set_topology(f, "lines")
+            pygame.gfxdraw.push(f, pygame.gfxdraw.gen_line(-400, 0, 400, 0))
+            pygame.gfxdraw.push(f, pygame.gfxdraw.gen_line(0, -300, 0, 300))
+            pygame.gfxdraw.set_topology(f, "default")
             # 四象限圆（y 向上：+y 在屏幕上半）
             pygame.gfxdraw.set_color(f,(255, 200, 0))
-            pygame.gfxdraw.filled_circle(f, -200, 150, 26, )     # 第 II 象限（左上）
+            pygame.gfxdraw.set_transform(f, pygame.math.mat4_translation(-200, 150, 0))
+            pygame.gfxdraw.push(f, pygame.gfxdraw.gen_circle(26))     # 第 II 象限（左上）
             pygame.gfxdraw.set_color(f,(120, 255, 160))
-            pygame.gfxdraw.filled_circle(f, 200, 150, 26, )    # 第 I 象限（右上）
+            pygame.gfxdraw.set_transform(f, pygame.math.mat4_translation(200, 150, 0))
+            pygame.gfxdraw.push(f, pygame.gfxdraw.gen_circle(26))    # 第 I 象限（右上）
             pygame.gfxdraw.set_color(f,(255, 120, 120))
-            pygame.gfxdraw.filled_circle(f, -200, -150, 26, )  # 第 III 象限（左下）
+            pygame.gfxdraw.set_transform(f, pygame.math.mat4_translation(-200, -150, 0))
+            pygame.gfxdraw.push(f, pygame.gfxdraw.gen_circle(26))  # 第 III 象限（左下）
             pygame.gfxdraw.set_color(f,(120, 160, 255))
-            pygame.gfxdraw.filled_circle(f, 200, -150, 26, )   # 第 IV 象限（右下）
+            pygame.gfxdraw.set_transform(f, pygame.math.mat4_translation(200, -150, 0))
+            pygame.gfxdraw.push(f, pygame.gfxdraw.gen_circle(26))   # 第 IV 象限（右下）
             # 原点白圆
             pygame.gfxdraw.set_color(f, (255, 255, 255))
-            pygame.gfxdraw.filled_circle(f, 0, 0, 18,)
+            pygame.gfxdraw.set_transform(f, pygame.math.mat4_translation(0, 0, 0))
+            pygame.gfxdraw.push(f, pygame.gfxdraw.gen_circle(18))
             # 文字标注（中心系摆放）
             pygame.gfxdraw.set_transform(
                 f, pygame.math.mat4_translation(-390, 260, 0))
@@ -58,16 +65,16 @@ async def main():
             # 原点牌：文字中心对世界原点（z=-3 前方；透视投影 (0,0) → 屏幕中心）
             # 可见高 @z=3 ≈ 3.46 世界单位 → 文字 320px 宽 × k=0.0045 ≈ 1.44 单位（约屏宽 36%）
             k = 0.0045
-            pygame.gfxdraw.set_transform(f, 
+            pygame.gfxdraw.set_transform(f,
                 pygame.math.mat4_translation(0, 0, -3)
-                * pygame.math.mat4_scale(k, k, 1))
+                .mul_mat4(pygame.math.mat4_scale(k, k, 1)))
             pygame.gfxdraw.draw_surface(f, quad3d)
             pygame.gfxdraw.set_color(f,(255, 255, 255))
-            pygame.gfxdraw.filled_circle(f, 0, 0, 6, )
+            pygame.gfxdraw.push(f, pygame.gfxdraw.gen_circle(6))
             # 右上偏移牌：+x 右、+y 上（y 向上方向验证）
-            pygame.gfxdraw.set_transform(f, 
+            pygame.gfxdraw.set_transform(f,
                 pygame.math.mat4_translation(1.0, 0.75, -3)
-                * pygame.math.mat4_scale(k, k, 1))
+                .mul_mat4(pygame.math.mat4_scale(k, k, 1)))
             pygame.gfxdraw.draw_surface(f, quad3d_off)
             # 3D 原点标记：上方文字牌中心即世界原点（透视投影 (0,0) →
             # 屏幕中心）。⚠️ gfxdraw 图元半径 = i32 整数世界单位——透视
@@ -75,4 +82,4 @@ async def main():
             # 初版纯白屏根因）；3D 小物体用 draw_surface（quad 可任意缩放）
 
         pygame.display.flip()
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()

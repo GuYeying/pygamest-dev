@@ -7,6 +7,7 @@ import pygame
 async def main():
     screen = pygame.display.set_mode((800, 600))
     screen.set_camera(pygame.render.game_camera_ortho(800, 600, 800, 600))
+    screen.set_camera(pygame.render.game_camera_ortho(800, 600, 800, 600))
     font = pygame.font.Font(None, 20)
     count = pygame.gamepad.get_count()
     x, y = 0.0, 0.0
@@ -51,7 +52,8 @@ async def main():
         with screen.render() as t:
             t.fill((16, 18, 26))
             pygame.gfxdraw.set_color(t, (90, 140, 220))
-            pygame.gfxdraw.box(t, (int(x) - 20, int(y) - 20, 40, 40))
+            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(int(x), int(y), 0))
+            pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect(40, 40))
             yy = 270
             for line in lines:
                 s = font.render(line, True, (180, 220, 180))
@@ -61,4 +63,4 @@ async def main():
 
         pygame.display.flip()
         pygame.time.delay(8)
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()
