@@ -109,7 +109,7 @@ async def main():
         pp.RigidBodyBuilder("fixed", translation=(0.5, 1.2), rotation=0.35),
         pp.ColliderBuilder("cuboid", hx=1.6, hy=0.12, friction=0.1),
     )
-    solid.step_frame(1.0 / 60.0)   # 时序契约（查询前必步进一次）
+    solid.step()                    # 时序契约（查询前必步进一次）
 
     # ── fluid 世界（salva2d DFSPH——粒子半径 0.1；XSPH 粘性默认挂）──
     fw = pp.FluidWorld2D(particle_radius=0.1)
@@ -174,6 +174,7 @@ async def main():
             block_uniforms.append((b, bd))
 
     block_pipe = None
+    clock = pygame.time.Clock()          # 真实帧间隔度量（accumulator 喂食源）
 
     while True:
         for e in pygame.event.get():
@@ -205,8 +206,8 @@ async def main():
                     print(f"[fluid2d-test] 投放方块 handle={h} @x={x}")
 
         # 物理（solid + fluid 耦合步进——**本案例核心**）
-        solid.step_frame(1.0 / 60.0)
-        fw.step(1.0 / 60.0, solid)
+        solid.step_frame(clock.get_time() / 1000.0)
+        fw.step(clock.get_time() / 1000.0, solid)
 
         if frame == 1:
             bc = fw.boundary_count()
@@ -285,6 +286,7 @@ async def main():
             pygame.gfxdraw.clear_camera(t)
 
         pygame.display.flip()
+        clock.tick(0)                      # 跟帧度量（vsync 节拍，get_time 供 accumulator）
         if frame == 60:
             st("60 帧刚体×流体耦合渲染稳定", True)
         if frame == 300:

@@ -284,7 +284,7 @@ async def main():
     rebuild_terrain_collider()               # 全量镜像 voxelis → 物理
 
     # 时序契约：insert 后须至少 step 一次方可 cast_ray（broad_phase 时序）
-    world.step_frame(1.0 / 60.0)
+    world.step()                     # 时序契约（cast_ray 前置——broad_phase 就绪步进）
     hit = world.cast_ray_filtered((8.0, 8.0, 8.0), (0.0, -1.0, 0.0), None, "only_fixed")
     st("cast_ray 命中地面", hit is not None and hit[1] > 0.0)
 
@@ -597,7 +597,7 @@ async def main():
                     vw.clear()
                     build_terrain()
                     rebuild_terrain_collider()     # 体素 collider 全量重建
-                    world.step_frame(1.0 / 60.0)   # 时序契约（cast_ray 前置）
+                    world.step()                    # 时序契约（cast_ray 前置——broad_phase 就绪步进，不动 accumulator）
                     vox_mesh, tri_count = rebuild_voxel_mesh()
                     info = "地形+视角已重置"
                     # 视角同步归位（pitch 残留低俯角 = "旋转看起来绕斜轴"
@@ -663,7 +663,7 @@ async def main():
         # 物理 + GameCamera MVP（with_view 每帧替换——letterbox 内聚直
         # 喂 uniform（双参口自动组合 present_fit 画布→物理段——两段不同不双乘））
         _s0 = pygame.time.get_ticks()      # step 单独计时（物理/渲染分摊
-        world.step_frame(1.0 / 60.0)       # 常驻可见——性能排查定约）
+        world.step_frame(clock.get_time() / 1000.0)   # 真实帧间隔喂 accumulator（修复字面量+tick120=2倍速）
         _step_sum[0] += pygame.time.get_ticks() - _s0
         if fluid_on and fluid_world is not None:
             _f0 = pygame.time.get_ticks()
