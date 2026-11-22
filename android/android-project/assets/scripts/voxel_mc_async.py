@@ -707,6 +707,7 @@ async def main():
                               f"{bx,by,bz} 顶面 y={by + 1}（期望球心 {expected:.1f}）→ "
                               + ("PASS 物理数据正确" if ok else "FAIL 物理数据异常"))
                         st("球静止贴面（物理数据正确）", ok)
+                        print(f"[frame-probe] frame={frame} mod150={frame % 150}", flush=True)
             # [TEMP 自动删放取证]——remesh 更新链可视化（删失败自动放）
             if frame % 150 == 0 and frame > 300:
                 picked = pick_voxel()
@@ -718,6 +719,9 @@ async def main():
                     elif place_voxel(outside):
                         vox_mesh, tri_count = rebuild_voxel_mesh()
                         info = f"自动放 {outside}"
+                else:
+                    print(f"[edit-miss] frame={frame} picked=None（射线未命中体素）",
+                          flush=True)
                     # probe 画面像素取证（删格中心位——网格更新判定）
                     d = screen.probe()
                     hit = [(x, y, r, g, b) for x, y, r, g, b, a in
