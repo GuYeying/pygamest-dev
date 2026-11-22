@@ -129,7 +129,7 @@ async def main():
     results = {}
     for yaw_d in (0, 15, -15, 30, -30):
         for _ in range(30):
-            await pygame.next_frame()
+            await pygame.tasks.yield_now()
         cx, cy, n = centroid_yaw(yaw_d)
         results[yaw_d] = cx
         if cx is not None:

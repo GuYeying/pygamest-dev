@@ -185,4 +185,4 @@ async def main():
             asserted = True
             print("[cp-demo] SUMMARY",
                   "PASS" if not _fail else "FAIL " + str(_fail))
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()

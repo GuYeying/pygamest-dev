@@ -15,5 +15,5 @@ async def main():
             r.fill((20, 20, 30))
             pygame.gfxdraw.draw_surface(r, surf)
         pygame.display.flip()
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()
         frame += 1

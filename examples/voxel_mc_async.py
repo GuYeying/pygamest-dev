@@ -703,7 +703,7 @@ async def main():
                               f"{bx,by,bz} 顶面 y={by + 1}（期望球心 {expected:.1f}）→ "
                               + ("PASS 物理数据正确" if ok else "FAIL 物理数据异常"))
                         st("球静止贴面（物理数据正确）", ok)
-            await pygame.next_frame()   # 让出（改名后 tasks.yield_now）
+            await pygame.tasks.yield_now()   # 让出（改名后 tasks.yield_now）
 
     async def render_task():
         nonlocal _last_ms, frame
@@ -775,8 +775,8 @@ async def main():
             # 120Hz 屏全速渲染 = 每两帧重复同一物理态，GPU 减半零视觉损失；
             # vsync 已超目标时引擎不再补睡——无双重节流）
             clock.tick(120)
-            await pygame.next_frame()
-            await pygame.next_frame()   # 让出（改名后 tasks.yield_now）
+            await pygame.tasks.yield_now()
+            await pygame.tasks.yield_now()   # 让出（改名后 tasks.yield_now）
 
     t_logic = pygame.tasks.spawn(logic_task())
     t_render = pygame.tasks.spawn(render_task())
@@ -791,4 +791,4 @@ async def main():
         if t_render.failed():
             print("[async] RENDER-TASK-DEAD:", repr(t_render.exception()))
             return
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()

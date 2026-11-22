@@ -108,7 +108,7 @@ async def main():
             pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect(800, 600))
             pygame.gfxdraw.draw_surface(t, buf2)
         pygame.display.flip()
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()
         frame += 1
     chk("视觉 smoke 60 帧", True, True)
 

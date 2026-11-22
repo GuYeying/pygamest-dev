@@ -24,7 +24,7 @@ async def main():
             for s in pygame.render.screen_probe()[:6]:
                 print("[probe]", s, flush=True)
         pygame.display.flip()
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()
         frame += 1
         if frame > 300:
             return

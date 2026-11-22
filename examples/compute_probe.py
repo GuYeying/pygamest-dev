@@ -208,4 +208,4 @@ async def main():
             t.draw_ui(hud)
         pygame.display.flip()
         frame += 1
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()

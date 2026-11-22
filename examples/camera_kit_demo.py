@@ -93,6 +93,6 @@ async def main():
         frame += 1
         if frame == 30:
             rlog.log("[selftest] 显式相机唯一（域分层 v3——Auto 已退役）")
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()
 
     rlog.log("DONE 600 帧渲染收口")

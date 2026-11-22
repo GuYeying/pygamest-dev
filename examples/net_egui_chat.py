@@ -64,7 +64,7 @@ async def main():
                     r.fill((24, 26, 34))
                     r.draw_ui(hud)
                 pygame.display.flip()
-                await pygame.next_frame()
+                await pygame.tasks.yield_now()
             if c.state() == "connected":
                 hud.log.append(f"[系统] 已连接 {host}")
                 hud.state = "connected"
@@ -109,4 +109,4 @@ async def main():
             r.draw_ui(hud)
 
         pygame.display.flip()
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()

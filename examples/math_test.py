@@ -102,4 +102,4 @@ async def main():
         if frame > 60:
             return
         pygame.time.delay(8)
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()

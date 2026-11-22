@@ -130,7 +130,7 @@ async def main():
                     p.draw(0, 3)
 
         pygame.display.flip()
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()
 
         if frame == 30:
             warm = rss_mb()  # 预热后基线（池化稳态前留 30 帧热身）
@@ -174,4 +174,4 @@ async def main():
                 pygame.gfxdraw.draw_surface(r, s)
                 y += 24
         pygame.display.flip()
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()

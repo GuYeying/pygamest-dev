@@ -81,7 +81,7 @@ async def main():
             pygame.gfxdraw.set_transform(r, pygame.math.mat4_translation(-460, 250, 0))
             pygame.gfxdraw.draw_surface(r, hud)
         pygame.display.flip()
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()
 
     check("frame() 出帧", saw_frame)
     check("size 原始分辨率", v.size() == (640, 360), f"size={v.size()}")
@@ -119,4 +119,4 @@ async def main():
                 pygame.gfxdraw.draw_surface(r, s)
                 y += 26
         pygame.display.flip()
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()

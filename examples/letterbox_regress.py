@@ -21,6 +21,6 @@ async def main():
             pygame.gfxdraw.push(r, pygame.gfxdraw.gen_rect_outline(200, 150))
             pygame.gfxdraw.set_topology(r, "default")
         pygame.display.flip()
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()
     assert screen.get_size() == (800, 600)
     print("[regress] 30 帧渲染 + 尺寸稳定 ✓")

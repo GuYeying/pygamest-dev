@@ -167,10 +167,10 @@ async def main():
         #     st("属性捕获游戏对象生效", hud.game["size"] == [800, 600])
         #     st("draw_ui 持续 60 帧", True)  # 未抛即通过
         #     break
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()
 
     # ── shutdown（幂等）──
     no_raise("egui.shutdown", lambda: egui.shutdown())
     no_raise("shutdown 后 wants_pointer 可查", lambda: egui.wants_pointer())
     print("[egui-test] SUMMARY", "PASS" if not _fail else "FAIL " + str(_fail))
-    await pygame.next_frame()
+    await pygame.tasks.yield_now()

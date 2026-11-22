@@ -56,6 +56,6 @@ async def main():
             pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(-380, 280, 0))
             pygame.gfxdraw.draw_surface(t, line)
         pygame.display.flip()
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()
         frame += 1
     print("[wasm-spine] 汇总:", "ALL PASS" if not fail else f"FAIL {fail}")

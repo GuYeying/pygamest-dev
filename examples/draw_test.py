@@ -264,4 +264,4 @@ async def main():
             r.geometry("filled", [(580, 480), (740, 480), (740, 540), (580, 540)],
                        [0, 1, 2, 0, 2, 3], (255, 160, 60))
         pygame.display.flip()
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()

@@ -37,6 +37,6 @@ async def main():
             pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(-300, 240, 0))
             pygame.gfxdraw.draw_surface(t, line)
         pygame.display.flip()
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()
         frame += 1
     print("[ct-test] 600 帧读回自检全过 ✓")

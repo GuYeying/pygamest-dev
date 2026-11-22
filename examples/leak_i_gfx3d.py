@@ -79,7 +79,7 @@ async def main():
         # 帧率上限（深度会话 + 每帧内联 buffer——无上限循环 OOM 风险，
         # 见 待做优化.txt P3 arena 债务；真实应用 ≈60fps 基准）
         pygame.time.delay(8)
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()
         frame += 1
 
     check("深度会话 churn 2400 帧", True)
@@ -98,4 +98,4 @@ async def main():
         if time.time() - last > 2.0:
             return
         pygame.time.delay(8)
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()

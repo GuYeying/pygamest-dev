@@ -114,7 +114,7 @@ async def main():
             asserted = True
             print("[blit-demo] SUMMARY",
                   "PASS" if not _fail else "FAIL " + str(_fail))
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()
 
 
 # 引擎壳接线（surf_probe 同款）——宿主按名调度 game 协程

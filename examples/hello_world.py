@@ -25,4 +25,4 @@ async def main():
 
         pygame.display.flip()
 
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()

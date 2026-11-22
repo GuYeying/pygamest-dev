@@ -54,7 +54,7 @@ async def main():
             pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(-380, 270, 0))
             pygame.gfxdraw.draw_surface(t, label)
         pygame.display.flip()
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()
         frame += 1
 
     print("[spine_demo] DONE 300 帧")

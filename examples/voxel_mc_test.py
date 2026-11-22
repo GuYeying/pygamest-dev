@@ -763,4 +763,4 @@ async def main():
         # 120Hz 屏全速渲染 = 每两帧重复同一物理态，GPU 减半零视觉损失；
         # vsync 已超目标时引擎不再补睡——无双重节流）
         clock.tick(120)
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()

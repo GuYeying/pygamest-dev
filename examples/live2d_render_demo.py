@@ -58,7 +58,7 @@ async def main():
             pygame.gfxdraw.draw_surface(t, label)
         clock.tick(60)
         pygame.display.flip()
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()
         frame += 1
 
     print("[live2d_demo] DONE 300 帧")

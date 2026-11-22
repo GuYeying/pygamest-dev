@@ -102,4 +102,4 @@ async def main():
         pygame.display.flip()
         pygame.time.delay(8)
         frame += 1
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()

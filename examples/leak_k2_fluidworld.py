@@ -31,6 +31,6 @@ async def main():
                 pass
         if frame % 1500 == 0:
             print(f"[leak-k2] frame={frame}（RSS 由外部脚本采样）")
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()
         frame += 1
     print("[leak-k2] 3000 帧跑完（50s）——外部 RSS 三窗对比")

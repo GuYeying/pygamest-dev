@@ -81,7 +81,7 @@ async def main():
             pygame.gfxdraw.draw_ozz_quads(t, p, scale=60.0, cx=0.0, cy=-60.0, size=10.0)
             pygame.gfxdraw.draw_ozz_bones(t, p, scale=60.0, cx=0.0, cy=-60.0)
         pygame.display.flip()
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()
         frame += 1
     chk("视觉 smoke 60 帧（盒体+骨骼线）", True, True)
 

@@ -134,7 +134,7 @@ async def main():
             pygame.gfxdraw.draw_spine(t, sk3, [page0])
             pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(0, 0, 0))
         pygame.display.flip()
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()
         frame += 1
     chk("视觉 smoke 60 帧", True, True)
 

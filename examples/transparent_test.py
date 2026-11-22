@@ -97,4 +97,4 @@ async def main():
             pygame.gfxdraw.push(r, pygame.gfxdraw.gen_circle(
                      max(6, int(30 * tri(1400, _t)))))
         pygame.display.flip()
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()

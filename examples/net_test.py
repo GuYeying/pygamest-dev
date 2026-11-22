@@ -43,7 +43,7 @@ async def main():
             st = c.state()
             if st == "connected":
                 break
-            await pygame.next_frame()
+            await pygame.tasks.yield_now()
         if st == "connected":
             conn = c
             print("[INFO] TCP host=" + host)
@@ -59,7 +59,7 @@ async def main():
             got = conn.recv()
             if got is not None:
                 break
-            await pygame.next_frame()
+            await pygame.tasks.yield_now()
         check("TCP send→recv 回声", got == ("echo:你好 net").encode("utf-8"), f"got={got!r}")
 
         blob = bytes(range(256)) * 64  # 16 KB 跨多分片
@@ -70,11 +70,11 @@ async def main():
             got = conn.recv()
             if got is not None:
                 break
-            await pygame.next_frame()
+            await pygame.tasks.yield_now()
         check("TCP 16KB 帧完整", got == b"echo:" + blob, f"len={None if got is None else len(got)}")
 
         conn.close()
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()
         check("TCP close", conn.state() == "closed", f"state={conn.state()}")
 
     # ── UDP 自环（Web = 站桩报错设计语义）──
@@ -87,7 +87,7 @@ async def main():
             got = udp.recv_from()
             if got is not None:
                 break
-            await pygame.next_frame()
+            await pygame.tasks.yield_now()
         check("UDP 自环 send_to→recv_from", got is not None and got[0] == b"udp-hello",
               f"got={got!r}")
     except Exception as e:
@@ -113,4 +113,4 @@ async def main():
                 pygame.gfxdraw.draw_surface(r, s)
                 y += 26
         pygame.display.flip()
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()

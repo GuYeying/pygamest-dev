@@ -85,4 +85,4 @@ async def main():
             pygame.gfxdraw.draw_surface_centered(f, title, (0, -270))
 
         pygame.display.flip()
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()

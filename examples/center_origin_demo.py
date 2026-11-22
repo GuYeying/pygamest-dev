@@ -82,4 +82,4 @@ async def main():
             # 初版纯白屏根因）；3D 小物体用 draw_surface（quad 可任意缩放）
 
         pygame.display.flip()
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()

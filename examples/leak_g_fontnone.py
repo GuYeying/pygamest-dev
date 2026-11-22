@@ -22,5 +22,5 @@ async def main():
             pygame.gfxdraw.draw_surface(r, cjk_label)
             pygame.gfxdraw.set_transform(r, pygame.math.mat4_identity())
         pygame.display.flip()
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()
         frame += 1

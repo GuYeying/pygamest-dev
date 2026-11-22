@@ -81,4 +81,4 @@ async def main():
         # 帧率上限（深度会话每帧重建深度资源——无上限循环会 OOM，
         # 存量性能项挂账：深度纹理应随表面复用而非逐帧重建）
         pygame.time.delay(8)
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()

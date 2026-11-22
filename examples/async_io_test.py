@@ -146,14 +146,14 @@ async def main():
             t.draw_ui(hud)
 
         pygame.display.flip()
-        await pygame.next_frame()
+        await pygame.tasks.yield_now()
         frame += 1
 
 
 async def chunk_loader(path, hud):
     # **coroutine 形态**（无裸 yield——async gen 在 RP 驱动有病态）：
     # native = io_size 分块判定 + io_read_chunk 同步区间读（每帧一块，
-    # 块级毫秒级不超帧预算）+ await next_frame 挂起交出控制权——画面
+    # 块级毫秒级不超帧预算）+ await tasks.yield_now 挂起交出控制权——画面
     # 持续推进；wasm = io_size None（fetch 全量承载定约）→ await
     # io.fetch 全量退化（网络层流式不卡帧）+ 完成表 io_take 直取
     t0 = SW()
@@ -170,6 +170,6 @@ async def chunk_loader(path, hud):
             pygame.io.io_read_chunk(path, off, n)
             off += n
             hud.state = f"异步中|{off * 100 // total}"
-            await pygame.next_frame()        # 挂起一帧（画面推进）
+            await pygame.tasks.yield_now()        # 挂起一帧（画面推进）
     hud.async_ms = t0.ms()
     print("[aiot] async_ms =", hud.async_ms, flush=True)       # 结果输出（wasm 画面文字难截读——console 为准）
