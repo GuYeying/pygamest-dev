@@ -371,8 +371,7 @@ async def main():
                                       cull="back", blend="opaque",
                                       depth_mode="standard", depth_write=True,
                                       label="voxel_pipe")
-        elif len(vb) > vox_mesh_buf[1]:
-            # 扩容事件（挖洞暴露面净增超垫底）——整 mesh 重建（罕见）
+        elif True:  # [已定性 2026-11-22]——协程形态下原地 update_mesh_bytes 后 mesh 全灭（probe 实证），单协程正常——整重建路径替代（正确性优先），原地更新的协程兼容挂账 GPU 级取证
             mesh = ac.mesh(["float32x3", "float32x3"],
                            vertices_bytes=vb + bytes(len(vb) * 3),
                            index_bytes=ib, label="voxel_mesh")
@@ -707,6 +706,24 @@ async def main():
                               f"{bx,by,bz} 顶面 y={by + 1}（期望球心 {expected:.1f}）→ "
                               + ("PASS 物理数据正确" if ok else "FAIL 物理数据异常"))
                         st("球静止贴面（物理数据正确）", ok)
+            # [TEMP 自动删放取证]——remesh 更新链可视化（删失败自动放）
+            if frame % 300 == 150 and frame > 300:
+                picked = pick_voxel()
+                if picked:
+                    inside, outside, p, normal = picked
+                    if remove_voxel(inside):
+                        vox_mesh, tri_count = rebuild_voxel_mesh()
+                        info = f"自动删 {inside}"
+                    elif place_voxel(outside):
+                        vox_mesh, tri_count = rebuild_voxel_mesh()
+                        info = f"自动放 {outside}"
+                    # probe 画面像素取证（删格中心位——网格更新判定）
+                    d = screen.probe()
+                    hit = [(x, y, r, g, b) for x, y, r, g, b, a in
+                           [d[i:i+6] for i in range(0, len(d), 6)]
+                           if (r, g, b) != (18, 20, 28)]
+                    print(f"[PROBE-EDIT] frame={frame} 非背景 {len(hit)}: {hit[:5]}",
+                          flush=True)
             await pygame.tasks.yield_now()   # 让出（改名后 tasks.yield_now）
 
     async def render_task():
