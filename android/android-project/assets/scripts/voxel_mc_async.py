@@ -797,11 +797,7 @@ async def main():
                 _step_sum[0] = 0
                 _step_sum[1] = 0
             frame += 1
-            # **帧率上限 60**（pygame.time.Clock.tick 正统口——物理 60Hz，
-            # 120Hz 屏全速渲染 = 每两帧重复同一物理态，GPU 减半零视觉损失；
-            # vsync 已超目标时引擎不再补睡——无双重节流）
-            clock.tick(120)
-            await pygame.tasks.yield_now()   # 让出（帧尾单挂起点——双 yield 是重排双写残留，已清）
+            await pygame.tasks.yield_now()   # 让出（帧尾单挂起点）
 
     t_logic = pygame.tasks.spawn(logic_task())
     t_render = pygame.tasks.spawn(render_task())
@@ -817,8 +813,7 @@ async def main():
         if t_render.failed():
             print("[async] RENDER-TASK-DEAD:", repr(t_render.exception()))
             return
-        # [TEMP 泵帧取证]——泵帧数/任务 done 态/frame 值（静默卡死定位）
-        if frame % 60 == 0:
-            print(f"[pump-probe] pump_frame={pygame.tasks.frame()} frame={frame} "
-                  f"logic_done={t_logic.done} render_done={t_render.done}", flush=True)
+        # 总帧率节拍（全局域——tick 归 main，渲染/逻辑域不私有限帧；
+        # vsync 已超目标时引擎不再补睡——无双重节流）
+        clock.tick(120)
         await pygame.tasks.yield_now()
