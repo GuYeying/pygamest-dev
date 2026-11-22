@@ -561,6 +561,7 @@ async def main():
 
     async def logic_task():
         nonlocal grabbed, last_pos, info, debug_on, fluid_on, cam, yaw, pitch
+        nonlocal vox_mesh, tri_count
         nonlocal fluid_world, fluid_fh, frame
         while running[0]:
             for e in pygame.event.get():
@@ -707,7 +708,7 @@ async def main():
                               + ("PASS 物理数据正确" if ok else "FAIL 物理数据异常"))
                         st("球静止贴面（物理数据正确）", ok)
             # [TEMP 自动删放取证]——remesh 更新链可视化（删失败自动放）
-            if frame % 300 == 150 and frame > 300:
+            if frame % 150 == 0 and frame > 300:
                 picked = pick_voxel()
                 if picked:
                     inside, outside, p, normal = picked
@@ -813,4 +814,8 @@ async def main():
         if t_render.failed():
             print("[async] RENDER-TASK-DEAD:", repr(t_render.exception()))
             return
+        # [TEMP 泵帧取证]——泵帧数/任务 done 态/frame 值（静默卡死定位）
+        if frame % 60 == 0:
+            print(f"[pump-probe] pump_frame={pygame.tasks.frame()} frame={frame} "
+                  f"logic_done={t_logic.done} render_done={t_render.done}", flush=True)
         await pygame.tasks.yield_now()
