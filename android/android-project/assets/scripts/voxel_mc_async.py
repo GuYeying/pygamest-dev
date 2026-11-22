@@ -801,8 +801,7 @@ async def main():
             # 120Hz 屏全速渲染 = 每两帧重复同一物理态，GPU 减半零视觉损失；
             # vsync 已超目标时引擎不再补睡——无双重节流）
             clock.tick(120)
-            await pygame.tasks.yield_now()
-            await pygame.tasks.yield_now()   # 让出（改名后 tasks.yield_now）
+            await pygame.tasks.yield_now()   # 让出（帧尾单挂起点——双 yield 是重排双写残留，已清）
 
     t_logic = pygame.tasks.spawn(logic_task())
     t_render = pygame.tasks.spawn(render_task())
