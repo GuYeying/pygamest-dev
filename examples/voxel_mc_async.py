@@ -558,15 +558,19 @@ async def main():
     # logic = 事件/漫游/物理 accumulator/交互；render = 绘制/flip/限帧
     # 帧泵统一推进（协作式）；让出原语改名后 = tasks.yield_now()
     # 共享状态经闭包（单线程协作式，零竞态）────────────────────
+    running = [True]                          # 全局退出旗标（跨协程共享——list 原位改）
+
     async def logic_task():
         nonlocal grabbed, last_pos, info, debug_on, fluid_on, cam, yaw, pitch
         nonlocal fluid_world, fluid_fh, frame
-        while True:
+        while running[0]:
             for e in pygame.event.get():
                 if e.type == pygame.event.QUIT:
+                    running[0] = False
                     return
                 if e.type == pygame.event.KEYDOWN:
                     if e.key == pygame.key.K_ESCAPE:
+                        running[0] = False
                         return
                     if e.key == pygame.key.K_TAB:
                         # FPS 沉浸式抓取切换（2026-11-20 用户定约）：TAB =
@@ -707,7 +711,7 @@ async def main():
 
     async def render_task():
         nonlocal _last_ms, frame
-        while True:
+        while running[0]:
             with screen.render() as rt:
                 with screen.raw_render(depth=True) as p:
                     p.set_pipeline(vox_pipe[0])
@@ -780,9 +784,10 @@ async def main():
 
     t_logic = pygame.tasks.spawn(logic_task())
     t_render = pygame.tasks.spawn(render_task())
-    while True:                          # 保活泵（任务帧泵自动推进）
+    while running[0]:                    # 保活泵（任务帧泵自动推进；旗标收口）
         for e in pygame.event.get():
             if e.type == pygame.event.QUIT:
+                running[0] = False
                 return
         # 任务健康打点（协程死因取证——调度器异常存档）
         if t_logic.failed():
