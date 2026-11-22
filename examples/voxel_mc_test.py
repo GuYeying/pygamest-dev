@@ -742,6 +742,17 @@ async def main():
                           f"{bx,by,bz} 顶面 y={by + 1}（期望球心 {expected:.1f}）→ "
                           + ("PASS 物理数据正确" if ok else "FAIL 物理数据异常"))
                     st("球静止贴面（物理数据正确）", ok)
+        # [TEMP 自动删放取证]——原版 A/B（remesh 视觉链验证）
+        if frame % 300 == 150 and frame > 300:
+            picked = pick_voxel()
+            if picked:
+                inside, outside, p, normal = picked
+                if remove_voxel(inside):
+                    vox_mesh, tri_count = rebuild_voxel_mesh()
+                    info = f"自动删 {inside}"
+                elif place_voxel(outside):
+                    vox_mesh, tri_count = rebuild_voxel_mesh()
+                    info = f"自动放 {outside}"
 
         pygame.display.flip()
         # 帧耗时统计窗（120 帧平均——物理/渲染分摊常驻可见，性能排查用）
