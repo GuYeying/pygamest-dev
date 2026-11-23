@@ -667,7 +667,7 @@ async def main():
         _step_sum[0] += pygame.time.get_ticks() - _s0
         if fluid_on and fluid_world is not None:
             _f0 = pygame.time.get_ticks()
-            fluid_world.step(1.0 / 60.0)
+            fluid_world.step(1.0 / 60.0, world)   # solid 耦合——漏传 = 流体与体素碰撞体脱钩
             _step_sum[1] += pygame.time.get_ticks() - _f0
         cam = cam.with_view(fps_view(eye, yaw, pitch))
         pygame.render.write_camera_mvp(cam_buf, cam.mvp())
