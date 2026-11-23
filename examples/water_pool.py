@@ -259,96 +259,9 @@ async def main():
     cjk = pygame.font.Font("cjk", 15)
     ac = pygame.render.access()
 
-    # ── CPU 波场（h/v 平铺 list——64²×2 substep ≈1-2ms）──
-    hf = [0.0] * (GRID * GRID)
-    vf = [0.0] * (GRID * GRID)
-
-    hf2 = [0.0] * (GRID * GRID)
-    vf2 = [0.0] * (GRID * GRID)
-
-    def wave_substep():
-        # **双缓冲**（读旧写新再交换——原位更新 = 邻格 laplacian 半新半
-        # 旧混扫，c=0.42 数值不稳 = 场持续充能至钳制饱和的根因）
-        nonlocal hf, vf, hf2, vf2
-        n = GRID
-        for z in range(1, n - 1):
-            row = z * n
-            up = row - n
-            dn = row + n
-            for x in range(1, n - 1):
-                i = row + x
-                lap = (hf[up + x] + hf[dn + x] + hf[i - 1] + hf[i + 1]
-                       - 4.0 * hf[i])
-                v = (vf[i] + lap * 0.42) * 0.9965
-                hf2[i] = hf[i] + v
-                vf2[i] = v
-        # 边界一圈强吸收（池壁消波——不吸收则全反射驻波堆积）
-        for x in range(n):
-            i0 = x
-            i1 = (n - 1) * n + x
-            hf2[i0] = hf[i0] * 0.95
-            vf2[i0] = vf[i0] * 0.80
-            hf2[i1] = hf[i1] * 0.95
-            vf2[i1] = vf[i1] * 0.80
-        for z in range(n):
-            i0 = z * n
-            i1 = z * n + n - 1
-            hf2[i0] = hf[i0] * 0.95
-            vf2[i0] = vf[i0] * 0.80
-            hf2[i1] = hf[i1] * 0.95
-            vf2[i1] = vf[i1] * 0.80
-        hf, vf, hf2, vf2 = hf2, vf2, hf, vf
-        # 边界一圈强吸收（池壁消波——不吸收则全反射驻波堆积）
-        for x in range(n):
-            i0 = x
-            i1 = (n - 1) * n + x
-            vf[i0] *= 0.80
-            hf[i0] *= 0.95
-            vf[i1] *= 0.80
-            hf[i1] *= 0.95
-        for z in range(n):
-            i0 = z * n
-            i1 = z * n + n - 1
-            vf[i0] *= 0.80
-            hf[i0] *= 0.95
-            vf[i1] *= 0.80
-            hf[i1] *= 0.95
-
-    def inject_wake(gx, gz, amp):
-        r = 3
-        for dz in range(-r, r + 1):
-            for dx in range(-r, r + 1):
-                x = int(gx) + dx
-                z = int(gz) + dz
-                if 1 <= x < GRID - 1 and 1 <= z < GRID - 1:
-                    d2 = (x - gx) * (x - gx) + (z - gz) * (z - gz)
-                    # **二次平滑核**（max(0,1-d2/9)²——d≥3 格恒 0；泰勒
-                    # exp 在 x=6.3 处 7 项截断发散 = ±几百错误注入 =
-                    # 波场爆炸（用户实测'波动很大→瞬间拉伸消失'根因）
-                    t = 1.0 - d2 / 9.0
-                    if t > 0.0:
-                        vf[z * GRID + x] += amp * t * t
-
-    # ── CPU 位移+法线 → update_mesh（voxel_mc 同款动态网格口）──
-    def upload_field():
-        # 顶点 y = hf；法线 = 场梯度（中心差分，边界回落）
-        k = 0
-        n = GRID
-        for z in range(n):
-            row = z * n
-            for x in range(n):
-                i = row + x
-                hx0 = hf[row + (x - 1 if x > 0 else x)]
-                hx1 = hf[row + (x + 1 if x < n - 1 else x)]
-                hz0 = hf[(z - 1 if z > 0 else z) * n + x]
-                hz1 = hf[(z + 1 if z < n - 1 else z) * n + x]
-                # 法线 = -(dh/dx, 1, -dh/dz)（未归一——fs 归一）
-                wverts[k + 1] = hf[i]
-                wverts[k + 3] = -(hx1 - hx0) / (2.0 * CELL)
-                wverts[k + 4] = 1.0
-                wverts[k + 5] = (hz1 - hz0) / (2.0 * CELL)
-                k += 6
-        ac.update_mesh(water_mesh, wverts)
+    # ── 引擎级 WaveField（Rust 状态持有——step/wake/displace_mesh 零
+    # 逐格 py 编组；CPU 版 RP 逐格循环实测 14ms/帧热点引擎化）──
+    wave = ac.wave_field(GRID, CELL)
 
     # ── 相机/参数 buffer ──
     cam_buf = ac.buffer(64, label="cam_buf")
@@ -505,7 +418,7 @@ async def main():
                     wake = (gx, gz, amp)
         # **注入门槛**（慢漂移持续注入累积饱和——显著运动才注入）
         if wake is not None and wake[2] > 0.006:
-            inject_wake(wake[0], wake[1], wake[2])
+            wave.wake(wake[0], wake[1], wake[2])
 
     # 开场各丢一个（即刻有交互观感）
     drop_ball()
@@ -528,20 +441,11 @@ async def main():
                 drop_ball()
 
         solid.step_frame(1.0 / 60.0)
+        # 顺序：物理步进 → 浮力+wake → 波方程 2 substep → 网格位移
+        #（WaveField 全 Rust 内部计算——CPU 版热点 14ms/帧已引擎化）
         buoyancy_step()
-        wave_substep()
-        wave_substep()
-        # **保险钳制**（数值安全网——|h|,|v| ≤ 0.15）
-        for i in range(GRID * GRID):
-            if hf[i] > 0.15:
-                hf[i] = 0.15
-            elif hf[i] < -0.15:
-                hf[i] = -0.15
-            if vf[i] > 0.15:
-                vf[i] = 0.15
-            elif vf[i] < -0.15:
-                vf[i] = -0.15
-        upload_field()
+        wave.step(2)
+        wave.displace_mesh(water_mesh, -1.5, -1.5)
 
         # 相机（慢速环绕）
         t_sec = frame / 60.0
