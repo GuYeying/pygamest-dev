@@ -369,15 +369,24 @@ async def main():
         return ln[2]
 
     def rebuild_voxel_mesh():
-        # **generate_mesh_bytes**（f32/u16 LE 原始字节——RP 零逐元素转换，
-        # list 口的 20400 次 new_float ≈ remesh 卡帧残余）+ 容量垫底 +
-        # update_mesh_vertex/index_bytes 原地更新（超限才整 mesh 重建）
-        _t0 = pygame.time.get_ticks()
+        # **generate_mesh_bytes** → **纯 CPU 数据生成**（不碰 GPU——
+        # GPU 上传归 render_task 的 flush_mesh_update，同提交序）：
+        # dirty flag 模式（2026-11-22 定性——原地 update 在跨协程 tick
+        # 的 GPU 上传失效，重建路径在 render 上下文正常）
         vb, ib = vw.generate_mesh_bytes()
-        _t1 = pygame.time.get_ticks()
+        game.pending_vb = vb
+        game.pending_ib = ib
+        game.mesh_dirty = True
+        game.tri_count = len(ib) // 6
+        return game.tri_count
+
+    def flush_mesh_update():
+        # **GPU 上传归渲染域**（render_task 调——与 draw 同 tick 同
+        # 提交序，消除跨协程 write_buffer 时序失效）
+        if not game.mesh_dirty:
+            return
+        vb, ib = game.pending_vb, game.pending_ib
         if vox_mesh_buf[0] is None:
-            # 首建：顶点/索引双 4x 容量垫底（update 字节口不增长——容量内
-            # 原地写；索引垫底 = 0 号退化三角不可见，写时计数自动重设）
             mesh = ac.mesh(["float32x3", "float32x3"],
                            vertices_bytes=vb + bytes(len(vb) * 3),
                            index_bytes=ib + bytes(len(ib) * 3),
@@ -390,22 +399,16 @@ async def main():
                                       cull="back", blend="opaque",
                                       depth_mode="standard", depth_write=True,
                                       label="voxel_pipe")
-        elif True:  # [已定性 2026-11-22]——协程形态下原地 update_mesh_bytes 后 mesh 全灭（probe 实证），单协程正常——整重建路径替代（正确性优先），原地更新的协程兼容挂账 GPU 级取证
+        else:
             mesh = ac.mesh(["float32x3", "float32x3"],
                            vertices_bytes=vb + bytes(len(vb) * 3),
                            index_bytes=ib, label="voxel_mesh")
             vox_mesh_buf[0] = mesh
             vox_mesh_buf[1] = len(vb)
-        else:
-            ac.update_mesh_vertex_bytes(vox_mesh_buf[0], vb)   # 原地直喂
-            ac.update_mesh_index_bytes(vox_mesh_buf[0], ib)
-        _t2 = pygame.time.get_ticks()
-        # [TEMP 计时]——remesh 分解（voxelis 出口 / GPU 更新）
-        print(f"[remesh] gen={_t1 - _t0}ms gpu={_t2 - _t1}ms "
-              f"三角={len(ib) // 6}", flush=True)
-        return vox_mesh_buf[0], len(ib) // 6
+        game.vox_mesh = vox_mesh_buf[0]   # 渲染引用同步（dirty flush 后 game.vox_mesh 指向新 mesh）
 
-    game.vox_mesh, game.tri_count = rebuild_voxel_mesh()
+    game.tri_count = rebuild_voxel_mesh()
+    flush_mesh_update()   # 初始首建（main 上下文——GPU 首建安全）
     st("generate_mesh 出口", game.tri_count > 0)
     print(f"[voxel-mc] 地形 mesh：{game.tri_count} 三角形")
 
@@ -480,7 +483,7 @@ async def main():
         _t1 = pygame.time.get_ticks()
         world.set_voxel(terrain_col[1], *key, False)   # 物理原位（官方对齐）
         _t2 = pygame.time.get_ticks()
-        game.vox_mesh, game.tri_count = rebuild_voxel_mesh()     # remesh（渲染出口）
+        game.tri_count = rebuild_voxel_mesh()
         _t3 = pygame.time.get_ticks()
         # [TEMP 分段计时]——卡帧归因（vw/rapier 原位/remesh 管线重建）
         print(f"[edit] 删 {key}: vw={_t1 - _t0}ms rapier={_t2 - _t1}ms "
@@ -503,7 +506,7 @@ async def main():
         _t1 = pygame.time.get_ticks()
         world.set_voxel(terrain_col[1], key[0], key[1], key[2], True)
         _t2 = pygame.time.get_ticks()
-        game.vox_mesh, game.tri_count = rebuild_voxel_mesh()
+        game.tri_count = rebuild_voxel_mesh()
         _t3 = pygame.time.get_ticks()
         # [TEMP 分段计时]——卡帧归因（vw/rapier 原位/remesh 管线重建）
         print(f"[edit] 放 {key}: vw={_t1 - _t0}ms rapier={_t2 - _t1}ms "
@@ -608,7 +611,7 @@ async def main():
                         if game.fluid_on and game.fluid_world is None:
                             game.fluid_world = rp3.FluidWorld(particle_radius=0.1)
                             game.fluid_fh = game.fluid_world.add_fluid_cuboid(
-                                (-0.4, 4.0, -0.4), (0.8, 2.0, 0.8))
+                                (7.0, 6.0, 7.0), (0.8, 2.0, 0.8))
                             # 流体渲染资源一次性建（per-body 独立 buffer 定约
                             # ——每帧新建 = 分配泄漏，2026-11-20 实测修正）
                             fluid_res[0] = ac.buffer(64, label="fluid_model")
@@ -625,7 +628,7 @@ async def main():
                         build_terrain()
                         rebuild_terrain_collider()     # 体素 collider 全量重建
                         world.step()                    # 时序契约（cast_ray 前置——broad_phase 就绪步进，不动 accumulator）
-                        game.vox_mesh, game.tri_count = rebuild_voxel_mesh()
+                        game.tri_count = rebuild_voxel_mesh()
                         game.info = "地形+视角已重置"
                         # 视角同步归位（game.pitch 残留低俯角 = "旋转看起来绕斜轴"
                         # 的观感来源——R 全量重置含视角）
@@ -639,7 +642,7 @@ async def main():
                         if picked:
                             inside, outside, p, normal = picked
                             if remove_voxel(inside):
-                                game.vox_mesh, game.tri_count = rebuild_voxel_mesh()
+                                game.tri_count = rebuild_voxel_mesh()
                                 game.info = (f"删 {inside} @({p[0]:.1f},{p[1]:.1f},{p[2]:.1f})"
                                         f" 法线{normal}")
                             else:
@@ -649,7 +652,7 @@ async def main():
                         if picked:
                             inside, outside, p, normal = picked
                             if place_voxel(outside):
-                                game.vox_mesh, game.tri_count = rebuild_voxel_mesh()
+                                game.tri_count = rebuild_voxel_mesh()
                                 game.info = (f"放 {outside} @({p[0]:.1f},{p[1]:.1f},{p[2]:.1f})"
                                         f" 法线{normal}")
                             else:
@@ -730,10 +733,10 @@ async def main():
                 if picked:
                     inside, outside, p, normal = picked
                     if remove_voxel(inside):
-                        game.vox_mesh, game.tri_count = rebuild_voxel_mesh()
+                        game.tri_count = rebuild_voxel_mesh()
                         game.info = f"自动删 {inside}"
                     elif place_voxel(outside):
-                        game.vox_mesh, game.tri_count = rebuild_voxel_mesh()
+                        game.tri_count = rebuild_voxel_mesh()
                         game.info = f"自动放 {outside}"
                 else:
                     print(f"[edit-miss] game.frame={game.frame} picked=None（射线未命中体素）",
@@ -742,13 +745,14 @@ async def main():
                     d = screen.probe()
                     hit = [(x, y, r, g, b) for x, y, r, g, b, a in
                            [d[i:i+6] for i in range(0, len(d), 6)]
-                           if (r, g, b) != (18, 20, 28)]
+                           if (r, g, b) != (28, 34, 46)]
                     print(f"[PROBE-EDIT] game.frame={game.frame} 非背景 {len(hit)}: {hit[:5]}",
                           flush=True)
             await pygame.tasks.yield_now()   # 让出（改名后 tasks.yield_now）
 
     async def render_task():
         while running[0]:
+            flush_mesh_update()   # GPU 上传归渲染域（dirty flag flush——与 draw 同提交序）
             with screen.render() as rt:
                 with screen.raw_render(depth=True) as p:
                     p.set_pipeline(vox_pipe[0])
