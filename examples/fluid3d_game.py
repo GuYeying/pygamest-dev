@@ -269,7 +269,8 @@ async def main():
     cam_buf = ac.buffer(64, label="cam_buf")
     eye_buf = ac.buffer(16, label="eye_buf")
 
-    # ── 物理：地面 + 四壁（rapier fixed——step(dt, solid) 自动耦合）──
+    # ── 物理：地面 + 四壁（rapier fixed——step(dt, solid) 自动耦合；
+    # 渲染位置检验 = **相机**全周环绕，刚体保持 fixed）──
     solid = pp.PhysicsWorld3D(gravity=(0, -9.81, 0))
     solid.insert(
         pp.RigidBodyBuilder3D("fixed", translation=(0, -0.06, 0)),
@@ -362,7 +363,11 @@ async def main():
                 return
 
         solid.step_frame(1.0 / 60.0)
-        fw.step(1.0 / 60.0, solid)
+        # 流体**半步×2**（注水冲击粒子单步位移 5.6m/s×1/60≈0.093m 逼近
+        # 0.12m 壁厚穿越阈值——debug python 偶发穿墙（用户实测）；半步
+        # 0.047m < 粒子半径 0.09 安全余量）
+        fw.step(1.0 / 120.0, solid)
+        fw.step(1.0 / 120.0, solid)
 
         # 注水（龙头）：每 8 帧一小股（每次 = 新 fluid 句柄）；全句柄
         # 粒子聚合渲染；上限保护
@@ -377,10 +382,10 @@ async def main():
         count = len(positions) // 3
         ensure(count)
 
-        # 相机（第三人称环绕 + 俯角）
-        t_sec = frame / 60.0
-        yaw = 25.0 * M.sin(t_sec * 0.22)
-        eye = (M.sin(M.radians(yaw)) * 4.1, 2.9, M.cos(M.radians(yaw)) * 4.1)
+        # 相机**全周环绕**（渲染位置正确性检验——yaw 匀速转一周 20s 后
+        # 持续；半径/高度恒定，流体应全程贴槽体线框不偏移）
+        yaw = frame * 0.3                   # 0.3°/帧 = 18°/s → 一周 1200 帧（20s）
+        eye = (M.sin(M.radians(yaw)) * 4.4, 2.8, M.cos(M.radians(yaw)) * 4.4)
         tgt = (0.0, 0.55, 0.0)
         d = (tgt[0] - eye[0], tgt[1] - eye[1], tgt[2] - eye[2])
         dl = (d[0] ** 2 + d[1] ** 2 + d[2] ** 2) ** 0.5
@@ -470,7 +475,7 @@ async def main():
             pygame.gfxdraw.set_camera(rt, pixel_cam)
             pygame.gfxdraw.set_transform(rt, M.mat4_translation(-388, 288, 0))
             pygame.gfxdraw.draw_surface(rt, cjk.render(
-                f"[fluid3d] 粒子 {count} | 空格=注水爆发 | ESC 退出",
+                f"[fluid3d] 粒子 {count} | 相机 {yaw % 360.0:.0f}° | ESC 退出",
                 True, (190, 210, 235)))
             pygame.gfxdraw.clear_camera(rt)
 
