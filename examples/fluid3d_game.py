@@ -312,6 +312,7 @@ async def main():
     quad_fs = ac.mesh(["float32x2", "float32x2"],
                       [-1.0, -1.0, 0.0, 0.0, 1.0, -1.0, 1.0, 0.0,
                        1.0, 1.0, 1.0, 1.0, -1.0, 1.0, 0.0, 1.0],
+                      index_bytes=bytes([0,0, 1,0, 2,0, 0,0, 2,0, 3,0]),
                       label="quad_fs")
     fluid_shader = ac.shader(WGSL_FLUID_FS, label="fluid_fs_shader")
     fluid_fp = ac.buffer(64, label="fluid_fp")
