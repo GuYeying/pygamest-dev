@@ -262,6 +262,14 @@ async def main():
             pp.ColliderBuilder3D("cuboid", hx=hx, hy=hy, hz=hz, friction=0.2))
     solid.step_frame(1.0 / 60.0)
 
+    # ── 动态刚体（浮球——丢进流体测试动态刚体×流体交互）──
+    for i in range(3):
+        solid.insert(
+            pp.RigidBodyBuilder3D("dynamic", translation=(-0.2 + i * 0.2, 0.9, 0.0),
+                                   linvel=(0.0, -1.0, 0.0)),
+            pp.ColliderBuilder3D("ball", radius=0.08, density=2.0,
+                                 restitution=0.3, friction=0.4))
+
     # ── 流体世界（salva DFSPH）——初始水块 + 龙头注水 ──
     fw = pp.FluidWorld(particle_radius=0.09)
     fh = fw.add_fluid_cuboid((0.0, 0.55, 0.0), (0.7, 0.5, 0.55))
