@@ -4794,7 +4794,9 @@ dependencies = [
  "salva2d",
  "salva3d",
  "starfish-audio",
+ "starfish-codec",
  "starfish-debug",
+ "starfish-ds",
  "starfish-font",
  "starfish-gamepad",
  "starfish-gfx",
@@ -6237,6 +6239,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "starfish-codec"
+version = "0.9.76"
+source = "git+https://github.com/GuYeying/starfish#45fc4ec517fad6c9b2159a638423e368f9f82352"
+dependencies = [
+ "flate2",
+ "sha2",
+ "starfish-debug",
+]
+
+[[package]]
 name = "starfish-debug"
 version = "0.9.76"
 dependencies = [
@@ -6260,6 +6272,14 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
+]
+
+[[package]]
+name = "starfish-ds"
+version = "0.9.76"
+source = "git+https://github.com/GuYeying/starfish#45fc4ec517fad6c9b2159a638423e368f9f82352"
+dependencies = [
+ "starfish-debug",
 ]
 
 [[package]]
