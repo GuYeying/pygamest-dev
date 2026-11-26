@@ -206,8 +206,15 @@ async def main():
                     print(f"[fluid2d-test] 投放方块 handle={h} @x={x}")
 
         # 物理（solid + fluid 耦合步进——**本案例核心**）
-        solid.step_frame(clock.get_time() / 1000.0)
-        fw.step(clock.get_time() / 1000.0, solid)
+        # **固定步长 + 半步×2**（fluid3d_game 正典定约——曾喂真实
+        # get_time：窗口拖动 = OS 模态循环阻塞帧泵，松手首帧 get_time
+        # 巨尖峰 → 巨步位移爆炸乱飞 + 刚体同炸（2026-11-25 用户实锤；
+        # 3D 无此问题 = 固定步长免疫））
+        solid.step_frame(1.0 / 60.0)
+        # 半步×2（单步位移 0.047m < 0.12m 壁厚——3D 定约同款穿墙余量）
+        fw.clamp_velocity(12.0)
+        fw.step(1.0 / 120.0, solid)
+        fw.step(1.0 / 120.0, solid)
 
         if frame == 1:
             bc = fw.boundary_count()

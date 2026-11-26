@@ -182,6 +182,28 @@ PYGAMEST_MEMTRACE=1 python.exe examples\font_test.py
 
 MIT OR Apache-2.0 双协议（见 LICENSE-MIT / LICENSE-APACHE）。
 
+## 示例素材来源与许可（examples/ 下非代码资产）
+
+代码与本项目同协议；**素材来自第三方，各归其源许可**（各子目录另存上游
+README 原文）：
+
+| 目录 | 内容 | 来源 | 许可 |
+|---|---|---|---|
+| `examples/3dmodels/gltf/khronos/` | box_animated / cesium_man / rigged_simple 等 | [Khronos glTF 2.0 样例](https://github.com/KhronosGroup/glTF-Sample-Models)（Cesium 捐赠） | CC BY 4.0 / CC0（逐文件见内嵌 README） |
+| `examples/3dmodels/gltf/sketchfab/ruby/`、`fbx/sketchfab/` | Ruby Rose 模型 | [Sketchfab](https://skfb.ly/6QSUK)（Christoph Schoch） | CC BY 4.0 |
+| `examples/3dmodels/fbx/quaternius/` | Universal Animation Library | [Quaternius](https://quaternius.com/packs/universalanimationlibrary.html)（Paul Laulhe，经 ozz-animation 转授权） | CC0 |
+| `examples/3dmodels/`（collada/bin/doc） | ozz-animation 测试资产 | [ozz-animation 仓](https://github.com/guillaumeblanc/ozz-animation) | MIT |
+| `examples/assets/spineboy/` | spineboy-ess 骨骼动画 | [Esoteric Software Spine 官方样例](http://esotericsoftware.com/spine-example-downloads) | **Spine 样例素材条款**（© Esoteric 非开源——限 Spine 集成演示用途，不得作游戏资产发布；官方 [spine-runtimes](https://github.com/EsotericSoftware/spine-runtimes) 公开仓各语言目录自带同款样例再分发 = 本仓随仓分发与官方自身做法一致的集成演示惯例，以官网许可原文为准） |
+| `examples/v3/Haru/`、`examples/assets/models/Hiyori/` | Live2D Cubism 官方示例模型 | [Live2D 示例数据](https://www.live2d.com/en/learn/sample/) | **Live2D Cubism 示例素材许可——再分发禁止**（限 Cubism SDK 集成演示用途；**公开仓不含此二目录**：`.gitignore` 排除、本地测试用，使用者须自 Live2D 官网样例页下载） |
+| `examples/assets/big_part*.bin` 等 | io 基准大文件 | 本仓程序生成（async_io_test 启动时写） | 项目双协议 |
+
+```{warning}
+⚠️ 上表 Spine / Live2D 两组**不是开源许可**——仅为绑定层兼容性演示。
+Live2D 两组（v3/Haru、assets/models/Hiyori）已 gitignore 排除出仓库
+（本地测试用）；Spine 组随仓分发遵循官方 runtimes 仓同款演示惯例、
+商业发布前须替换；Khronos / Sketchfab CC BY 4.0 项须保留署名
+（内嵌 README 即署名承载）。
+```
 
 ## 生态仓库矩阵
 

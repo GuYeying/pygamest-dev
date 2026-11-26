@@ -1,0 +1,3 @@
+[0] set_mode = (800, 600) | get_size 一致: True
+[1] 日志落点 = rsdev_script_log.txt
+[311] [selftest] 显式相机唯一（域分层 v3——Auto 已退役）

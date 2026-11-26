@@ -1,0 +1,4 @@
+#version
+#tray
+#clicktrough
+#transparent

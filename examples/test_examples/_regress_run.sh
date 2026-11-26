@@ -17,6 +17,14 @@ CASES="${*:-$DEFAULT_CASES}"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
+# 重案例加时表（300 帧模拟压线——连开 16 窗负载下 6s 不够）
+case_t() {
+  case "$1" in
+    fluid_test|fluid2d_test|rapier_test|rapier3d_test) echo 12 ;;
+    *) echo "${REGRESS_T:-6}" ;;
+  esac
+}
+
 total_pass=0; total_fail=0; bad_cases=""
 summary=""
 
@@ -25,7 +33,7 @@ for c in $CASES; do
   if [ ! -f "$f" ]; then
     summary+="  ◇ $c 缺文件（跳过）"$'\n'; continue
   fi
-  timeout --signal=KILL "$T" "$PY" "$f" > "$TMP/$c.out" 2>&1
+  timeout --signal=KILL "$(case_t "$c")" "$PY" "$f" > "$TMP/$c.out" 2>&1
   ec=$?
   p=$(grep -cE "\] PASS|SUMMARY PASS|断言 PASS" "$TMP/$c.out")
   fl=$(grep -cE "\] FAIL|SUMMARY FAIL|断言 FAIL" "$TMP/$c.out")
