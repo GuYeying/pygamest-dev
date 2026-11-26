@@ -29,3 +29,10 @@ examples/leak_j.tmx
 pygamecraft.zip
 release指令.txt
 fb_f3g.bmp
+
+# Live2D Cubism 官方样例模型（再分发禁止——本地测试用不推远端）
+examples/v3/
+examples/assets/models/
+
+# Live2D Hiyori（官方样例——保持本地测试用，不随仓分发）
+examples/assets/models/
