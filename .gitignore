@@ -30,9 +30,6 @@ pygamecraft.zip
 release指令.txt
 fb_f3g.bmp
 
-# Live2D Cubism 官方样例模型（再分发禁止——本地测试用不推远端）
-examples/v3/
-examples/assets/models/
-
-# Live2D Hiyori（官方样例——保持本地测试用，不随仓分发）
+# Live2D Hiyori（examples/assets/ 历来整体 ignore——本地测试用；
+# v3/Haru 随仓分发走 live2d-py 官方绑定仓同款生态惯例 + README 声明）
 examples/assets/models/
