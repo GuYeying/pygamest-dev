@@ -40,6 +40,20 @@ async def main():
         pygame.gfxdraw.set_color(t,(240, 200, 80))
         pygame.gfxdraw.set_wireframe(t,True)
         pygame.gfxdraw.push(t, pygame.gfxdraw.gen_line(10, 110, 150, 10))
+
+        # ── draw_batch 正典（2026-11-25 接口破坏定约——参数自包含
+        #    单调用，替代 sticky 三口 + push 组合，FFI N+1→1）──
+        pygame.gfxdraw.draw_batch(
+            t, pygame.gfxdraw.gen_circle_outline(30),
+            transform=pygame.math.mat4_translation(120, 60, 0),
+            color=(230, 70, 70, 255),                          # 拓扑随数据（outline 烤入 Lines）
+        )
+        pygame.gfxdraw.draw_batch(
+            t, pygame.gfxdraw.gen_circle(20),
+            transform=pygame.math.mat4_translation(160, 60, 0),  # 变换参数自带
+            color=(90, 160, 255, 255),
+            wireframe=True,                                    # 线框 one-shot 仅本批
+        )
     # 烘焙对照（一次烘焙——非逐帧反模式）
     baked = pygame.transform.rotate(art, 30)
 
