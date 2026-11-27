@@ -22,6 +22,10 @@ dist/
 examples/rsdev_script_log.txt
 examples/assets/
 android/android-project/assets/assets/
+# 案例目录下的本地资产副本（桌面 chdir-脚本目录解析所需；3dmodels 已回退
+# 到 examples/3dmodels 入库位置，这里只剩 Hiyori/spineboy/video 小样——
+# 大文件 fixture（big_*.bin/t.bin）由脚本运行时自行生成）
+examples/test_examples/assets/
 io_case
 __probe_case__*
 examples/tilemap_layers.tmx

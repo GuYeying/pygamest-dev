@@ -2,7 +2,7 @@
 # 冻结解释器无 struct/math/file-io——全手工解码）。
 import pygame
 
-PATH = "assets/3dmodels/bin/arnaud_mesh.ozz"
+PATH = "../3dmodels/bin/arnaud_mesh.ozz"  # 随仓资产（examples/3dmodels），非本地 assets 副本
 
 
 async def main():
