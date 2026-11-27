@@ -41,19 +41,11 @@ async def main():
     art = pygame.Surface((160, 120))
     with art.render() as t:
         t.fill((125, 125, 125))
-        pygame.gfxdraw.set_color(t, (80, 200, 90))
-        pygame.gfxdraw.set_topology(t, "lines")
-        pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect_outline(144, 104))
-        pygame.gfxdraw.set_topology(t, "default")
-        pygame.gfxdraw.set_color(t, (230, 70, 70))
+        pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_rect_outline(144, 104), color=(80, 200, 90))
         pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(-40, 0, 0))
-        pygame.gfxdraw.push(t, pygame.gfxdraw.gen_circle(24))
-        pygame.gfxdraw.set_color(t, (240, 200, 80))
-        pygame.gfxdraw.set_topology(t, "lines")
-        pygame.gfxdraw.push(t, pygame.gfxdraw.gen_line(-70, 50, 70, -50))
-        pygame.gfxdraw.set_color(t, (240, 240, 240))
-        pygame.gfxdraw.push(t, pygame.gfxdraw.gen_line(-70, -50, 70, 50))
-        pygame.gfxdraw.set_topology(t, "default")
+        pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_circle(24), color=(230, 70, 70))
+        pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_line(-70, 50, 70, -50), color=(240, 200, 80))
+        pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_line(-70, -50, 70, 50), color=(240, 240, 240))
 
     frame = 0
     logged = False

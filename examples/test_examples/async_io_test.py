@@ -137,9 +137,8 @@ async def main():
             if "异步中" in hud.state and "|" in hud.state:
                 done_pct = int(hud.state.split("|")[1])
                 w = int(500 * done_pct / 100)
-                pygame.gfxdraw.set_color(t, (80, 200, 140))
                 pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(-250 + w // 2, -168, 0))
-                pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect(w, 24))
+                pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_rect(w, 24), color=(80, 200, 140))
             pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(0, 0, 0))
 
             # egui 面板（输入路径 + 按钮）

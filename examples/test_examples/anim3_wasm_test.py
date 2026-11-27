@@ -66,8 +66,7 @@ async def main():
         ratio = abs((frame % 120) - 60) / 60.0
 
         with screen.render() as t:
-            pygame.gfxdraw.set_color(t, (30, 34, 44))
-            pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect(800, 600))
+            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_rect(800, 600), color=(30, 34, 44))
 
             # spine walk（左半）
             sstate.update(dt)

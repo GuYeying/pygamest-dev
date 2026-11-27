@@ -82,8 +82,7 @@ async def main():
                     v = rot.transform_point3(
                         pygame.math.Vector3(M.cos(a) * 1.5, M.sin(a) * 1.5, 0.0))
                     pts += [v.x, v.y, v.z]
-                pygame.gfxdraw.set_color(rt, col)
-                pygame.gfxdraw.push(rt, pygame.gfxdraw.gen_polygon3d(pts))
+                pygame.gfxdraw.draw_batch(rt, pygame.gfxdraw.gen_polygon3d(pts), color=col)
 
             pygame.gfxdraw.clear_camera(rt)
             yy = 270

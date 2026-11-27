@@ -33,18 +33,15 @@ async def main():
         with screen.render_depth() as f:
             # ① Auto2d 兜底：中心原点 2D 图元——(0,0) = 屏幕中心，
             #    (-250, 150) = 中心左侧偏上（y 向上）
-            pygame.gfxdraw.set_color(f, (255, 200, 0))
             pygame.gfxdraw.set_transform(f, pygame.math.mat4_translation(-250, 150, 0))
-            pygame.gfxdraw.push(f, pygame.gfxdraw.gen_circle(36))
-            pygame.gfxdraw.set_color(f, (90, 120, 220))
+            pygame.gfxdraw.draw_batch(f, pygame.gfxdraw.gen_circle(36), color=(255, 200, 0))
             pygame.gfxdraw.set_transform(f, pygame.math.mat4_translation(-270, -20, 0))
-            pygame.gfxdraw.push(f, pygame.gfxdraw.gen_rect(120, 80))
+            pygame.gfxdraw.draw_batch(f, pygame.gfxdraw.gen_rect(120, 80), color=(90, 120, 220))
 
             # ② 会话级正交相机（显式）——右侧 2D 圆（同画布分段）
             pygame.gfxdraw.set_camera(f, pygame.render.game_camera_ortho(800, 600, 800, 600))
-            pygame.gfxdraw.set_color(f, (120, 255, 120))
             pygame.gfxdraw.set_transform(f, pygame.math.mat4_translation(250, 150, 0))
-            pygame.gfxdraw.push(f, pygame.gfxdraw.gen_circle(30))
+            pygame.gfxdraw.draw_batch(f, pygame.gfxdraw.gen_circle(30), color=(120, 255, 120))
             pygame.gfxdraw.clear_camera(f)
 
             # ③ 会话级透视相机：3D 空间放置
@@ -62,8 +59,7 @@ async def main():
             if img is not None:
                 pygame.gfxdraw.draw_surface(f, img)
             else:
-                pygame.gfxdraw.set_color(f, (200, 120, 90))
-                pygame.gfxdraw.push(f, pygame.gfxdraw.gen_box(
+                pygame.gfxdraw.draw_batch(f, pygame.gfxdraw.gen_box(
                     [-30, -30, -30], [30, 30, 30]))
 
             # 3b. 3D 文字牌（游戏内 id）：文字表面 quad 放进世界
@@ -74,11 +70,8 @@ async def main():
 
             # ④ 回 Auto：中心系十字准星（验证 clear_camera 清除）
             pygame.gfxdraw.clear_camera(f)
-            pygame.gfxdraw.set_color(f, (255, 255, 255))
-            pygame.gfxdraw.set_topology(f, "lines")
-            pygame.gfxdraw.push(f, pygame.gfxdraw.gen_line(-16, 0, 16, 0))
-            pygame.gfxdraw.push(f, pygame.gfxdraw.gen_line(0, -12, 0, 12))
-            pygame.gfxdraw.set_topology(f, "default")
+            pygame.gfxdraw.draw_batch(f, pygame.gfxdraw.gen_line(-16, 0, 16, 0), color=(255, 255, 255))
+            pygame.gfxdraw.draw_batch(f, pygame.gfxdraw.gen_line(0, -12, 0, 12))
 
         # HUD（叠加在 3D 内容之上——Auto 兜底段）
         with screen.render() as f:

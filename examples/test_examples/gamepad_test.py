@@ -51,9 +51,8 @@ async def main():
 
         with screen.render() as t:
             t.fill((16, 18, 26))
-            pygame.gfxdraw.set_color(t, (90, 140, 220))
             pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(int(x), int(y), 0))
-            pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect(40, 40))
+            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_rect(40, 40), color=(90, 140, 220))
             yy = 270
             for line in lines:
                 s = font.render(line, True, (180, 220, 180))

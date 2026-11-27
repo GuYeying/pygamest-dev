@@ -146,8 +146,7 @@ async def main():
                 st("screen_attachment 帧内可取",
                    pygame.render.screen_attachment() is not None)
             t.fill((14, 15, 22))
-            pygame.gfxdraw.set_color(t, (255, 0, 255))
-            pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect_outline(798, 598))  # 诊断：画布边界框
+            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_rect_outline(798, 598), color=(255, 0, 255))
             pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(-370, 280, 0)); pygame.gfxdraw.draw_surface(t, title)
             # ── 段 1：2D 正交（对照恒定）——大波纹圆盘（draw_mesh 全量，
             #    免手填顶点范围）+ debug 标注 + 动态状态命令 ──

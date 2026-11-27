@@ -40,8 +40,7 @@ async def main():
             if e.type == pygame.event.QUIT:
                 return
         with screen.render() as t:
-            pygame.gfxdraw.set_color(t, (30, 34, 44))
-            pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect(800, 600))
+            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_rect(800, 600), color=(30, 34, 44))
             state.update(1.0 / 60.0)
             state.apply(sk)
             sk.update_world_transform()

@@ -32,14 +32,11 @@ async def main():
     card = pygame.Surface((120, 90))
     with card.render() as t:
         t.fill((30, 34, 48))
-        pygame.gfxdraw.set_color(t,(80, 200, 90))
-        pygame.gfxdraw.set_topology(t, "lines")
         pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(60, 45, 0))
-        pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect_outline(108, 78))
-        pygame.gfxdraw.set_topology(t, "default")
+        pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_rect_outline(108, 78), color=(80, 200, 90))
 
         pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(34, 45, 0))
-        pygame.gfxdraw.push(t, pygame.gfxdraw.gen_circle(16))
+        pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_circle(16))
 
     cam2d = kit.Camera2D(w, h)                      # 相机只建一次
     cam3d = kit.Camera3D(w, h, fov=45.0)
@@ -63,9 +60,8 @@ async def main():
             pygame.gfxdraw.set_transform(t, 
                 kit.chain(kit.pos(x, 180), kit.rot_z(frame % 360)))
             pygame.gfxdraw.draw_surface(t, card)
-            pygame.gfxdraw.set_color(t,(70, 74, 92))
             pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(w // 2, h // 2 + 1, 0))
-            pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect(w, 3))
+            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_rect(w, 3), color=(70, 74, 92))
 
         # ── 下半：3D 透视 + 深度会话（y 向上右手系，看向 -Z）──
         with screen.render_depth() as t:
@@ -83,11 +79,9 @@ async def main():
             pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(14, h // 2 - 8, 0))
             pygame.gfxdraw.draw_surface(t, cjk.render("下半：render_depth + 透视（近大远小）",
                               True,(255,0,0)))
-            pygame.gfxdraw.set_topology(t, "lines")
             pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(
                 (20 - w // 2) + (w - 40) // 2, -(h // 2 - 40) + (h // 2 - 60) // 2, 0))
-            pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect_outline(w - 40, h // 2 - 60))
-            pygame.gfxdraw.set_topology(t, "default")
+            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_rect_outline(w - 40, h // 2 - 60))
 
         pygame.display.flip()
         frame += 1

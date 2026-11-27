@@ -29,17 +29,13 @@ async def main():
     with art.render() as t:
         t.fill((125, 125, 125))
 
-        pygame.gfxdraw.set_color(t,(80, 200, 90))
         pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(80, 60, 0))
-        pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect_outline(144, 104))
+        pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_rect_outline(144, 104), color=(80, 200, 90))
 
-        pygame.gfxdraw.set_color(t,(230, 70, 70))
         pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(40, 60, 0))
-        pygame.gfxdraw.push(t, pygame.gfxdraw.gen_circle(24))
+        pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_circle(24), color=(230, 70, 70))
 
-        pygame.gfxdraw.set_color(t,(240, 200, 80))
-        pygame.gfxdraw.set_wireframe(t,True)
-        pygame.gfxdraw.push(t, pygame.gfxdraw.gen_line(10, 110, 150, 10))
+        pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_line(10, 110, 150, 10), color=(240, 200, 80), wireframe=True)
 
         # ── draw_batch 正典（2026-11-25 接口破坏定约——参数自包含
         #    单调用，替代 sticky 三口 + push 组合，FFI N+1→1）──
@@ -96,7 +92,7 @@ async def main():
             #pygame.gfxdraw.set_transform(t, m_mirror); pygame.gfxdraw.draw_surface(t, art)
             #pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(660, 120, 0)); pygame.gfxdraw.draw_surface(t, baked)
             pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(400, 301, 0))
-            pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect(800, 3))
+            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_rect(800, 3))
 
         # ── 下半：透视 + 深度会话空间放置（近大远小；会话级 set_camera）──
         with screen.render_depth() as t:
@@ -110,9 +106,8 @@ async def main():
 
         with screen.render() as t:
             pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(14, 306, 0)); pygame.gfxdraw.draw_surface(t, sub)
-            pygame.gfxdraw.set_color(t,(120, 60, 60))
             pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(400, 460, 0))
-            pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect_outline(740, 220))
+            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_rect_outline(740, 220), color=(120, 60, 60))
 
         pygame.display.flip()
         frame_no += 1

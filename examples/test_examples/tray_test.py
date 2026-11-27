@@ -14,9 +14,8 @@ async def main():
     icon = pygame.Surface((64, 64))
     with icon.render() as t:
         t.fill((40, 120, 60))
-        pygame.gfxdraw.set_color(t, (230, 70, 70))
         pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(32, 32, 0))
-        pygame.gfxdraw.push(t, pygame.gfxdraw.gen_circle(20))
+        pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_circle(20), color=(230, 70, 70))
 
     pygame.display.set_tray(
         icon,
@@ -54,8 +53,7 @@ async def main():
             pygame.display.set_tray(icon, "pygamest 托盘测试（重装）")
             print("[tray-test] 托盘已重装（无菜单）✓")
         with screen.render() as t:
-            pygame.gfxdraw.set_color(t, (30, 34, 44))
-            pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect(800, 600))
+            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_rect(800, 600), color=(30, 34, 44))
             line = font.render(
                 f"frame {frame} · 最近托盘事件: {last_event}（ESC 退出）",
                 True, (255, 255, 255))

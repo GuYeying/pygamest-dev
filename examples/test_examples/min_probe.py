@@ -16,10 +16,8 @@ async def main():
             rt.fill((28, 34, 46))   # 自然顺序（fill 最先——背景语义）
             pygame.gfxdraw.set_transform(rt, pygame.math.mat4_translation(-150, 120, 0))
             pygame.gfxdraw.draw_surface(rt, cjk.render("MIN PROBE TEST", True, (255, 255, 255)))
-            pygame.gfxdraw.set_color(rt, (240, 240, 240))
-            pygame.gfxdraw.push(rt, pygame.gfxdraw.gen_rect(20, 2))
-            pygame.gfxdraw.set_color(rt, (240, 240, 240))
-            pygame.gfxdraw.push(rt, pygame.gfxdraw.gen_rect(2, 20))
+            pygame.gfxdraw.draw_batch(rt, pygame.gfxdraw.gen_rect(20, 2), color=(240, 240, 240))
+            pygame.gfxdraw.draw_batch(rt, pygame.gfxdraw.gen_rect(2, 20), color=(240, 240, 240))
         if frame == 200:
             for s in pygame.render.screen_probe()[:6]:
                 print("[probe]", s, flush=True)

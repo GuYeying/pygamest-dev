@@ -188,8 +188,7 @@ async def main():
 
         with screen.render() as t:
             t.fill((6, 8, 14))
-            pygame.gfxdraw.set_color(t,(255, 0, 255))
-            pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect_outline(798, 598))  # 画布边界诊断
+            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_rect_outline(798, 598), color=(255, 0, 255))
             with screen.raw_compute() as p:
                 p.set_pipeline(cpipe)
                 p.set_bind_group(0, state_bind)
