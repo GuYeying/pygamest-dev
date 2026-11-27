@@ -75,7 +75,7 @@ async def main():
 
         # HUD（叠加在 3D 内容之上——Auto 兜底段）
         with screen.render() as f:
-            pygame.gfxdraw.draw_surface_centered(f, title, (0, -270))
+            pygame.gfxdraw.draw_surface(f, title, transform=pygame.math.mat4_translation(0, -270))
 
         pygame.display.flip()
         await pygame.tasks.yield_now()

@@ -70,34 +70,45 @@ async def main():
             pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_rect(50, 36), color=(255, 120, 255))
     no_raise("gen 生成器面", lambda: gfx(off))
 
-    # vertices/geometry 逃逸舱（原始顶点 + 索引几何）
+    # 原始数据直绘（2026-11-27 迁移——原 vertices/geometry 逃逸舱口删除，
+    # draw_batch 参数自包含形态：拓扑随数据 + VertexBuf 承载索引/线段）
     def raw_verts(s):
         with s.render() as t:
-            t.vertices("triangles", [(10, 10), (90, 10), (50, 90)], (120, 220, 255))
-            t.vertices("lines", [(10, 100), (90, 100)], (255, 160, 60))
+            tri = pygame.gfxdraw.VertexBuf()
+            tri.add_points([10, 10, 0, 90, 10, 0, 50, 90, 0])
+            pygame.gfxdraw.draw_batch(t, tri, color=(120, 220, 255))
+            buf = pygame.gfxdraw.VertexBuf()
+            buf.add_points([10, 100, 0, 90, 100, 0])
+            buf.topology = "lines"
+            pygame.gfxdraw.draw_batch(t, buf, color=(255, 160, 60))
     no_raise("vertices 三角/线", lambda: raw_verts(off))
 
     def raw_geom(s):
         with s.render() as t:
-            t.geometry("filled", [(10, 10), (90, 10), (90, 90), (10, 90)],
-                       [0, 1, 2, 0, 2, 3], (120, 255, 160))
-            t.geometry("line", [(10, 10), (90, 10), (90, 90), (10, 90)],
-                       None, (255, 120, 255))
+            pygame.gfxdraw.draw_batch(
+                t, pygame.gfxdraw.gen_polygon([(10, 10), (90, 10), (90, 90), (10, 90)]),
+                color=(120, 255, 160))
+            pygame.gfxdraw.draw_batch(
+                t, pygame.gfxdraw.gen_polygon_outline([(10, 10), (90, 10), (90, 90), (10, 90)]),
+                color=(255, 120, 255))
     no_raise("geometry 索引填充/线框", lambda: raw_geom(off))
 
-    # push 统一口（v1 批次：VertexBuf + set_topology + gen_* 生成器）——
-    # sticky 状态流（色/拓扑/变换跨 push 持续，与 draw 族 one-shot 分立）
+    # draw_batch 四通道正典（VertexBuf / 扁平 list / bytes / 点列表）
+    # + transform kwarg 自包含（替代 set_transform sticky）
     def push_apis(s):
         with s.render() as t:
-            # 生成器句柄 + sticky 色/变换（连 push 两份同色同拓扑）
+            # 生成器句柄 + transform kwarg（连 push 两份不同位）
             tri = pygame.gfxdraw.gen_circle(20)
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(60, 60, 0))
-            pygame.gfxdraw.draw_batch(t, tri, color=(255, 120, 60))
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(120, 60, 0))
-            pygame.gfxdraw.draw_batch(t, tri)
+            pygame.gfxdraw.draw_batch(
+                t, tri, transform=pygame.math.mat4_translation(60, 60, 0),
+                color=(255, 120, 60))
+            pygame.gfxdraw.draw_batch(
+                t, tri, transform=pygame.math.mat4_translation(120, 60, 0))
 
-            # 扁平 list + 索引覆盖
-            pygame.gfxdraw.draw_batch(t, [160, 60, 220, 60, 190, 120])
+            # 扁平流（VertexBuf add_points 承载）
+            tri2 = pygame.gfxdraw.VertexBuf()
+            tri2.add_points([160, 60, 0, 220, 60, 0, 190, 120, 0])
+            pygame.gfxdraw.draw_batch(t, tri2)
 
             # bytes 直拷（手动 VertexBuf + set_indices）
             buf = pygame.gfxdraw.VertexBuf()
@@ -105,26 +116,27 @@ async def main():
             buf.set_indices([0, 1, 2])
             pygame.gfxdraw.draw_batch(t, buf)
 
-            # lines 拓扑——顶点按 2 个点一组解释（每点仍 x,y,z 三分量）
-            pygame.gfxdraw.draw_batch(t, [10, 120, 0, 90, 120, 0], color=(120, 220, 255))
-
-            # 拓扑复位（default）——后续 draw 族不受污染
-            pygame.gfxdraw.reset_transform(t)
+            # lines 拓扑——VertexBuf 覆写（顶点按 2 个点一组解释）
+            lbuf = pygame.gfxdraw.VertexBuf()
+            lbuf.add_points([10, 120, 0, 90, 120, 0])
+            lbuf.topology = "lines"
+            pygame.gfxdraw.draw_batch(t, lbuf, color=(120, 220, 255))
     no_raise("push 统一口四通道", lambda: push_apis(off))
 
-    # push 负路径：长度不校验（扁平 list 非 3 倍数）
-    def push_bad_len(s):
+    # 负路径：裸 data 强类型（list 直传 = TypeError——须 VertexBuf）
+    def push_bad_type(s):
         with s.render() as t:
             pygame.gfxdraw.draw_batch(t, [10, 20, 30, 40])
     try:
-        push_bad_len(off)
-        st("push 扁平长度 ValueError", False)
-    except ValueError:
-        st("push 扁平长度 ValueError", True)
+        push_bad_type(off)
+        st("draw_batch 裸 data TypeError", False)
+    except TypeError:
+        st("draw_batch 裸 data TypeError", True)
 
     # 负路径：颜色分量不足 / 非法项
     def bad_color(s):
         with s.render() as t:
+            pygame.gfxdraw.draw_batch(t, [(10, 10), (50, 10), (30, 60)], color=(10, 20))
     try:
         bad_color(off)
         st("颜色分量不足 TypeError", False)
