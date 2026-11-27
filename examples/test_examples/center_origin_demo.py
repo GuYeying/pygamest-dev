@@ -30,10 +30,8 @@ async def main():
             f.fill((14, 14, 22))
             # 坐标轴（横纵过原点）
             pygame.gfxdraw.set_color(f,(80, 80, 100))
-            pygame.gfxdraw.set_topology(f, "lines")
             pygame.gfxdraw.push(f, pygame.gfxdraw.gen_line(-400, 0, 400, 0))
             pygame.gfxdraw.push(f, pygame.gfxdraw.gen_line(0, -300, 0, 300))
-            pygame.gfxdraw.set_topology(f, "default")
             # 四象限圆（y 向上：+y 在屏幕上半）
             pygame.gfxdraw.set_color(f,(255, 200, 0))
             pygame.gfxdraw.set_transform(f, pygame.math.mat4_translation(-200, 150, 0))

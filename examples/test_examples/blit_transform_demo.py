@@ -30,10 +30,8 @@ async def main():
         t.fill((125, 125, 125))
 
         pygame.gfxdraw.set_color(t,(80, 200, 90))
-        pygame.gfxdraw.set_topology(t, "lines")
         pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(80, 60, 0))
         pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect_outline(144, 104))
-        pygame.gfxdraw.set_topology(t, "default")
 
         pygame.gfxdraw.set_color(t,(230, 70, 70))
         pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(40, 60, 0))
@@ -41,9 +39,7 @@ async def main():
 
         pygame.gfxdraw.set_color(t,(240, 200, 80))
         pygame.gfxdraw.set_wireframe(t,True)
-        pygame.gfxdraw.set_topology(t, "lines")
         pygame.gfxdraw.push(t, pygame.gfxdraw.gen_line(10, 110, 150, 10))
-        pygame.gfxdraw.set_topology(t, "default")
     # 烘焙对照（一次烘焙——非逐帧反模式）
     baked = pygame.transform.rotate(art, 30)
 
@@ -101,10 +97,8 @@ async def main():
         with screen.render() as t:
             pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(14, 306, 0)); pygame.gfxdraw.draw_surface(t, sub)
             pygame.gfxdraw.set_color(t,(120, 60, 60))
-            pygame.gfxdraw.set_topology(t, "lines")
             pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(400, 460, 0))
             pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect_outline(740, 220))
-            pygame.gfxdraw.set_topology(t, "default")
 
         pygame.display.flip()
         frame_no += 1
