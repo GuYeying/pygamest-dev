@@ -82,16 +82,14 @@ async def main():
                     v = rot.transform_point3(
                         pygame.math.Vector3(M.cos(a) * 1.5, M.sin(a) * 1.5, 0.0))
                     pts += [v.x, v.y, v.z]
-                pygame.gfxdraw.set_color(rt, col)
-                pygame.gfxdraw.push(rt, pygame.gfxdraw.gen_polygon3d(pts))
+                pygame.gfxdraw.draw_batch(rt, pygame.gfxdraw.gen_polygon3d(pts), color=col)
 
             pygame.gfxdraw.clear_camera(rt)
             yy = 270
             for line in PASS + FAIL:
                 s = font.render(line, True,
                                 (140, 220, 140) if line in PASS else (230, 120, 120))
-                pygame.gfxdraw.set_transform(rt, M.mat4_translation(-380, yy, 0))
-                pygame.gfxdraw.draw_surface(rt, s)
+                pygame.gfxdraw.draw_surface(rt, s, transform=M.mat4_translation(-380, yy, 0))
                 yy -= 22
 
         pygame.display.flip()

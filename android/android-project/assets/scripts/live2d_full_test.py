@@ -104,8 +104,7 @@ async def main():
         rt2.update_meshes()
         rt2.draw(buf2, scale=0.9)
         with screen.render() as t:
-            pygame.gfxdraw.set_color(t, (36, 40, 52))
-            pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect(800, 600))
+            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_rect(800, 600), color=(36, 40, 52))
             pygame.gfxdraw.draw_surface(t, buf2)
         pygame.display.flip()
         await pygame.tasks.yield_now()

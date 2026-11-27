@@ -47,9 +47,13 @@ SO_NAME = "libandroid_host.so"
 PKG = "pygame.rsdev"  # manifest 包（两段强制）；Java 类包独立 = pygamestdev（JNI 对齐）
 ACTIVITY = f"{PKG}/.MainActivity"
 # 全量脚本源（本仓 examples 单源——旧世代 pygamest/examples 已退役，
-# 勿回加：遗留脚本会"复活"进 APK；递归 games/ 形态暂不收）
+# 勿回加：遗留脚本会"复活"进 APK；递归 games/ 形态暂不收）。
+# 2026-11-27：案例已全部下沉 examples/test_examples（顶层 examples/
+# 只剩目录）——两个源都收，平铺进 assets/scripts（选择页 = 平铺列表），
+# 同名即报错（不静默覆盖）
 SCRIPT_SOURCES = [
     Path(__file__).resolve().parent.parent / "examples",
+    Path(__file__).resolve().parent.parent / "examples" / "test_examples",
 ]
 
 
@@ -136,7 +140,10 @@ def cmd_demo(args):
     count = 0
     for src in SCRIPT_SOURCES:
         for py in sorted(src.glob("*.py")):
-            (scripts_dir / py.name).write_bytes(py.read_bytes())
+            dst = scripts_dir / py.name
+            if dst.exists():
+                sys.exit(f"[FAIL] 脚本同名冲突：{py.name}（{src}）——平铺选择页不允重名")
+            dst.write_bytes(py.read_bytes())
             count += 1
     print(f"[OK] 打包脚本 {count} 个")
     # 1b) 模块文件夹收集（examples/modules/ → assets/modules/，递归保留

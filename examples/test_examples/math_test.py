@@ -89,8 +89,7 @@ async def main():
             for line in PASS + FAIL:
                 s = font.render(line, True,
                                 (140, 220, 140) if line in PASS else (230, 120, 120))
-                pygame.gfxdraw.set_transform(rt, M.mat4_translation(-380, yy, 0))
-                pygame.gfxdraw.draw_surface(rt, s)
+                pygame.gfxdraw.draw_surface(rt, s, transform=M.mat4_translation(-380, yy, 0))
                 yy -= 22
 
         pygame.display.flip()

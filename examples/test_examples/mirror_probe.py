@@ -24,8 +24,7 @@ async def main():
         """画一帧 + 回读 7×5 网格 → 报红色像素在哪半"""
         with screen.render() as f:
             f.fill((0, 0, 20))
-            pygame.gfxdraw.set_transform(f, transform)
-            pygame.gfxdraw.draw_surface(f, art)
+            pygame.gfxdraw.draw_surface(f, art, transform=transform)
         pygame.display.flip()
         # present 后回读
         pts = pygame.render.screen_probe()

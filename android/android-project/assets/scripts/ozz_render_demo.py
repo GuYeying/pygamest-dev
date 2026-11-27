@@ -18,16 +18,14 @@ async def main():
             if e.type == pygame.event.QUIT:
                 return
         with screen.render() as t:
-            pygame.gfxdraw.set_color(t, (24, 26, 34))
-            pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect(800, 600))
+            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_rect(800, 600), color=(24, 26, 34))
             ratio = abs((frame % 120) - 60) / 60.0
             p.sample(ratio)
             pygame.gfxdraw.draw_ozz_bones(t, p, scale=150.0, cx=0.0, cy=-60.0)
             pygame.gfxdraw.draw_ozz_quads(t, p, scale=150.0, cx=0.0, cy=-60.0, size=26.0)
         label = font.render(f"ozz demo frame={frame} ratio={ratio:.2f}", True, (220, 220, 230))
         with screen.render() as t:
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(-380, 270, 0))
-            pygame.gfxdraw.draw_surface(t, label)
+            pygame.gfxdraw.draw_surface(t, label, transform=pygame.math.mat4_translation(-380, 270, 0))
         pygame.display.flip()
         await pygame.tasks.yield_now()
         frame += 1

@@ -119,9 +119,9 @@ async def main():
         # batch 的既有贴图路径）
         with screen.render() as t:
             t.fill((18, 20, 28))
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(16, 12, 0)); pygame.gfxdraw.draw_surface(t, label)
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(160, 120, 0)); pygame.gfxdraw.draw_surface(t, pip)
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(524, 40, 0)); pygame.gfxdraw.draw_surface(t, ui_surf)
+            pygame.gfxdraw.draw_surface(t, label, transform=pygame.math.mat4_translation(16, 12, 0))
+            pygame.gfxdraw.draw_surface(t, pip, transform=pygame.math.mat4_translation(160, 120, 0))
+            pygame.gfxdraw.draw_surface(t, ui_surf, transform=pygame.math.mat4_translation(524, 40, 0))
         pygame.display.flip()
         frame_no += 1
 

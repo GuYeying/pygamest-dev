@@ -47,13 +47,11 @@ async def main():
             m = pygame.math.mat4_translation(0, -120, 0).mul_mat4(
                 pygame.math.mat4_scale(0.6, 0.6, 0.6)
             )
-            pygame.gfxdraw.set_transform(t, m)
             pygame.gfxdraw.draw_spine(t, sk, [page0])
             status = f"wasm spine: PASS {len(ok)} FAIL {len(fail)}"
             color = (120, 255, 120) if not fail else (255, 120, 120)
             line = font.render(status, True, color)
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(-380, 280, 0))
-            pygame.gfxdraw.draw_surface(t, line)
+            pygame.gfxdraw.draw_surface(t, line, transform=pygame.math.mat4_translation(-380, 280, 0))
         pygame.display.flip()
         await pygame.tasks.yield_now()
         frame += 1

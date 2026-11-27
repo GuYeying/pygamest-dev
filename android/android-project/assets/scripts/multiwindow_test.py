@@ -62,9 +62,8 @@ async def main():
         # 主窗帧（标准会话）
         with screen.render() as rt:
             rt.fill((26, 32, 44))
-            pygame.gfxdraw.set_transform(rt, M.mat4_translation(-300, 220, 0))
             pygame.gfxdraw.draw_surface(rt, hud_text(
-                f"主窗 | 平台 {pygame.get_platform()} | 多窗={MULTI}"))
+                f"主窗 | 平台 {pygame.get_platform()} | 多窗={MULTI}"), transform=M.mat4_translation(-300, 220, 0))
 
         if MULTI:
             # 副窗独立会话/flip（双窗同帧）——⚠️ gfxdraw 绘制面多窗 v2

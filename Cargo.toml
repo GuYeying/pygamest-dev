@@ -20,7 +20,7 @@ path = "src/main.rs"
 [[example]]
 # Android 调试壳（cdylib）：dialog 选文件运行（单文件 -c 形态）
 name = "android_host"
-path = "examples/android_host.rs"
+path = "examples/test_examples/android_host.rs"
 crate-type = ["cdylib"]
 
 [features]
@@ -39,7 +39,7 @@ crate-type = ["cdylib"]
 # 路线暂缓——默认走 Lib_min 白名单裁剪版 stdlib（time/sys = RP 内建
 # 原生模块不依赖冻结；当前项目零影响，-23MB 级）。full 保留为 opt-in
 # （编辑器工具链面），后续 RP 可替代 CPython 时再补回。
-default = ["gui", "physics2d", "physics3d", "ozz"]
+default = ["gui", "physics2d", "physics3d", "ozz", "fluid2d", "fluid3d"]
 full = ["pygamest/stdlib-full"]
 gui = ["pygamest/gui"]
 physics2d = ["pygamest/physics2d"]
@@ -67,6 +67,9 @@ tilemap = ["pygamest/tilemap"]
 multi-window = ["pygamest/multi-window"]
 # fluid / fluid2d / fluid3d = 流体物理（salva SPH；fluid2d = salva2d
 # 2D 轴 / fluid3d = fluid 旧名的轴语义正名——两者同义，逐步退役）。
+# ⚠️ fluid2d/fluid3d **入 default**（2026-11-27）：test_examples 里的
+# fluid_test / fluid2d_test / fluid3d_game / fluid_pipeline_test 是基准
+# 案例，未启用时 pygame_physics.FluidWorld* 直接 AttributeError。
 # 特殊 feature 定则（2026-11-18）：tray/skip-taskbar/click-through/
 # multi-window 全 opt-in 不入 default——跨平台不足（tray 三桌面实装
 # 但依赖重 + web/mobile 站桩，用户裁决"也没必要"；skip-taskbar Linux

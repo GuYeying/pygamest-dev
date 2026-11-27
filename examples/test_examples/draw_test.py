@@ -9,7 +9,6 @@ import pygame
 async def main():
     screen = pygame.display.set_mode((800, 600))
     screen.set_camera(pygame.render.game_camera_ortho(800, 600, 800, 600))
-    screen.set_camera(pygame.render.game_camera_ortho(800, 600, 800, 600))
     font = pygame.font.Font(None, 20)
     cjk = pygame.font.Font("cjk", 20)
     _fail = []
@@ -34,40 +33,31 @@ async def main():
 
     def shapes_on(s):
         with s.render() as t:
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(35, 25, 0))
-            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_rect(60, 40), color=(0, 200, 90))
-            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_rect_outline(60, 40), color=(255, 255, 255))
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(150, 30, 0))
-            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_circle(22), color=(255, 200, 0))
-            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_circle_outline(22), color=(255, 255, 255))
-            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_line(5, 80, 190, 80), color=(200, 60, 60))
-            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_polygon([(30, 95), (90, 100), (70, 115)]), color=(90, 120, 220))
-            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_polygon_outline([(120, 95), (180, 100), (160, 115)]), color=(255, 160, 60))
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(-55, -35, 0))
-            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_ellipse(40, 20), color=(60, 180, 120))
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(40, -35, 0))
-            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_arc(40, 0, 180), color=(120, 220, 255))
-            pygame.gfxdraw.reset_transform(t)
+            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_rect(60, 40), color=(0, 200, 90), transform=pygame.math.mat4_translation(35, 25, 0))
+            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_rect_outline(60, 40), color=(255, 255, 255), transform=pygame.math.mat4_translation(35, 25, 0))
+            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_circle(22), color=(255, 200, 0), transform=pygame.math.mat4_translation(150, 30, 0))
+            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_circle_outline(22), color=(255, 255, 255), transform=pygame.math.mat4_translation(150, 30, 0))
+            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_line(5, 80, 190, 80), color=(200, 60, 60), transform=pygame.math.mat4_translation(150, 30, 0))
+            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_polygon([(30, 95), (90, 100), (70, 115)]), color=(90, 120, 220), transform=pygame.math.mat4_translation(150, 30, 0))
+            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_polygon_outline([(120, 95), (180, 100), (160, 115)]), color=(255, 160, 60), transform=pygame.math.mat4_translation(150, 30, 0))
+            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_ellipse(40, 20), color=(60, 180, 120), transform=pygame.math.mat4_translation(-55, -35, 0))
+            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_arc(40, 0, 180), color=(120, 220, 255), transform=pygame.math.mat4_translation(40, -35, 0))
 
     no_raise("六形状全绘（离屏会话）", lambda: shapes_on(off))
 
     # 半透明叠加（4 元色 alpha 分量）
     def translucent(s):
         with s.render() as t:
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(25, 25, 0))
-            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_rect(40, 40), color=(255, 0, 0, 90))
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(45, 45, 0))
-            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_rect(40, 40), color=(0, 0, 255, 90))
+            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_rect(40, 40), color=(255, 0, 0, 90), transform=pygame.math.mat4_translation(25, 25, 0))
+            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_rect(40, 40), color=(0, 0, 255, 90), transform=pygame.math.mat4_translation(45, 45, 0))
     no_raise("半透明叠加", lambda: translucent(off))
 
     # gen 生成器面（与 push 同一 batch 零额外成本）
     def gfx(s):
         with s.render() as t:
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(40, 30, 0))
-            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_circle_outline(18), color=(120, 255, 120))
-            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_circle(8), color=(255, 255, 120))
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(95, 30, 0))
-            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_rect(50, 36), color=(255, 120, 255))
+            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_circle_outline(18), color=(120, 255, 120), transform=pygame.math.mat4_translation(40, 30, 0))
+            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_circle(8), color=(255, 255, 120), transform=pygame.math.mat4_translation(40, 30, 0))
+            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_rect(50, 36), color=(255, 120, 255), transform=pygame.math.mat4_translation(95, 30, 0))
     no_raise("gen 生成器面", lambda: gfx(off))
 
     # 原始数据直绘（2026-11-27 迁移——原 vertices/geometry 逃逸舱口删除，
@@ -169,42 +159,32 @@ async def main():
 
         with screen.render() as r:
             r.fill((240, 24, 34))
-            pygame.gfxdraw.set_transform(r, pygame.math.mat4_translation(12, 8, 0)); pygame.gfxdraw.draw_surface(r, label)
+            pygame.gfxdraw.draw_surface(r, label, transform=pygame.math.mat4_translation(12, 8, 0))
             # 第一区：矩形三形态
-            pygame.gfxdraw.set_transform(r, pygame.math.mat4_translation(80, 80, 0))
-            pygame.gfxdraw.draw_batch(r, pygame.gfxdraw.gen_rect(120, 80), color=(0, 200, 90))
-            pygame.gfxdraw.draw_batch(r, pygame.gfxdraw.gen_rect_outline(120, 80), color=(255, 255, 255))
-            pygame.gfxdraw.set_transform(r, pygame.math.mat4_translation(220, 80, 0))
-            pygame.gfxdraw.draw_batch(r, pygame.gfxdraw.gen_rect_outline(120, 80), color=(90, 200, 255))
-            pygame.gfxdraw.set_transform(r, pygame.math.mat4_translation(20, 452, 0)); pygame.gfxdraw.draw_surface(r, spec[0])
+            pygame.gfxdraw.draw_batch(r, pygame.gfxdraw.gen_rect(120, 80), color=(0, 200, 90), transform=pygame.math.mat4_translation(80, 80, 0))
+            pygame.gfxdraw.draw_batch(r, pygame.gfxdraw.gen_rect_outline(120, 80), color=(255, 255, 255), transform=pygame.math.mat4_translation(80, 80, 0))
+            pygame.gfxdraw.draw_batch(r, pygame.gfxdraw.gen_rect_outline(120, 80), color=(90, 200, 255), transform=pygame.math.mat4_translation(220, 80, 0))
+            pygame.gfxdraw.draw_surface(r, spec[0], transform=pygame.math.mat4_translation(20, 452, 0))
             # 第二区：圆 + 线
-            pygame.gfxdraw.set_transform(r, pygame.math.mat4_translation(60, 220, 0))
-            pygame.gfxdraw.draw_batch(r, pygame.gfxdraw.gen_circle(36), color=(255, 200, 0))
-            pygame.gfxdraw.set_transform(r, pygame.math.mat4_translation(150, 220, 0))
-            pygame.gfxdraw.draw_batch(r, pygame.gfxdraw.gen_circle_outline(36), color=(255, 255, 255))
-            pygame.gfxdraw.draw_batch(r, pygame.gfxdraw.gen_line(20, 270, 250, 270), color=(200, 60, 60))
-            pygame.gfxdraw.set_transform(r, pygame.math.mat4_translation(20, 312, 0)); pygame.gfxdraw.draw_surface(r, spec[1])
+            pygame.gfxdraw.draw_batch(r, pygame.gfxdraw.gen_circle(36), color=(255, 200, 0), transform=pygame.math.mat4_translation(60, 220, 0))
+            pygame.gfxdraw.draw_batch(r, pygame.gfxdraw.gen_circle_outline(36), color=(255, 255, 255), transform=pygame.math.mat4_translation(150, 220, 0))
+            pygame.gfxdraw.draw_batch(r, pygame.gfxdraw.gen_line(20, 270, 250, 270), color=(200, 60, 60), transform=pygame.math.mat4_translation(150, 220, 0))
+            pygame.gfxdraw.draw_surface(r, spec[1], transform=pygame.math.mat4_translation(20, 312, 0))
             # 第三区：多边形 + 椭圆 + 弧
-            pygame.gfxdraw.draw_batch(r, pygame.gfxdraw.gen_polygon([(280, 220), (380, 240), (350, 310), (280, 300)]), color=(90, 120, 220))
-            pygame.gfxdraw.draw_batch(r, pygame.gfxdraw.gen_polygon_outline([(20, 330), (120, 340), (90, 410)]), color=(255, 160, 60))
-            pygame.gfxdraw.set_transform(r, pygame.math.mat4_translation(-150, -75, 0))
-            pygame.gfxdraw.draw_batch(r, pygame.gfxdraw.gen_ellipse(90, 45), color=(60, 180, 120))
-            pygame.gfxdraw.set_transform(r, pygame.math.mat4_translation(40, -90, 0))
-            pygame.gfxdraw.draw_batch(r, pygame.gfxdraw.gen_arc(60, 180, 360), color=(120, 220, 255))
-            pygame.gfxdraw.set_transform(r, pygame.math.mat4_translation(20, 152, 0)); pygame.gfxdraw.draw_surface(r, spec[2])
+            pygame.gfxdraw.draw_batch(r, pygame.gfxdraw.gen_polygon([(280, 220), (380, 240), (350, 310), (280, 300)]), color=(90, 120, 220), transform=pygame.math.mat4_translation(20, 312, 0))
+            pygame.gfxdraw.draw_batch(r, pygame.gfxdraw.gen_polygon_outline([(20, 330), (120, 340), (90, 410)]), color=(255, 160, 60), transform=pygame.math.mat4_translation(20, 312, 0))
+            pygame.gfxdraw.draw_batch(r, pygame.gfxdraw.gen_ellipse(90, 45), color=(60, 180, 120), transform=pygame.math.mat4_translation(-150, -75, 0))
+            pygame.gfxdraw.draw_batch(r, pygame.gfxdraw.gen_arc(60, 180, 360), color=(120, 220, 255), transform=pygame.math.mat4_translation(40, -90, 0))
+            pygame.gfxdraw.draw_surface(r, spec[2], transform=pygame.math.mat4_translation(20, 152, 0))
             # 第四区：半透明叠加 + gen 混绘
-            pygame.gfxdraw.set_transform(r, pygame.math.mat4_translation(465, 105, 0))
-            pygame.gfxdraw.draw_batch(r, pygame.gfxdraw.gen_rect(90, 90), color=(255, 0, 0, 90))
-            pygame.gfxdraw.set_transform(r, pygame.math.mat4_translation(480, 120, 0))
-            pygame.gfxdraw.draw_batch(r, pygame.gfxdraw.gen_circle(45), color=(0, 0, 255, 90))
-            pygame.gfxdraw.set_transform(r, pygame.math.mat4_translation(620, 120, 0))
-            pygame.gfxdraw.draw_batch(r, pygame.gfxdraw.gen_circle_outline(40), color=(120, 255, 120))
-            pygame.gfxdraw.draw_batch(r, pygame.gfxdraw.gen_circle(18), color=(255, 255, 120))
-            pygame.gfxdraw.set_transform(r, pygame.math.mat4_translation(650, 240, 0))
-            pygame.gfxdraw.draw_batch(r, pygame.gfxdraw.gen_rect_outline(140, 80), color=(255, 120, 255))
-            pygame.gfxdraw.set_transform(r, pygame.math.mat4_translation(420, 10, 0)); pygame.gfxdraw.draw_surface(r, spec[3])
+            pygame.gfxdraw.draw_batch(r, pygame.gfxdraw.gen_rect(90, 90), color=(255, 0, 0, 90), transform=pygame.math.mat4_translation(465, 105, 0))
+            pygame.gfxdraw.draw_batch(r, pygame.gfxdraw.gen_circle(45), color=(0, 0, 255, 90), transform=pygame.math.mat4_translation(480, 120, 0))
+            pygame.gfxdraw.draw_batch(r, pygame.gfxdraw.gen_circle_outline(40), color=(120, 255, 120), transform=pygame.math.mat4_translation(620, 120, 0))
+            pygame.gfxdraw.draw_batch(r, pygame.gfxdraw.gen_circle(18), color=(255, 255, 120), transform=pygame.math.mat4_translation(620, 120, 0))
+            pygame.gfxdraw.draw_batch(r, pygame.gfxdraw.gen_rect_outline(140, 80), color=(255, 120, 255), transform=pygame.math.mat4_translation(650, 240, 0))
+            pygame.gfxdraw.draw_surface(r, spec[3], transform=pygame.math.mat4_translation(420, 10, 0))
             # 离屏 Surface 会话产物 blit（独立绘制目标）
-            pygame.gfxdraw.set_transform(r, pygame.math.mat4_translation(20, 460, 0)); pygame.gfxdraw.draw_surface(r, off)
+            pygame.gfxdraw.draw_surface(r, off, transform=pygame.math.mat4_translation(20, 460, 0))
             # 第五区：vertices/geometry 逃逸舱（批次三十八——原始顶点 +
             # 索引几何直通；主体三角扇 + 线框）
             r.vertices("triangles",

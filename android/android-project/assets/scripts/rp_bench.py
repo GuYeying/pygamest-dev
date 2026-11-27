@@ -164,15 +164,15 @@ async def main():
 
         with screen.render() as t:
             t.fill((16, 18, 26))
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(14, 10, 0)); pygame.gfxdraw.draw_surface(t, title)
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(14, 36, 0)); pygame.gfxdraw.draw_surface(t, hint)
+            pygame.gfxdraw.draw_surface(t, title, transform=pygame.math.mat4_translation(14, 10, 0))
+            pygame.gfxdraw.draw_surface(t, hint, transform=pygame.math.mat4_translation(14, 36, 0))
             y = 70
             for surf in lines:
-                pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(24, y, 0)); pygame.gfxdraw.draw_surface(t, surf)
+                pygame.gfxdraw.draw_surface(t, surf, transform=pygame.math.mat4_translation(24, y, 0))
                 y += 30
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(24, y + 6, 0)); pygame.gfxdraw.draw_surface(t, sum_line)
+            pygame.gfxdraw.draw_surface(t, sum_line, transform=pygame.math.mat4_translation(24, y + 6, 0))
             bar = cjk.render(f"FPS {fps:.1f}", True, (150, 200, 255))
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(660, 560, 0)); pygame.gfxdraw.draw_surface(t, bar)
+            pygame.gfxdraw.draw_surface(t, bar, transform=pygame.math.mat4_translation(660, 560, 0))
         pygame.display.flip()
         frame += 1
         await pygame.tasks.yield_now()

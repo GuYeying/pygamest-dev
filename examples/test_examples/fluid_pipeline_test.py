@@ -317,9 +317,8 @@ async def main():
             pygame.gfxdraw.clear_camera(rt)
             # HUD（帧号上屏——任何残迹立即显形）
             pygame.gfxdraw.set_camera(rt, pixel_cam)
-            pygame.gfxdraw.set_transform(rt, M.mat4_translation(-388, 288, 0))
             pygame.gfxdraw.draw_surface(rt, cjk.render(
-                f"[pipe-test] frame {frame} | 漂移球 ×{n}", True, (190, 210, 235)))
+                f"[pipe-test] frame {frame} | 漂移球 ×{n}", True, (190, 210, 235)), transform=M.mat4_translation(-388, 288, 0))
             pygame.gfxdraw.clear_camera(rt)
 
         if frame == 120:

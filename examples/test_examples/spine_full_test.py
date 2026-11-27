@@ -129,9 +129,7 @@ async def main():
             state.update(dt)
             state.apply(sk3)
             sk3.update_world_transform()
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(0, -40, 0))
             pygame.gfxdraw.draw_spine(t, sk3, [page0])
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(0, 0, 0))
         pygame.display.flip()
         await pygame.tasks.yield_now()
         frame += 1

@@ -49,9 +49,7 @@ async def main():
                 yy = 240
                 for line in info:
                     s = font.render(line, True, (180, 220, 180))
-                    pygame.gfxdraw.set_transform(
-                        rt, pygame.math.mat4_translation(-380, yy, 0))
-                    pygame.gfxdraw.draw_surface(rt, s)
+                    pygame.gfxdraw.draw_surface(rt, s, transform=pygame.math.mat4_translation(-380, yy, 0))
                     yy -= 26
 
         pygame.display.flip()
@@ -75,8 +73,7 @@ async def main():
             rt.fill((16, 18, 26))
             s = font.render(f"SUMMARY {'PASS' if not FAIL else 'FAIL ' + str(FAIL)}",
                             True, (180, 220, 180))
-            pygame.gfxdraw.set_transform(rt, pygame.math.mat4_translation(-160, 0, 0))
-            pygame.gfxdraw.draw_surface(rt, s)
+            pygame.gfxdraw.draw_surface(rt, s, transform=pygame.math.mat4_translation(-160, 0, 0))
         pygame.display.flip()
         pygame.time.delay(8)
         await pygame.tasks.yield_now()

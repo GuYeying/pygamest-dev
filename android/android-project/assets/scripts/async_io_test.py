@@ -120,27 +120,21 @@ async def main():
         with screen.render() as t:
             t.fill((14, 16, 24))
             # 大字 FPS（帧间 ms 越大 = 越卡）
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(-330, 270, 0))
             pygame.gfxdraw.draw_surface(t, cjk.render(
                 f"FPS ≈ {1000.0 / max(fps_ms, 0.01):.0f}  帧间 {fps_ms:.1f}ms  最大 {max_dt:.0f}ms",
-                True, (255, 230, 120) if fps_ms > 40 else (150, 230, 150)))
+                True, (255, 230, 120) if fps_ms > 40 else (150, 230, 150)), transform=pygame.math.mat4_translation(-330, 270, 0))
 
             # 耗时对照
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(-330, 240, 0))
             b_txt = f"阻塞加载: {blocking_ms:.0f} ms（画面冻结）" if blocking_ms >= 0 else "阻塞加载: 未测"
-            pygame.gfxdraw.draw_surface(t, cjk.render(b_txt, True, (250, 160, 140)))
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(-330, 214, 0))
+            pygame.gfxdraw.draw_surface(t, cjk.render(b_txt, True, (250, 160, 140)), transform=pygame.math.mat4_translation(-330, 240, 0))
             a_txt = f"异步加载: {async_ms:.0f} ms（分 {PARTS} 帧，画面流畅）" if async_ms >= 0 else "异步加载: 未测"
-            pygame.gfxdraw.draw_surface(t, cjk.render(a_txt, True, (140, 230, 180)))
+            pygame.gfxdraw.draw_surface(t, cjk.render(a_txt, True, (140, 230, 180)), transform=pygame.math.mat4_translation(-330, 214, 0))
 
             # 进度条（异步中）
             if "异步中" in hud.state and "|" in hud.state:
                 done_pct = int(hud.state.split("|")[1])
                 w = int(500 * done_pct / 100)
-                pygame.gfxdraw.set_color(t, (80, 200, 140))
-                pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(-250 + w // 2, -168, 0))
-                pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect(w, 24))
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(0, 0, 0))
+                pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_rect(w, 24), color=(80, 200, 140), transform=pygame.math.mat4_translation(-250 + w // 2, -168, 0))
 
             # egui 面板（输入路径 + 按钮）
             t.draw_ui(hud)

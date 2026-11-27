@@ -224,13 +224,11 @@ async def main():
         return text_cache[s]
 
     def draw_hud(rt):
-        pygame.gfxdraw.set_transform(rt, M.mat4_translation(-372, 244, 0))
         pygame.gfxdraw.draw_surface(rt, hud_text(
-            "[tilemap] 3 层 3 shader 按层序叠加：地面贴图 / 装饰 tint / 水波 alpha"))
-        pygame.gfxdraw.set_transform(rt, M.mat4_translation(-372, 224, 0))
+            "[tilemap] 3 层 3 shader 按层序叠加：地面贴图 / 装饰 tint / 水波 alpha"), transform=M.mat4_translation(-372, 244, 0))
         pygame.gfxdraw.draw_surface(rt, hud_text(
             f"ground {len(verts_g)//2} v | deco {len(d_verts)//2} v | fx {len(verts_f)//2} v",
-            (255, 220, 90)))
+            (255, 220, 90)), transform=M.mat4_translation(-372, 224, 0))
 
     while True:
         for e in pygame.event.get():

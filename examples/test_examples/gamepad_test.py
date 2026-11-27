@@ -51,13 +51,11 @@ async def main():
 
         with screen.render() as t:
             t.fill((16, 18, 26))
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(int(x), int(y), 0))
-            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_rect(40, 40), color=(90, 140, 220))
+            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_rect(40, 40), color=(90, 140, 220), transform=pygame.math.mat4_translation(int(x), int(y), 0))
             yy = 270
             for line in lines:
                 s = font.render(line, True, (180, 220, 180))
-                pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(-380, yy, 0))
-                pygame.gfxdraw.draw_surface(t, s)
+                pygame.gfxdraw.draw_surface(t, s, transform=pygame.math.mat4_translation(-380, yy, 0))
                 yy -= 24
 
         pygame.display.flip()

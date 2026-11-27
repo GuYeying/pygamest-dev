@@ -9,7 +9,11 @@ import pygame_physics as rp
 
 async def main():
     screen = pygame.display.set_mode((800, 600))
-    screen.set_camera(pygame.render.game_camera_ortho(800, 600, 800, 600))
+    # **米域相机**（整数米域——game_camera_ortho 参数 int 型；80 ppm
+    # → 10×8m 域。物理 debug 线 = 米坐标：像素正交相机下米坐标直入会
+    # 过小，ai.md 定约"跟随时配米域相机"）
+    screen.set_camera(pygame.render.game_camera_ortho(10, 8, 800, 600))
+    pixel_cam = pygame.render.game_camera_ortho(800, 600, 800, 600)  # HUD 段用
     cjk = pygame.font.Font("cjk", 20)
     _fail = []
 
@@ -130,7 +134,12 @@ async def main():
 
         with screen.render() as t:
             t.fill((18, 20, 28))
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(16, 12, 0)); pygame.gfxdraw.draw_surface(t, label)
+            # label = **像素域段**（米制相机下像素 UI 显式切段——
+            # fluid2d_test 正典形态；画毕 clear_camera 交还）
+            lw, lh = label.get_size()
+            pygame.gfxdraw.set_camera(t, pixel_cam)
+            pygame.gfxdraw.draw_surface(t, label, transform=pygame.math.mat4_translation( -400 + 8 + lw / 2, 300 - 8 - lh / 2, 0))
+            pygame.gfxdraw.clear_camera(t)
             # 会话排程：调试线（与 egui 的 t.draw_ui 同一渲染行为——
             # 会话内调用、flip 时恒在游戏内容之上）
             if frame_no == 0:

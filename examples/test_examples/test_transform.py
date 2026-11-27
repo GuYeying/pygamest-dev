@@ -42,10 +42,9 @@ async def main():
     with art.render() as t:
         t.fill((125, 125, 125))
         pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_rect_outline(144, 104), color=(80, 200, 90))
-        pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(-40, 0, 0))
-        pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_circle(24), color=(230, 70, 70))
-        pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_line(-70, 50, 70, -50), color=(240, 200, 80))
-        pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_line(-70, -50, 70, 50), color=(240, 240, 240))
+        pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_circle(24), color=(230, 70, 70), transform=pygame.math.mat4_translation(-40, 0, 0))
+        pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_line(-70, 50, 70, -50), color=(240, 200, 80), transform=pygame.math.mat4_translation(-40, 0, 0))
+        pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_line(-70, -50, 70, 50), color=(240, 240, 240), transform=pygame.math.mat4_translation(-40, 0, 0))
 
     frame = 0
     logged = False
@@ -94,20 +93,16 @@ async def main():
             t.fill((20, 20, 30))
 
             # 旋转（围绕中心）
-            pygame.gfxdraw.set_transform(t, m_rot)
-            pygame.gfxdraw.draw_surface(t, art)
+            pygame.gfxdraw.draw_surface(t, art, transform=m_rot)
 
             # x 镜像（静止，永远翻转）
-            pygame.gfxdraw.set_transform(t, m_mirror_x)
-            pygame.gfxdraw.draw_surface(t, art)
+            pygame.gfxdraw.draw_surface(t, art, transform=m_mirror_x)
 
             # y 镜像（静止，永远翻转）
-            pygame.gfxdraw.set_transform(t, m_mirror_y)
-            pygame.gfxdraw.draw_surface(t, art)
+            pygame.gfxdraw.draw_surface(t, art, transform=m_mirror_y)
 
             # 动态 x 缩放（sin 过零 → x 翻转）
-            pygame.gfxdraw.set_transform(t, m_scale_x)
-            pygame.gfxdraw.draw_surface(t, art)
+            pygame.gfxdraw.draw_surface(t, art, transform=m_scale_x)
 
             # 标签
             font = pygame.font.Font(None, 20)
@@ -116,14 +111,10 @@ async def main():
             lbl_my = font.render("mirror_y S(1,-1)", True, (100, 200, 255))
             lbl_sx = font.render(f"scale_x sin={s:.2f}", True, (200, 200, 200))
 
-            pygame.gfxdraw.set_transform(t, M.mat4_translation(-200, 220, 0))
-            pygame.gfxdraw.draw_surface(t, lbl_rot)
-            pygame.gfxdraw.set_transform(t, M.mat4_translation(0, 220, 0))
-            pygame.gfxdraw.draw_surface(t, lbl_mx)
-            pygame.gfxdraw.set_transform(t, M.mat4_translation(200, 220, 0))
-            pygame.gfxdraw.draw_surface(t, lbl_my)
-            pygame.gfxdraw.set_transform(t, M.mat4_translation(0, -170, 0))
-            pygame.gfxdraw.draw_surface(t, lbl_sx)
+            pygame.gfxdraw.draw_surface(t, lbl_rot, transform=M.mat4_translation(-200, 220, 0))
+            pygame.gfxdraw.draw_surface(t, lbl_mx, transform=M.mat4_translation(0, 220, 0))
+            pygame.gfxdraw.draw_surface(t, lbl_my, transform=M.mat4_translation(200, 220, 0))
+            pygame.gfxdraw.draw_surface(t, lbl_sx, transform=M.mat4_translation(0, -170, 0))
 
         frame += 1
         pygame.display.flip()

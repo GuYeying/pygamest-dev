@@ -76,13 +76,11 @@ async def main():
             for line in PASS + FAIL:
                 s = font.render(line, True,
                                 (140, 220, 140) if line in PASS else (230, 120, 120))
-                pygame.gfxdraw.set_transform(rt, pygame.math.mat4_translation(-380, yy, 0))
-                pygame.gfxdraw.draw_surface(rt, s)
+                pygame.gfxdraw.draw_surface(rt, s, transform=pygame.math.mat4_translation(-380, yy, 0))
                 yy -= 24
             tip = font.render("440Hz + 880Hz 扫频音效应可听见（音频输出开着吗）",
                               True, (150, 170, 150))
-            pygame.gfxdraw.set_transform(rt, pygame.math.mat4_translation(-380, -260, 0))
-            pygame.gfxdraw.draw_surface(rt, tip)
+            pygame.gfxdraw.draw_surface(rt, tip, transform=pygame.math.mat4_translation(-380, -260, 0))
 
         pygame.display.flip()
         frame += 1

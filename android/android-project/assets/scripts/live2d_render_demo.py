@@ -6,12 +6,31 @@
 import time
 
 import pygame
-import pygame_live2d
 
+# pygame_live2d 是**可选能力**（Cargo feature live2d）——默认解释器里没有
+# 这个子模块，此时给出明确提示并跳过，而不是抛 traceback
+try:
+    import pygame_live2d
+except ModuleNotFoundError:
+    pygame_live2d = None
+
+# 模型目录：dev 解释器没有 `os` 模块，用 open 探路——从 dev 仓根启动时
+# 资产在 examples/assets 下，从 examples/ 启动时在 assets 下
 MODEL = "assets/models/Hiyori"
-#MODEL = "D:/Projects/Rust/pygame-rs-dev/examples/Mao"
+for _cand in ("assets/models/Hiyori", "examples/assets/models/Hiyori"):
+    try:
+        with open(_cand + "/Hiyori.model3.json", "rb") as _f:
+            pass
+        MODEL = _cand
+        break
+    except OSError:
+        continue
 
 async def main():
+    if pygame_live2d is None:
+        print("[live2d_demo] 跳过：当前解释器未编译 live2d 能力"
+              "（重建时加 --features live2d）")
+        return
     screen = pygame.display.set_mode((1000, 800),[pygame.display.NOFRAME,pygame.display.TRANSPARENT])
     screen.set_camera(pygame.render.game_camera_ortho(1000, 800, 1000, 800))
     # 产物面：与屏幕等尺寸（1:1 上屏；换任意尺寸只影响清晰度）
@@ -41,8 +60,7 @@ async def main():
         # 全管线自理：蒙版/masked/整模型三段落 buf（居中 90% 画布利用率）
         rt.draw(buf, scale=0.9)
         with screen.render() as t:
-            pygame.gfxdraw.set_color(t, (36, 40, 52))
-            #pygame.gfxdraw.box(t, (-500, -400, 1000, 800))
+            t.fill((36, 40, 52))                     # 背景（原 set_color + box 的等价写法）
             pygame.gfxdraw.draw_surface(t, buf)
             if frame == 30:
                 probe = pygame.render.screen_probe()
@@ -54,8 +72,7 @@ async def main():
                 print(f"[live2d_demo] 可见像素 = {vis}")
         label = font.render(f"live2d demo frame={frame}", True, (220, 220, 230))
         with screen.render() as t:
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(-380, 270, 0))
-            pygame.gfxdraw.draw_surface(t, label)
+            pygame.gfxdraw.draw_surface(t, label, transform=pygame.math.mat4_translation(-380, 270, 0))
         clock.tick(60)
         pygame.display.flip()
         await pygame.tasks.yield_now()

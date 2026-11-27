@@ -521,6 +521,7 @@ async def main():
     game.grabbed = False                       # TAB 抓取态（FPS 沉浸式——grab
                                           # + 隐藏光标，免按键自由转向）
     game.last_pos = None                       # 拖拽差分锚（Event 无 rel——x/y 差分自算）
+    game.last_edit_frame = -1                  # 数学自验帧守卫（同帧单次放行）
     game.debug_on = False                      # T 键：collider 线框叠加（对齐检查）
     game.fluid_on = False                      # F2 键：流体元素开关（水柱注入）
     game.fluid_world = None                    # 惰性创建（首次 F2 时）
@@ -697,7 +698,9 @@ async def main():
             _step_sum[0] += pygame.time.get_ticks() - _s0
             if game.fluid_on and game.fluid_world is not None:
                 _f0 = pygame.time.get_ticks()
-                game.fluid_world.step(1.0 / 60.0)
+                # 第二参 = solid 耦合（rapier 世界）——**漏传 = 流体与
+                # 体素碰撞体完全脱钩**（粒子穿地不碰），2026-11-23 根修
+                game.fluid_world.step(1.0 / 60.0, world)
                 _step_sum[1] += pygame.time.get_ticks() - _f0
             game.cam = game.cam.with_view(fps_view(eye, game.yaw, game.pitch))
             pygame.render.write_camera_mvp(cam_buf, game.cam.mvp())
@@ -727,26 +730,57 @@ async def main():
                               + ("PASS 物理数据正确" if ok else "FAIL 物理数据异常"))
                         st("球静止贴面（物理数据正确）", ok)
                         print(f"[game.frame-probe] game.frame={game.frame} mod150={game.frame % 150}", flush=True)
-            # [TEMP 自动删放取证]——remesh 更新链可视化（删失败自动放）
-            if game.frame % 150 == 0 and game.frame > 300:
-                picked = pick_voxel()
-                if picked:
-                    inside, outside, p, normal = picked
-                    if remove_voxel(inside):
-                        game.tri_count = rebuild_voxel_mesh()
-                        game.info = f"自动删 {inside}"
-                    elif place_voxel(outside):
-                        game.tri_count = rebuild_voxel_mesh()
-                        game.info = f"自动放 {outside}"
+            # [数学 debug 删放自验]——固定列自上而下直射，四步全链断言：
+            # ①命中=顶层 ②删→露出下一层 ③放回命中面外侧→命中放回格
+            # ④删放回格→复原露层。每步 eye/dir/hit/toi/法线/期望 全打点
+            # （射线选格数学链 = cast_ray_voxel + voxelis 双写 + rapier
+            # 原位形状 + remesh 全验证；列轮换 = 轮间零状态耦合）
+            # **帧号守卫**：单挂起体每泵 tick 跑两轮（双 send 语义）——
+            # 同 frame 值探针会双触发（第二轮看到的是第一轮已编辑后的
+            # 状态 = 假 FAIL），同帧只放行一次
+            if (game.frame % 150 == 0 and game.frame > 300
+                    and game.last_edit_frame != game.frame):
+                game.last_edit_frame = game.frame
+                tx = 10 + (game.frame // 150) % 4
+                tz = 10
+                th = height[tx][tz]          # 几何先验：列顶 voxel y = th-1
+                o = (tx + 0.5, 14.0, tz + 0.5)
+                dwn = (0.0, -1.0, 0.0)
+
+                def _key(h):
+                    if h is None:
+                        return None
+                    return (int(h[3][0]), int(h[3][1]), int(h[3][2]))
+
+                hit = world.cast_ray_voxel(o, dwn, 30.0)
+                got = _key(hit)
+                top = (tx, th - 1, tz)
+                _ch, toi, normal, key, center = hit if hit else (None, 0, None, None, None)
+                n = (int(round(normal[0])), int(round(normal[1])), int(round(normal[2]))) if hit else None
+                ok1 = got == top
+                print(f"[math-edit] frame={game.frame} 列({tx},{tz}) ①命中 {got} "
+                      f"toi={toi:.3f} 法线{n} 期望 {top} "
+                      + ("PASS" if ok1 else "FAIL"), flush=True)
+                if ok1:
+                    outside = (top[0] + n[0], top[1] + n[1], top[2] + n[2])
+                    remove_voxel(top)
+                    got2 = _key(world.cast_ray_voxel(o, dwn, 30.0))
+                    ok2 = got2 == (tx, th - 2, tz)
+                    print(f"[math-edit] ②删顶层后命中 {got2} 期望 {(tx, th - 2, tz)} "
+                          + ("PASS" if ok2 else "FAIL"), flush=True)
+                    place_voxel(outside)
+                    got3 = _key(world.cast_ray_voxel(o, dwn, 30.0))
+                    ok3 = got3 == outside
+                    print(f"[math-edit] ③放回 {outside} 后命中 {got3} 期望 {outside} "
+                          + ("PASS" if ok3 else "FAIL"), flush=True)
+                    remove_voxel(outside)
+                    got4 = _key(world.cast_ray_voxel(o, dwn, 30.0))
+                    ok4 = got4 == (tx, th - 2, tz)
+                    print(f"[math-edit] ④删放回格后命中 {got4} 期望 {(tx, th - 2, tz)} "
+                          + ("PASS" if ok4 else "FAIL"), flush=True)
+                    game.info = f"自验列({tx},{tz}) {'全PASS' if (ok1 and ok2 and ok3 and ok4) else '有FAIL'}"
                 else:
-                    print(f"[edit-miss] game.frame={game.frame} picked=None（射线未命中体素）",
-                          flush=True)
-                    # probe 画面像素取证（删格中心位——网格更新判定）
-                    d = screen.probe()
-                    hit = [(x, y, r, g, b) for x, y, r, g, b, a in
-                           [d[i:i+6] for i in range(0, len(d), 6)]
-                           if (r, g, b) != (28, 34, 46)]
-                    print(f"[PROBE-EDIT] game.frame={game.frame} 非背景 {len(hit)}: {hit[:5]}",
+                    print(f"[edit-miss] game.frame={game.frame} 列({tx},{tz}) 未命中",
                           flush=True)
             await pygame.tasks.yield_now()   # 让出（改名后 tasks.yield_now）
 

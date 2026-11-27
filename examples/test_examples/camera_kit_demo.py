@@ -32,11 +32,9 @@ async def main():
     card = pygame.Surface((120, 90))
     with card.render() as t:
         t.fill((30, 34, 48))
-        pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(60, 45, 0))
-        pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_rect_outline(108, 78), color=(80, 200, 90))
+        pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_rect_outline(108, 78), color=(80, 200, 90), transform=pygame.math.mat4_translation(60, 45, 0))
 
-        pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(34, 45, 0))
-        pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_circle(16))
+        pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_circle(16), transform=pygame.math.mat4_translation(34, 45, 0))
 
     cam2d = kit.Camera2D(w, h)                      # 相机只建一次
     cam3d = kit.Camera3D(w, h, fov=45.0)
@@ -56,32 +54,22 @@ async def main():
         with screen.render() as t:
             cam2d.use(t)
             t.fill((16, 17, 24))
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(14, 10, 0)); pygame.gfxdraw.draw_surface(t, title)
-            pygame.gfxdraw.set_transform(t, 
-                kit.chain(kit.pos(x, 180), kit.rot_z(frame % 360)))
-            pygame.gfxdraw.draw_surface(t, card)
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(w // 2, h // 2 + 1, 0))
-            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_rect(w, 3), color=(70, 74, 92))
+            pygame.gfxdraw.draw_surface(t, title, transform=pygame.math.mat4_translation(14, 10, 0))
+            pygame.gfxdraw.draw_surface(t, card, transform=kit.chain(kit.pos(x, 180), kit.rot_z(frame % 360)))
+            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_rect(w, 3), color=(70, 74, 92), transform=pygame.math.mat4_translation(w // 2, h // 2 + 1, 0))
 
         # ── 下半：3D 透视 + 深度会话（y 向上右手系，看向 -Z）──
         with screen.render_depth() as t:
             cam3d.use(t)
-            pygame.gfxdraw.set_transform(t, 
-                kit.chain(kit.pos(-0.5, 0.4, -2.2), kit.scale(k)))
-            pygame.gfxdraw.draw_surface(t, card)
-            pygame.gfxdraw.set_transform(t, 
-                kit.chain(kit.pos(0.5, 0.6, -3.4), kit.scale(k)))
-            pygame.gfxdraw.draw_surface(t, card)
+            pygame.gfxdraw.draw_surface(t, card, transform=kit.chain(kit.pos(-0.5, 0.4, -2.2), kit.scale(k)))
+            pygame.gfxdraw.draw_surface(t, card, transform=kit.chain(kit.pos(0.5, 0.6, -3.4), kit.scale(k)))
 
         # 回 2D 画文字/描边（新会话开始即 Auto 重置——中心系坐标）
         with screen.render() as t:
             cam2d.use(t)
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(14, h // 2 - 8, 0))
             pygame.gfxdraw.draw_surface(t, cjk.render("下半：render_depth + 透视（近大远小）",
-                              True,(255,0,0)))
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(
-                (20 - w // 2) + (w - 40) // 2, -(h // 2 - 40) + (h // 2 - 60) // 2, 0))
-            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_rect_outline(w - 40, h // 2 - 60))
+                              True,(255,0,0)), transform=pygame.math.mat4_translation(14, h // 2 - 8, 0))
+            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_rect_outline(w - 40, h // 2 - 60), transform=pygame.math.mat4_translation( (20 - w // 2) + (w - 40) // 2, -(h // 2 - 40) + (h // 2 - 60) // 2, 0))
 
         pygame.display.flip()
         frame += 1

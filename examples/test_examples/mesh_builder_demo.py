@@ -159,8 +159,7 @@ async def main():
             y = 20
             for line in lines:
                 s = font.render(line, True, (180, 220, 180))
-                pygame.gfxdraw.set_transform(r, pygame.math.mat4_translation(-380, y - 280, 0))
-                pygame.gfxdraw.draw_surface(r, s)
+                pygame.gfxdraw.draw_surface(r, s, transform=pygame.math.mat4_translation(-380, y - 280, 0))
                 y += 26
 
         pygame.display.flip()

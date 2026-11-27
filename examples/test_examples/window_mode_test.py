@@ -86,9 +86,7 @@ async def main():
             # 四角标记（画布四角一眼可辨）
             for cx in (-w // 2, w // 2 - 20):
                 for cy in (-h // 2, h // 2 - 20):
-                    pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(
-                        cx + 10, cy + 10, 0))
-                    pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_rect(20, 20))
+                    pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_rect(20, 20), transform=pygame.math.mat4_translation( cx + 10, cy + 10, 0))
 
             # 信息面板
             name = MODES[applied][0]

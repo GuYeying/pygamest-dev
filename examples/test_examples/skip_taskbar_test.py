@@ -33,8 +33,7 @@ async def main():
             line = font.render(
                 f"任务栏隐藏={skip_taskbar} 读回={readback} · frame {frame}（ESC 退出）",
                 True, (255, 255, 255))
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(-300, 240, 0))
-            pygame.gfxdraw.draw_surface(t, line)
+            pygame.gfxdraw.draw_surface(t, line, transform=pygame.math.mat4_translation(-300, 240, 0))
         pygame.display.flip()
         await pygame.tasks.yield_now()
         frame += 1

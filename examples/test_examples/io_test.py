@@ -107,11 +107,9 @@ async def main():
             y = 30
             for line in PASS + FAIL:
                 s = font.render(line, True, (140, 220, 140) if line in PASS else (230, 120, 120))
-                pygame.gfxdraw.set_transform(r, pygame.math.mat4_translation(-280, y, 0))
-                pygame.gfxdraw.draw_surface(r, s)
+                pygame.gfxdraw.draw_surface(r, s, transform=pygame.math.mat4_translation(-280, y, 0))
                 y += 26
             summ = font.render(f"PASS={len(PASS)} FAIL={len(FAIL)}", True, (220, 220, 140))
-            pygame.gfxdraw.set_transform(r, pygame.math.mat4_translation(-280, y + 30, 0))
-            pygame.gfxdraw.draw_surface(r, summ)
+            pygame.gfxdraw.draw_surface(r, summ, transform=pygame.math.mat4_translation(-280, y + 30, 0))
         pygame.display.flip()
         await pygame.tasks.yield_now()

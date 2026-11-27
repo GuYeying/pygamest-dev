@@ -28,8 +28,7 @@ async def main():
                 return
         with screen.render() as r:
             r.fill((30, 34, 44))
-            pygame.gfxdraw.set_transform(r, pygame.math.mat4_translation(-180, 20, 0))
-            pygame.gfxdraw.draw_surface(r, text)
+            pygame.gfxdraw.draw_surface(r, text, transform=pygame.math.mat4_translation(-180, 20, 0))
         pygame.display.flip()
         frame += 1
         if frame == 3000:      # 15s @60fps——外部采样窗口

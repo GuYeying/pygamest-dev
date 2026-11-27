@@ -38,21 +38,17 @@ async def main():
         dt = now - last
         last = now
         with screen.render() as t:
-            pygame.gfxdraw.set_color(t, (30, 34, 44))
-            pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect(800, 600))
+            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_rect(800, 600), color=(30, 34, 44))
             state.update(dt)
             state.apply(sk)
             sk.update_world_transform()
             # spineboy 世界坐标：y 向上、原点在脚底——抬到屏幕中部
             zoom = pygame.math.mat4_scale(0.6, 0.6, 0.6)
             m = pygame.math.mat4_translation(0, -120, 0).mul_mat4(zoom)
-            pygame.gfxdraw.set_transform(t, m)
             pygame.gfxdraw.draw_spine(t, sk, [page0])
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(0, 0, 0))
         label = font.render(f"spineboy walk frame={frame}", True, (220, 220, 230))
         with screen.render() as t:
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(-380, 270, 0))
-            pygame.gfxdraw.draw_surface(t, label)
+            pygame.gfxdraw.draw_surface(t, label, transform=pygame.math.mat4_translation(-380, 270, 0))
         pygame.display.flip()
         await pygame.tasks.yield_now()
         frame += 1

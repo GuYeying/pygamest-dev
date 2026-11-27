@@ -116,10 +116,9 @@ async def main():
 
     def draw_hud(rt):
         M = pygame.math
-        pygame.gfxdraw.set_transform(rt, M.mat4_translation(-190, 138, 0))
         pygame.gfxdraw.draw_surface(rt, pygame.font.Font(
             "cjk", 13).render("mesh index 补齐冒烟：u32 构建/查询/更新/compute 拷贝",
-                              True, (220, 224, 232)))
+                              True, (220, 224, 232)), transform=M.mat4_translation(-190, 138, 0))
 
     while True:
         for e in pygame.event.get():

@@ -78,8 +78,7 @@ async def main():
             hud = font.render(
                 f"pos={v.position():.2f}s frames={frames} audio={v.has_audio()}", True,
                 (200, 205, 215))
-            pygame.gfxdraw.set_transform(r, pygame.math.mat4_translation(-460, 250, 0))
-            pygame.gfxdraw.draw_surface(r, hud)
+            pygame.gfxdraw.draw_surface(r, hud, transform=pygame.math.mat4_translation(-460, 250, 0))
         pygame.display.flip()
         await pygame.tasks.yield_now()
 
@@ -115,8 +114,7 @@ async def main():
             y = 30
             for line in PASS + FAIL:
                 s = font.render(line, True, (140, 220, 140) if line in PASS else (230, 120, 120))
-                pygame.gfxdraw.set_transform(r, pygame.math.mat4_translation(-440, y, 0))
-                pygame.gfxdraw.draw_surface(r, s)
+                pygame.gfxdraw.draw_surface(r, s, transform=pygame.math.mat4_translation(-440, y, 0))
                 y += 26
         pygame.display.flip()
         await pygame.tasks.yield_now()

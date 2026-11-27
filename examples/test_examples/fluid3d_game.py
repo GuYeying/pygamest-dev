@@ -564,10 +564,9 @@ async def main():
             # HUD（段级显式像素相机——v3.1 全显式：None 段 = NDC，像素
             # 域必须声明；画毕 clear_camera 交还段状态）
             pygame.gfxdraw.set_camera(rt, pixel_cam)
-            pygame.gfxdraw.set_transform(rt, M.mat4_translation(-388, 288, 0))
             pygame.gfxdraw.draw_surface(rt, cjk.render(
                 f"[fluid3d] 粒子 {count} | 相机 {yaw % 360.0:.0f}° | ESC 退出",
-                True, (190, 210, 235)))
+                True, (190, 210, 235)), transform=M.mat4_translation(-388, 288, 0))
             pygame.gfxdraw.clear_camera(rt)
 
         pygame.display.flip()

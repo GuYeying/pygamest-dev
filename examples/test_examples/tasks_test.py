@@ -99,10 +99,9 @@ async def main():
     while frame < 150:
         with screen.render() as t:
             t.fill((16, 20, 30))
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(-390, 280, 0))
             pygame.gfxdraw.draw_surface(t, cjk.render(
                 "pygame.tasks 微调度器 " + ("全部 PASS" if not _fail else "有失败项"),
-                True, (150, 220, 170) if not _fail else (255, 120, 120)))
+                True, (150, 220, 170) if not _fail else (255, 120, 120)), transform=pygame.math.mat4_translation(-390, 280, 0))
         pygame.display.flip()
         await pygame.tasks.yield_now()
         frame += 1

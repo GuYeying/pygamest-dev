@@ -39,8 +39,7 @@ async def main():
             status = f"wasm ozz: PASS {len(ok)} FAIL {len(fail)}"
             color = (120, 255, 120) if not fail else (255, 120, 120)
             line = font.render(status, True, color)
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(-380, 280, 0))
-            pygame.gfxdraw.draw_surface(t, line)
+            pygame.gfxdraw.draw_surface(t, line, transform=pygame.math.mat4_translation(-380, 280, 0))
         pygame.display.flip()
         await pygame.tasks.yield_now()
         frame += 1

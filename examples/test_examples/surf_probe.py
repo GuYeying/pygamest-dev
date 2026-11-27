@@ -100,17 +100,17 @@ async def main():
         # 合成：五象限 + 标签 + 帧计数
         with screen.render() as t:
             t.fill((16, 16, 22))
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(16, 40, 0)); pygame.gfxdraw.draw_surface(t, s_fill)          # 左上
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(584, 40, 0)); pygame.gfxdraw.draw_surface(t, s_draw)         # 右上
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(16, 218, 0)); pygame.gfxdraw.draw_surface(t, s_depth)        # 左中
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(300, 218, 0)); pygame.gfxdraw.draw_surface(t, s_lines)       # 中中
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(584, 218, 0)); pygame.gfxdraw.draw_surface(t, s_lines3d)     # 右中
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(16, 566, 0)); pygame.gfxdraw.draw_surface(t, cjk.render("① fill", True, (220, 220, 220)))
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(584, 566, 0)); pygame.gfxdraw.draw_surface(t, cjk.render("② 2D 形状", True, (220, 220, 220)))
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(16, 18, 0)); pygame.gfxdraw.draw_surface(t, cjk.render("③ 深度面蓝", True, (220, 220, 220)))
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(300, 18, 0)); pygame.gfxdraw.draw_surface(t, cjk.render("④ 2D 线", True, (220, 220, 220)))
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(584, 18, 0)); pygame.gfxdraw.draw_surface(t, cjk.render("⑤ 3D 线离屏", True, (220, 220, 220)))
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(368, 178, 0)); pygame.gfxdraw.draw_surface(t, cjk.render(f"帧 {frame_no}", True, (120, 220, 120)))
+            pygame.gfxdraw.draw_surface(t, s_fill, transform=pygame.math.mat4_translation(16, 40, 0))          # 左上
+            pygame.gfxdraw.draw_surface(t, s_draw, transform=pygame.math.mat4_translation(584, 40, 0))         # 右上
+            pygame.gfxdraw.draw_surface(t, s_depth, transform=pygame.math.mat4_translation(16, 218, 0))        # 左中
+            pygame.gfxdraw.draw_surface(t, s_lines, transform=pygame.math.mat4_translation(300, 218, 0))       # 中中
+            pygame.gfxdraw.draw_surface(t, s_lines3d, transform=pygame.math.mat4_translation(584, 218, 0))     # 右中
+            pygame.gfxdraw.draw_surface(t, cjk.render("① fill", True, (220, 220, 220)), transform=pygame.math.mat4_translation(16, 566, 0))
+            pygame.gfxdraw.draw_surface(t, cjk.render("② 2D 形状", True, (220, 220, 220)), transform=pygame.math.mat4_translation(584, 566, 0))
+            pygame.gfxdraw.draw_surface(t, cjk.render("③ 深度面蓝", True, (220, 220, 220)), transform=pygame.math.mat4_translation(16, 18, 0))
+            pygame.gfxdraw.draw_surface(t, cjk.render("④ 2D 线", True, (220, 220, 220)), transform=pygame.math.mat4_translation(300, 18, 0))
+            pygame.gfxdraw.draw_surface(t, cjk.render("⑤ 3D 线离屏", True, (220, 220, 220)), transform=pygame.math.mat4_translation(584, 18, 0))
+            pygame.gfxdraw.draw_surface(t, cjk.render(f"帧 {frame_no}", True, (120, 220, 120)), transform=pygame.math.mat4_translation(368, 178, 0))
         pygame.display.flip()
         frame_no += 1
 

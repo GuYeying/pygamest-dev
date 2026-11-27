@@ -74,8 +74,7 @@ async def main():
             if e.type == pygame.event.QUIT:
                 return
         with screen.render() as t:
-            pygame.gfxdraw.set_color(t, (24, 26, 34))
-            pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect(800, 600))
+            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_rect(800, 600), color=(24, 26, 34))
             ratio = (frame % 60) / 60.0
             p.sample(ratio)
             pygame.gfxdraw.draw_ozz_quads(t, p, scale=60.0, cx=0.0, cy=-60.0, size=10.0)

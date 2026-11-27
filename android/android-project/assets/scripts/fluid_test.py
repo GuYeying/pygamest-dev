@@ -364,14 +364,12 @@ async def main():
             # HUD（段级显式像素相机——v3.1 全显式：米制相机下像素 UI
             # 须显式切段声明像素域，画毕 clear_camera 交还）
             pygame.gfxdraw.set_camera(rt, pixel_cam)
-            pygame.gfxdraw.set_transform(rt, M.mat4_translation(-388, 288, 0))
             pygame.gfxdraw.draw_surface(rt, cjk.render(
                 f"[fluid] 粒子 {count} 刚体 {len(drops)} | T solid线框={solid_debug} "
-                f"空格=注水 F=投放刚体", True, (200, 210, 230)))
-            pygame.gfxdraw.set_transform(rt, M.mat4_translation(-388, 268, 0))
+                f"空格=注水 F=投放刚体", True, (200, 210, 230)), transform=M.mat4_translation(-388, 288, 0))
             pygame.gfxdraw.draw_surface(rt, cjk.render(
                 f"调度器: {pp.scheduler_status()}（G 键切 fluid 开关）",
-                True, (180, 200, 180)))
+                True, (180, 200, 180)), transform=M.mat4_translation(-388, 268, 0))
             pygame.gfxdraw.clear_camera(rt)
 
         pygame.display.flip()

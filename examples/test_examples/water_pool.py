@@ -572,10 +572,9 @@ async def main():
             # HUD
             pixel_cam = pygame.render.game_camera_ortho(800, 600, 800, 600)
             pygame.gfxdraw.set_camera(rt, pixel_cam)
-            pygame.gfxdraw.set_transform(rt, M.mat4_translation(-380, 288, 0))
             pygame.gfxdraw.draw_surface(rt, cjk.render(
                 f"[water_pool] 球 {len(balls)} 立方 {len(cubes)} | "
-                f"空格丢球 C丢立方 点击丢球 | ESC", True, (200, 220, 240)))
+                f"空格丢球 C丢立方 点击丢球 | ESC", True, (200, 220, 240)), transform=M.mat4_translation(-380, 288, 0))
             pygame.gfxdraw.clear_camera(rt)
 
         pygame.display.flip()

@@ -54,23 +54,16 @@ async def main():
             pygame.math.quat_from_axis_angle(0.0, 0.0, 1.0, angle))
         with screen.render() as rt:
             rt.fill((16, 18, 26))
-            pygame.gfxdraw.set_transform(rt, pygame.math.mat4_translation(-360, 240, 0))
-            pygame.gfxdraw.draw_surface(rt, img)
-            pygame.gfxdraw.set_transform(rt, pygame.math.mat4_translation(-120, 240, 0))
-            pygame.gfxdraw.draw_surface(rt, small)
-            pygame.gfxdraw.set_transform(rt, pygame.math.mat4_translation(60, 240, 0))
-            pygame.gfxdraw.draw_surface(rt, flipped)
-            pygame.gfxdraw.set_transform(
-                rt, pygame.math.mat4_translation(240, 180, 0) @
-                pygame.math.mat4_scale(0.35, 0.35, 0.35) @ rot_m)
-            pygame.gfxdraw.draw_surface(rt, rot_now)
+            pygame.gfxdraw.draw_surface(rt, img, transform=pygame.math.mat4_translation(-360, 240, 0))
+            pygame.gfxdraw.draw_surface(rt, small, transform=pygame.math.mat4_translation(-120, 240, 0))
+            pygame.gfxdraw.draw_surface(rt, flipped, transform=pygame.math.mat4_translation(60, 240, 0))
+            pygame.gfxdraw.draw_surface(rt, rot_now, transform=pygame.math.mat4_translation(240, 180, 0) @ pygame.math.mat4_scale(0.35, 0.35, 0.35) @ rot_m)
 
             yy = -240
             for line in PASS + FAIL:
                 s = font.render(line, True,
                                 (140, 220, 140) if line in PASS else (230, 120, 120))
-                pygame.gfxdraw.set_transform(rt, pygame.math.mat4_translation(-380, yy, 0))
-                pygame.gfxdraw.draw_surface(rt, s)
+                pygame.gfxdraw.draw_surface(rt, s, transform=pygame.math.mat4_translation(-380, yy, 0))
                 yy -= 22
 
         pygame.display.flip()

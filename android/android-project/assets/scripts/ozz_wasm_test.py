@@ -31,8 +31,7 @@ async def main():
             if e.type == pygame.event.QUIT:
                 return
         with screen.render() as t:
-            pygame.gfxdraw.set_color(t, (24, 26, 34))
-            pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect(800, 600))
+            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_rect(800, 600), color=(24, 26, 34))
             ratio = abs((frame % 120) - 60) / 60.0
             p.sample(ratio)
             pygame.gfxdraw.draw_ozz_bones(t, p, scale=150.0, cx=0.0, cy=-60.0)
@@ -40,8 +39,7 @@ async def main():
             status = f"wasm ozz: PASS {len(ok)} FAIL {len(fail)}"
             color = (120, 255, 120) if not fail else (255, 120, 120)
             line = font.render(status, True, color)
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(-380, 280, 0))
-            pygame.gfxdraw.draw_surface(t, line)
+            pygame.gfxdraw.draw_surface(t, line, transform=pygame.math.mat4_translation(-380, 280, 0))
         pygame.display.flip()
         await pygame.tasks.yield_now()
         frame += 1

@@ -29,21 +29,25 @@ async def main():
     with art.render() as t:
         t.fill((125, 125, 125))
 
-        pygame.gfxdraw.set_color(t,(80, 200, 90))
-        pygame.gfxdraw.set_topology(t, "lines")
-        pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(80, 60, 0))
-        pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect_outline(144, 104))
-        pygame.gfxdraw.set_topology(t, "default")
+        pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_rect_outline(144, 104), color=(80, 200, 90), transform=pygame.math.mat4_translation(80, 60, 0))
 
-        pygame.gfxdraw.set_color(t,(230, 70, 70))
-        pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(40, 60, 0))
-        pygame.gfxdraw.push(t, pygame.gfxdraw.gen_circle(24))
+        pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_circle(24), color=(230, 70, 70), transform=pygame.math.mat4_translation(40, 60, 0))
 
-        pygame.gfxdraw.set_color(t,(240, 200, 80))
-        pygame.gfxdraw.set_wireframe(t,True)
-        pygame.gfxdraw.set_topology(t, "lines")
-        pygame.gfxdraw.push(t, pygame.gfxdraw.gen_line(10, 110, 150, 10))
-        pygame.gfxdraw.set_topology(t, "default")
+        pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_line(10, 110, 150, 10), color=(240, 200, 80), wireframe=True, transform=pygame.math.mat4_translation(40, 60, 0))
+
+        # ── draw_batch 正典（2026-11-25 接口破坏定约——参数自包含
+        #    单调用，替代 sticky 三口 + push 组合，FFI N+1→1）──
+        pygame.gfxdraw.draw_batch(
+            t, pygame.gfxdraw.gen_circle_outline(30),
+            transform=pygame.math.mat4_translation(120, 60, 0),
+            color=(230, 70, 70, 255),                          # 拓扑随数据（outline 烤入 Lines）
+        )
+        pygame.gfxdraw.draw_batch(
+            t, pygame.gfxdraw.gen_circle(20),
+            transform=pygame.math.mat4_translation(160, 60, 0),  # 变换参数自带
+            color=(90, 160, 255, 255),
+            wireframe=True,                                    # 线框 one-shot 仅本批
+        )
     # 烘焙对照（一次烘焙——非逐帧反模式）
     baked = pygame.transform.rotate(art, 30)
 
@@ -77,34 +81,29 @@ async def main():
         # ── 上半：2D 正交（默认相机）三联 + 烘焙对照 ──
         with screen.render() as t:
             t.fill((16, 17, 24))
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(14, 10, 0)); pygame.gfxdraw.draw_surface(t, title)
+            pygame.gfxdraw.draw_surface(t, title, transform=pygame.math.mat4_translation(14, 10, 0))
             if frame_no == 0:
                 # 收口断言：blit_transform 可调（不抛即过）
                 st("t.blit_transform 会话内（旋转）", True)
-            pygame.gfxdraw.set_transform(t, m_rot); pygame.gfxdraw.draw_surface(t, art)
-            #pygame.gfxdraw.set_transform(t, m_scale); pygame.gfxdraw.draw_surface(t, art)
-            #pygame.gfxdraw.set_transform(t, m_mirror); pygame.gfxdraw.draw_surface(t, art)
-            #pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(660, 120, 0)); pygame.gfxdraw.draw_surface(t, baked)
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(400, 301, 0))
-            pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect(800, 3))
+            pygame.gfxdraw.draw_surface(t, art, transform=m_rot)
+            #pygame.gfxdraw.draw_surface(t, art, transform=m_scale)
+            #pygame.gfxdraw.draw_surface(t, art, transform=m_mirror)
+            #pygame.gfxdraw.draw_surface(t, baked, transform=pygame.math.mat4_translation(660, 120, 0))
+            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_rect(800, 3), transform=pygame.math.mat4_translation(400, 301, 0))
 
         # ── 下半：透视 + 深度会话空间放置（近大远小；会话级 set_camera）──
         with screen.render_depth() as t:
             if frame_no == 0:
                 st("set_camera 会话级切换", True)
             pygame.gfxdraw.set_camera(t, cam3d)
-            #pygame.gfxdraw.set_transform(t, m_near); pygame.gfxdraw.draw_surface(t, art)
-            #pygame.gfxdraw.set_transform(t, m_mid); pygame.gfxdraw.draw_surface(t, art)
-            pygame.gfxdraw.set_transform(t, m_far); pygame.gfxdraw.draw_surface(t, art)
+            #pygame.gfxdraw.draw_surface(t, art, transform=m_near)
+            #pygame.gfxdraw.draw_surface(t, art, transform=m_mid)
+            pygame.gfxdraw.draw_surface(t, art, transform=m_far)
         # 回 2D：下一普通会话开始即 Auto 重置（渲染统一 draw 面定约）
 
         with screen.render() as t:
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(14, 306, 0)); pygame.gfxdraw.draw_surface(t, sub)
-            pygame.gfxdraw.set_color(t,(120, 60, 60))
-            pygame.gfxdraw.set_topology(t, "lines")
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(400, 460, 0))
-            pygame.gfxdraw.push(t, pygame.gfxdraw.gen_rect_outline(740, 220))
-            pygame.gfxdraw.set_topology(t, "default")
+            pygame.gfxdraw.draw_surface(t, sub, transform=pygame.math.mat4_translation(14, 306, 0))
+            pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_rect_outline(740, 220), color=(120, 60, 60), transform=pygame.math.mat4_translation(400, 460, 0))
 
         pygame.display.flip()
         frame_no += 1
