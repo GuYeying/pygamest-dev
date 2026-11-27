@@ -4774,7 +4774,7 @@ dependencies = [
 
 [[package]]
 name = "pygamest"
-version = "0.3.89"
+version = "0.3.91"
 dependencies = [
  "chacha20poly1305",
  "egui-starfish-we",
@@ -6240,8 +6240,8 @@ dependencies = [
 
 [[package]]
 name = "starfish-codec"
-version = "0.9.78"
-source = "git+https://github.com/GuYeying/starfish#5f9eb7aaa68e200ca6027dc33b0d1041c1428e0d"
+version = "0.9.79"
+source = "git+https://github.com/GuYeying/starfish#e5a166ef29c1a3a5c840f6c081d68625dbda7817"
 dependencies = [
  "flate2",
  "sha2",
@@ -6276,8 +6276,8 @@ dependencies = [
 
 [[package]]
 name = "starfish-ds"
-version = "0.9.78"
-source = "git+https://github.com/GuYeying/starfish#5f9eb7aaa68e200ca6027dc33b0d1041c1428e0d"
+version = "0.9.79"
+source = "git+https://github.com/GuYeying/starfish#e5a166ef29c1a3a5c840f6c081d68625dbda7817"
 dependencies = [
  "starfish-debug",
 ]
