@@ -5,7 +5,8 @@
 #
 # 核心定约（渲染统一 draw 面）：相机选择是**会话级**——`cam.use(t)`
 # 转发 `t.set_camera(...)`（每会话/每目标独立持有，互不串线）；变换走
-# `t.set_transform(...)`（CPU 烘顶点）；坐标系 = **中心原点、y 向上**
+# 顶点 = 会话空间绝对坐标（per-call 矩阵自烘——会话变换已删除）；
+# 坐标系 = **中心原点、y 向上**
 # （2D 正交/3D 透视/物理米制三方同构）。letterbox 呈现由引擎统一施加。
 import pygame
 
@@ -46,7 +47,7 @@ def fit():
     return pygame.render.present_fit()
 
 
-# ── 矩阵链（set_transform 的变换参数；可读名替代手写 .mul_mat4 链）──
+# ── 矩阵链（可读名替代手写 .mul_mat4 链——配合 per-call transform=）──
 
 def pos(x, y, z=0.0):
     """平移"""
