@@ -4774,7 +4774,7 @@ dependencies = [
 
 [[package]]
 name = "pygamest"
-version = "0.3.92"
+version = "0.3.98"
 dependencies = [
  "chacha20poly1305",
  "egui-starfish-we",
@@ -4820,7 +4820,7 @@ dependencies = [
 
 [[package]]
 name = "pygamest-dev"
-version = "0.1.12"
+version = "0.1.13"
 dependencies = [
  "android-activity",
  "jni-sys 0.3.1",
@@ -6223,7 +6223,7 @@ dependencies = [
 
 [[package]]
 name = "starfish-audio"
-version = "0.9.79"
+version = "0.9.82"
 dependencies = [
  "bytemuck",
  "cpal",
@@ -6240,8 +6240,8 @@ dependencies = [
 
 [[package]]
 name = "starfish-codec"
-version = "0.9.79"
-source = "git+https://github.com/GuYeying/starfish#e5a166ef29c1a3a5c840f6c081d68625dbda7817"
+version = "0.9.82"
+source = "git+https://github.com/GuYeying/starfish#b2b200bbd089166415a2fd92b6bb1b2d5f589503"
 dependencies = [
  "flate2",
  "sha2",
@@ -6250,7 +6250,7 @@ dependencies = [
 
 [[package]]
 name = "starfish-debug"
-version = "0.9.79"
+version = "0.9.82"
 dependencies = [
  "log",
  "wasm-bindgen",
@@ -6259,7 +6259,7 @@ dependencies = [
 
 [[package]]
 name = "starfish-dialog"
-version = "0.9.79"
+version = "0.9.82"
 dependencies = [
  "jni 0.21.1",
  "js-sys",
@@ -6276,15 +6276,15 @@ dependencies = [
 
 [[package]]
 name = "starfish-ds"
-version = "0.9.79"
-source = "git+https://github.com/GuYeying/starfish#e5a166ef29c1a3a5c840f6c081d68625dbda7817"
+version = "0.9.82"
+source = "git+https://github.com/GuYeying/starfish#b2b200bbd089166415a2fd92b6bb1b2d5f589503"
 dependencies = [
  "starfish-debug",
 ]
 
 [[package]]
 name = "starfish-font"
-version = "0.9.79"
+version = "0.9.82"
 dependencies = [
  "bytemuck",
  "glam 0.33.11",
@@ -6296,7 +6296,7 @@ dependencies = [
 
 [[package]]
 name = "starfish-gamepad"
-version = "0.9.79"
+version = "0.9.82"
 dependencies = [
  "gilrs",
  "js-sys",
@@ -6306,7 +6306,7 @@ dependencies = [
 
 [[package]]
 name = "starfish-gfx"
-version = "0.9.79"
+version = "0.9.82"
 dependencies = [
  "bytemuck",
  "glam 0.33.11",
@@ -6316,7 +6316,7 @@ dependencies = [
 
 [[package]]
 name = "starfish-io"
-version = "0.9.79"
+version = "0.9.82"
 dependencies = [
  "js-sys",
  "ndk",
@@ -6329,7 +6329,7 @@ dependencies = [
 
 [[package]]
 name = "starfish-net"
-version = "0.9.79"
+version = "0.9.82"
 dependencies = [
  "js-sys",
  "starfish-debug",
@@ -6340,7 +6340,7 @@ dependencies = [
 
 [[package]]
 name = "starfish-parse"
-version = "0.9.79"
+version = "0.9.82"
 dependencies = [
  "serde",
  "serde_json",
@@ -6350,7 +6350,7 @@ dependencies = [
 
 [[package]]
 name = "starfish-permission"
-version = "0.9.79"
+version = "0.9.82"
 dependencies = [
  "jni 0.21.1",
  "js-sys",
@@ -6365,7 +6365,7 @@ dependencies = [
 
 [[package]]
 name = "starfish-pygame"
-version = "0.9.79"
+version = "0.9.82"
 dependencies = [
  "bytemuck",
  "chacha20poly1305",
@@ -6400,7 +6400,7 @@ dependencies = [
 
 [[package]]
 name = "starfish-render"
-version = "0.9.79"
+version = "0.9.82"
 dependencies = [
  "bytemuck",
  "glam 0.33.11",
@@ -6417,14 +6417,14 @@ dependencies = [
 
 [[package]]
 name = "starfish-rng"
-version = "0.9.79"
+version = "0.9.82"
 dependencies = [
  "starfish-debug",
 ]
 
 [[package]]
 name = "starfish-std"
-version = "0.9.79"
+version = "0.9.82"
 dependencies = [
  "console_error_panic_hook",
  "pollster",
@@ -6436,14 +6436,14 @@ dependencies = [
 
 [[package]]
 name = "starfish-time"
-version = "0.9.79"
+version = "0.9.82"
 dependencies = [
  "web-sys",
 ]
 
 [[package]]
 name = "starfish-video"
-version = "0.9.79"
+version = "0.9.82"
 dependencies = [
  "gstreamer",
  "gstreamer-app",
@@ -6472,7 +6472,7 @@ dependencies = [
 
 [[package]]
 name = "starfish-we"
-version = "0.9.79"
+version = "0.9.82"
 dependencies = [
  "android-activity",
  "jni-sys 0.3.1",
