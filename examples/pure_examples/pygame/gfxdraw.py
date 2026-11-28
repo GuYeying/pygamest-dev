@@ -38,10 +38,10 @@ async def main():
                 color=(240, 200, 80, 255),
             )
 
-            # gen_* + set_transform 持久变换（blit/spine/ozz 桥同款形态）
-            pygame.gfxdraw.set_transform(t, pygame.math.mat4_translation(-260, -100, 0))
+            # gen_polygon3d 定位（draw_batch transform kwarg 自包含）
             pygame.gfxdraw.draw_batch(t, pygame.gfxdraw.gen_polygon3d(
                 [-60.0, -40.0, 0.0, 60.0, -40.0, 0.0, 0.0, 60.0, 0.0]),
+                transform=pygame.math.mat4_translation(-260, -100, 0),
                 color=(200, 120, 220, 255))
 
             # VertexBuf 手工构造 + topology 覆写（自定义流解释控制）

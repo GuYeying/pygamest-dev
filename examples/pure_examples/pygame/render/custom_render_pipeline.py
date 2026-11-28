@@ -170,8 +170,7 @@ async def main():
             if frame == 0:
                 st("screen attachment ok", pygame.render.screen_attachment() is not None)
             rt.fill((12, 13, 20))
-            pygame.gfxdraw.set_transform(rt, M.mat4_translation(-380, 270, 0))
-            pygame.gfxdraw.draw_surface(rt, title)
+            pygame.gfxdraw.draw_surface(rt, title, transform=pygame.math.mat4_translation(-380, 270, 0))
 
             with screen.raw_render(depth=True) as p:
                 p.push_debug_group("textured_cube")
