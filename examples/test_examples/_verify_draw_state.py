@@ -1,9 +1,9 @@
-# 状态参数化验证（2026-11-27；2026-11-28 cull 随数据更新）——blend 走
-# 逐绘制参数，cull 与 VertexBuf 强绑定（buf.cull 属性）
+# 状态参数化验证（2026-11-27；2026-11-28 cull 随数据 + 旧口删除）——
+# blend 走逐绘制参数，cull 与 VertexBuf 强绑定（buf.cull 属性）
 # ① 五种 blend 像素真值（BMP 取证，配合 STARFISH_FB_BMP）
 # ② wireframe 不跨调用残留（draw_batch 线框后 draw_surface 必须仍是实心）
 # ③ 3D gen_* 烤入 buf.cull=back（离屏深度面，不崩；buf.cull 可覆写）
-# ④ 旧 set_blend_mode / set_cull_mode 明确抛 RuntimeError
+# ④ 旧 set_blend_mode / set_cull_mode 接口已删除（AttributeError）
 # 退出：40 帧后自动返回
 import pygame
 
@@ -20,17 +20,17 @@ async def main():
         if not cond:
             fails.append(name)
 
-    # ── ④ 旧口：必须明确报错，而不是静默无效 ──
+    # ── ④ 旧口：接口已删除（AttributeError——不留引导桩）──
     try:
         pygame.render.set_blend_mode("opaque")
-        st("set_blend_mode 已移除（抛 RuntimeError）", False)
-    except RuntimeError as e:
-        st("set_blend_mode 已移除（抛 RuntimeError）", True)
+        st("set_blend_mode 已删除（AttributeError）", False)
+    except AttributeError:
+        st("set_blend_mode 已删除（AttributeError）", True)
     try:
         pygame.render.set_cull_mode("back")
-        st("set_cull_mode 已移除（抛 RuntimeError）", False)
-    except RuntimeError:
-        st("set_cull_mode 已移除（抛 RuntimeError）", True)
+        st("set_cull_mode 已删除（AttributeError）", False)
+    except AttributeError:
+        st("set_cull_mode 已删除（AttributeError）", True)
 
     # GPU 槽必须先建立（离屏 Surface 的渲染会话同样依赖）
     screen = pygame.display.set_mode((800, 600))
