@@ -199,11 +199,9 @@ fn fs_main(in: VOut) -> @location(0) vec4<f32> {
     let pc = vec2<i32>(floor(in.pos.xy));
     // 平滑深度场（blurH/blurV 已就绪——球缘深度差已融合）
     let sm = load_d01(pc);
-    // 背景（无液体——输出主屏背景色）
-    if (sm < 0.0) {
-        return vec4<f32>(fp.bg, 1.0);
-    }
     // 米制视深反推 → 视空间位置 → 法线重建（屏幕空间梯度）
+    // **导数必须先于非均匀分支**（WGSL uniform control flow——浏览器
+    // Dawn 严格校验，桌面后端宽松不报；背景像素导数结果弃用无影响）
     let vz = d01_to_meters(sm);
     let t = fp.tan_half;
     let px = (in.uv.x - 0.5) * 2.0 * t * fp.aspect * vz;
@@ -211,6 +209,10 @@ fn fs_main(in: VOut) -> @location(0) vec4<f32> {
     let pos = vec3<f32>(px, py, -vz);
     let n = normalize(cross(dpdx(pos), dpdy(pos)));
     let nf = select(n, -n, n.z > 0.0);
+    // 背景（无液体——输出主屏背景色）
+    if (sm < 0.0) {
+        return vec4<f32>(fp.bg, 1.0);
+    }
     // 流体着色（方向光+菲涅尔+深度色渐变）
     let L = normalize(fp.light);
     let nl = max(dot(nf, L), 0.0);
@@ -323,7 +325,8 @@ async def main():
     pygame.display.set_caption("fluid3d_game")
     screen = pygame.display.set_mode((800, 600)); pygame.render.set_fb_dump(True)
     cjk = pygame.font.Font("cjk", 15)
-    ac = pygame.render.access()
+    ac = pygame.render.access()                        # 主（交换链格式——主 canvas 通道）
+    ac_off = pygame.render.access(offscreen=True)          # 离屏（恒 RGBA8——离屏面管线用）
     cam_buf = ac.buffer(64, label="cam_buf")
     eye_buf = ac.buffer(16, label="eye_buf")
 
@@ -430,9 +433,9 @@ async def main():
                             (1, "uniform", fp_v)], label="fluid_bind_v")
     bind_s = ac.bind_group([(0, "texture", fluid_smooth),
                             (1, "uniform", fp_s)], label="fluid_bind_s")
-    blur_pipe = ac.pipeline(blur_shader, quad_fs, [bind_h],
+    blur_pipe = ac_off.pipeline(blur_shader, quad_fs, [bind_h],
                             cull="none", blend="opaque", label="fluid_blur_pipe")
-    fluid_pipe = ac.pipeline(fluid_shader, quad_fs, [bind_s],
+    fluid_pipe = ac_off.pipeline(fluid_shader, quad_fs, [bind_s],
                              cull="none", blend="opaque", label="fluid_ss_pipe")
     pixel_cam = pygame.render.game_camera_ortho(800, 600, 800, 600)
     dbg_renderer = pp.DebugLinesRenderer3D()
@@ -492,10 +495,10 @@ async def main():
         if core_pipe is None and count > 0:
             _cb, bind_c0 = core_uniforms[0]
             _gb, bind_g0 = glow_uniforms[0]
-            core_pipe = ac.pipeline(core_shader, sphere_mesh, [bind_c0], cull="back",
+            core_pipe = ac_off.pipeline(core_shader, sphere_mesh, [bind_c0], cull="back",
                                     blend="opaque", depth_mode="standard",
                                     depth_write=True, label="liq_core_pipe")
-            glow_pipe = ac.pipeline(glow_shader, sphere_mesh, [bind_g0], cull="back",
+            glow_pipe = ac_off.pipeline(glow_shader, sphere_mesh, [bind_g0], cull="back",
                                     blend="additive", depth_mode="standard",
                                     depth_write=False, label="liq_glow_pipe")
 

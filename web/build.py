@@ -20,6 +20,7 @@
 import argparse
 import os
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -60,10 +61,12 @@ INDEX_TEMPLATE = r"""<!DOCTYPE html>
   #status { font: 11px/1.6 Consolas, monospace; color: #6c6;
     min-height: 48px; white-space: pre-wrap; }
   #hint { font: 11px/1.6 sans-serif; color: #555; margin-top: auto; }
-  /* ── 右侧主区：画布（尺寸由游戏 set_mode 决定，页面只防溢出）── */
+  /* ── 右侧主区：画布（尺寸 = set_mode 语义 1:1，页面不做 max-*
+     非对称钳制——钳宽不钳高会横向拉伸整幅 NDC；超出视口走自然滚动，
+     与桌面窗口超出屏幕同语义。2026-11-28 定约）── */
   #main { flex: 1; display: flex; flex-direction: column;
     align-items: center; justify-content: center; min-width: 0; }
-  canvas { outline: none; max-width: 96vw; max-height: 82vh; }
+  canvas { outline: none; }
   #raf { color: #6c6; font: 11px/1 Consolas, monospace; opacity: .8;
     align-self: flex-end; padding: 4px 10px; }
   #wlog { width: calc(100% - 24px); box-sizing: border-box; height: 150px;
@@ -104,9 +107,11 @@ const _wl = document.getElementById('wlog');
 const _fmt = a => a.map(x => { try {
   return (x && x.message !== undefined) ? x.message : String(x);
 } catch (e) { return '<unprintable>'; } }).join(' ');
+window.__cap = [];
 for (const m of ['log', 'info', 'warn', 'error']) {
   const orig = console[m].bind(console);
   console[m] = (...a) => {
+    if (_fmt(a).includes('[ERROR]') || m === 'error') window.__cap.push('[' + m + '] ' + _fmt(a));
     _wl.textContent += '[' + m + '] ' + _fmt(a) + '\n';
     const lines = _wl.textContent.split('\n');
     if (lines.length > 200) _wl.textContent = lines.slice(-200).join('\n');
@@ -322,6 +327,18 @@ def main():
         big.parent.mkdir(parents=True, exist_ok=True)
         big.write_bytes(bytes(128 * 1024 * 1024))
         print(f"[OK] 大文件预置: {big} (128MB)")
+
+    # Live2D 模型部署（live2d 案例的 io 取用路径 = web 根 assets/；
+    # web/ 不入库——全量重建后若缺即从 test_examples 本地 vendor 回填，
+    # 覆盖同步保证模型文件与源一致）
+    models_src = ROOT / "examples" / "test_examples" / "assets" / "models"
+    if models_src.is_dir():
+        dst_models = WEB / "assets" / "models"
+        dst_models.mkdir(parents=True, exist_ok=True)
+        for d in models_src.iterdir():
+            if d.is_dir():
+                shutil.copytree(d, dst_models / d.name, dirs_exist_ok=True)
+        print(f"[OK] Live2D 模型部署: {dst_models}")
 
     # examples 自动同步（**分发副本根治**——手动 cp 忘记 = 用户跑旧脚本
     # 的伪 bug 两连，2026-11-20/21 实录）：examples 顶层 *.py 镜像到
