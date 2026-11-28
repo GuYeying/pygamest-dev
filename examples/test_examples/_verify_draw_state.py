@@ -1,7 +1,8 @@
-# 状态参数化验证（2026-11-27）——blend/cull 从全局改为逐绘制参数
+# 状态参数化验证（2026-11-27；2026-11-28 cull 随数据更新）——blend 走
+# 逐绘制参数，cull 与 VertexBuf 强绑定（buf.cull 属性）
 # ① 五种 blend 像素真值（BMP 取证，配合 STARFISH_FB_BMP）
 # ② wireframe 不跨调用残留（draw_batch 线框后 draw_surface 必须仍是实心）
-# ③ cull=back 的 3D 形状（离屏深度面，不崩）
+# ③ 3D gen_* 烤入 buf.cull=back（离屏深度面，不崩；buf.cull 可覆写）
 # ④ 旧 set_blend_mode / set_cull_mode 明确抛 RuntimeError
 # 退出：40 帧后自动返回
 import pygame
@@ -37,6 +38,9 @@ async def main():
 
     # ── 参数校验面 ──
     buf = pygame.gfxdraw.gen_rect(100, 80)
+    st("2D gen_rect 默认 cull=none", buf.cull == "none")
+    sphere = pygame.gfxdraw.gen_sphere(1.2)
+    st("gen_sphere 烤入 cull=back", sphere.cull == "back")
     try:
         with pygame.Surface((200, 200)).render() as t:
             pygame.gfxdraw.draw_batch(t, buf, blend="bogus")
@@ -44,13 +48,12 @@ async def main():
     except ValueError:
         st("非法 blend 抛 ValueError", True)
     try:
-        with pygame.Surface((200, 200)).render() as t:
-            pygame.gfxdraw.draw_batch(t, buf, cull="front")
-        st("cull=front 拒绝（只允 none/back）", False)
+        sphere.cull = "front"
+        st("buf.cull=front 拒绝（只允 none/back）", False)
     except ValueError:
-        st("cull=front 拒绝（只允 none/back）", True)
+        st("buf.cull=front 拒绝（只允 none/back）", True)
 
-    # ── ③ 3D：gen_* + draw_batch(cull=back)，主屏深度会话（一次性，随后 2D 覆盖）──
+    # ── ③ 3D：gen_* 烤入 back（剔除随数据），主屏深度会话（一次性，随后 2D 覆盖）──
     cam = pygame.render.game_camera_perspective(
         50.0, 800, 600, 800, 600, 0.1, 100.0)
     cam = cam.with_view(M.mat4_translation(0.0, 0.0, -5.0))
@@ -59,16 +62,15 @@ async def main():
             t.fill((0, 0, 0))
             pygame.gfxdraw.set_camera(t, cam)
             pygame.gfxdraw.draw_batch(
-                t, pygame.gfxdraw.gen_sphere(1.2),
-                cull="back", color=(200, 200, 200))
+                t, sphere, color=(200, 200, 200))
             pygame.gfxdraw.draw_batch(
                 t, pygame.gfxdraw.gen_cube(1.5),
                 transform=M.mat4_translation(2.2, 0.0, 0.0),
-                cull="back", color=(200, 120, 60))
+                color=(200, 120, 60))
             pygame.gfxdraw.clear_camera(t)
-        st("3D gen_* + cull=back 无异常", True)
+        st("3D gen_* 烤入 cull 无异常", True)
     except Exception as e:  # noqa: BLE001
-        st("3D gen_* + cull=back 无异常", False, repr(e))
+        st("3D gen_* 烤入 cull 无异常", False, repr(e))
     screen.set_camera(pygame.render.game_camera_ortho(800, 600, 800, 600))
 
     # ── ① / ② 主屏像素真值 ──

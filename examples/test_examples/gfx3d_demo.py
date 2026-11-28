@@ -62,25 +62,27 @@ async def main():
             # 3D 段：透视相机 + 深度测试管线
             pygame.gfxdraw.set_camera(rt, cam)
 
-            # 地板：薄盒（plane 直调渲染缺陷挂账——薄盒替代实证可靠）
-            pygame.gfxdraw.draw_batch(rt, floor_buf, color=(64, 72, 100), cull="back")
+            # 地板：薄盒（plane 直调渲染缺陷挂账——薄盒替代实证可靠；
+            # gen_box 闭实体已烤入 buf.cull="back"——剔除随数据）
+            pygame.gfxdraw.draw_batch(rt, floor_buf, color=(64, 72, 100))
 
             # 中央旋转立方体：几何固定，旋转 + 圆周位移全走 transform
+            # （cube_buf/sphere_buf 等 gen_* 闭实体已烤入 buf.cull="back"）
             rot = M.mat4_from_quat(M.quat_from_axis_angle(0.0, 1.0, 0.0, angle * 57.29578))
             cube_xform = M.mat4_translation(ca * 1.5, 0.0, sa * 1.5) @ rot
             pygame.gfxdraw.draw_batch(rt, cube_buf, color=(255, 155, 60),
-                                      cull="back", transform=cube_xform)
+                                      transform=cube_xform)
 
             # 球（左）：gen_sphere 以自身原点为心 → transform 摆位
             pygame.gfxdraw.draw_batch(rt, sphere_buf, color=(80, 210, 130),
-                                      cull="back", transform=t_sphere)
+                                      transform=t_sphere)
 
             # 圆柱 + 圆锥（右）：gen_* 以「柱高中点」为原点；
             # 圆锥摆在圆柱上方（+y 向下 → 更小的 y 才是「上面」）
             pygame.gfxdraw.draw_batch(rt, cylinder_buf, color=(90, 180, 255),
-                                      cull="back", transform=t_cyl)
+                                      transform=t_cyl)
             pygame.gfxdraw.draw_batch(rt, cone_buf, color=(255, 110, 120),
-                                      cull="back", transform=t_cone)
+                                      transform=t_cone)
 
             # polygon3d：竖立的六边形板（单面板不剔除）
             pygame.gfxdraw.draw_batch(rt, hex_buf, color=(240, 210, 90))
